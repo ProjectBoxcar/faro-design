@@ -1,0 +1,3121 @@
+{
+  "version": 1,
+  "phases": [
+    {
+      "id": "strategic",
+      "name": "Strategic",
+      "pillars": [
+        {
+          "id": "reality",
+          "name": "Reality",
+          "tagline": "client speaks, designer asks",
+          "sections": [
+            {
+              "id": "reality.problem",
+              "name": "Problem",
+              "resolver": "client",
+              "kind": "input",
+              "internal": false,
+              "reads": [],
+              "helpText": "The pain or need the institution resolves for its audience. State it as the client's pain, not the company's offering.",
+              "triggerQuestions": [
+                "What problem does your client have before they find you?",
+                "What happens if they do not solve it?",
+                "How do they solve it today without you?"
+              ],
+              "fields": [
+                {
+                  "id": "statement",
+                  "label": "Problem statement",
+                  "type": "textarea"
+                },
+                {
+                  "id": "consequence",
+                  "label": "Cost of not solving it",
+                  "type": "textarea"
+                },
+                {
+                  "id": "current-workaround",
+                  "label": "How they cope today without you",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "reality.solution",
+              "name": "Solution",
+              "resolver": "client",
+              "kind": "input",
+              "internal": false,
+              "reads": [
+                "reality.problem"
+              ],
+              "helpText": "The concrete answer the institution offers to the problem. What the client receives, not the promise.",
+              "triggerQuestions": [
+                "What do you offer that solves that problem?",
+                "How do you solve it differently from everyone else?",
+                "What does your client walk away with at the end of the process?"
+              ],
+              "fields": [
+                {
+                  "id": "statement",
+                  "label": "Solution offered",
+                  "type": "textarea"
+                },
+                {
+                  "id": "how-different",
+                  "label": "How the approach differs",
+                  "type": "textarea"
+                },
+                {
+                  "id": "end-result",
+                  "label": "What the client receives at the end",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "reality.value-proposition",
+              "name": "Value Proposition",
+              "resolver": "collab",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "reality.problem",
+                "reality.solution"
+              ],
+              "helpText": "A single statement that synthesizes what the institution does and why it matters, from the client's point of view. Answers 'what do you sell?' (not 'why?', which belongs to Purpose). If it sounds identical to Purpose, the Purpose lacks depth.",
+              "triggerQuestions": [
+                "If you had 10 seconds to explain what you do, what would you say?",
+                "What makes your service valuable to the person who receives it?"
+              ],
+              "fields": [
+                {
+                  "id": "statement",
+                  "label": "Value proposition (one sentence)",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "reality.differentiator",
+              "name": "Differentiator",
+              "resolver": "collab",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "reality.solution",
+                "reality.market-context"
+              ],
+              "helpText": "The concrete reason a client would choose this institution over another. Competitive, not motivational. Not a slogan, the part of the process that is impossible to copy.",
+              "triggerQuestions": [
+                "What do you do that your competition does not?",
+                "What part of your process is impossible to copy?",
+                "If a client compares you to another provider, what feels different?"
+              ],
+              "fields": [
+                {
+                  "id": "statement",
+                  "label": "Differentiator",
+                  "type": "textarea"
+                },
+                {
+                  "id": "uncopyable",
+                  "label": "The part that cannot be copied",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "reality.ideal-client",
+              "name": "Ideal Client",
+              "resolver": "client",
+              "kind": "input",
+              "internal": false,
+              "reads": [],
+              "helpText": "The profile of the person or company the institution works best with. Not anyone who pays, but who produces the best results and the best working relationship.",
+              "triggerQuestions": [
+                "With what kind of client have you had the best results?",
+                "What did those clients have in common?",
+                "Is there a type of client you prefer not to work with? Why?"
+              ],
+              "fields": [
+                {
+                  "id": "profile",
+                  "label": "Ideal client profile",
+                  "type": "textarea"
+                },
+                {
+                  "id": "common-traits",
+                  "label": "Traits the best clients share",
+                  "type": "textarea"
+                },
+                {
+                  "id": "anti-client",
+                  "label": "Who you prefer not to work with",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "reality.business-stage",
+              "name": "Business Stage",
+              "resolver": "client",
+              "kind": "input",
+              "internal": false,
+              "reads": [],
+              "helpText": "The stage the institution is in. The stage defines the type of intervention, the scope, and realistic expectations. Operational stage, distinct from Self-Perception (which is how the institution sees itself in that stage).",
+              "triggerQuestions": [
+                "Is your business in launch, growth, consolidation, or reinvention?",
+                "What changed recently that made you think about your brand?",
+                "Where is your business heading in the next two years?"
+              ],
+              "fields": [
+                {
+                  "id": "stage",
+                  "label": "Stage",
+                  "type": "enum",
+                  "options": [
+                    "Launch",
+                    "Growth",
+                    "Consolidation",
+                    "Reinvention"
+                  ]
+                },
+                {
+                  "id": "trigger",
+                  "label": "What recently triggered the brand conversation",
+                  "type": "textarea"
+                },
+                {
+                  "id": "trajectory",
+                  "label": "Where the business is heading",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "reality.market-context",
+              "name": "Market Context",
+              "resolver": "collab",
+              "kind": "partial",
+              "internal": false,
+              "reads": [
+                "reality.differentiator"
+              ],
+              "helpText": "A practical understanding of who the institution competes against and how it differentiates in practice. Describes the terrain objectively; do not confuse with Position Toward the Industry (a subjective stance).",
+              "triggerQuestions": [
+                "Who else does what you do in your market?",
+                "How are you perceived next to them?",
+                "Is there something they offer that you do not, or vice versa?",
+                "Does your client compare you to someone before choosing you?"
+              ],
+              "fields": [
+                {
+                  "id": "players",
+                  "label": "Dominant players and how they operate",
+                  "type": "textarea"
+                },
+                {
+                  "id": "comparison",
+                  "label": "Who clients compare you to",
+                  "type": "textarea"
+                },
+                {
+                  "id": "practical-difference",
+                  "label": "How you differentiate in practice",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "reality.operational-quirks",
+              "name": "Operational Quirks",
+              "resolver": "client",
+              "kind": "input",
+              "internal": false,
+              "reads": [],
+              "helpText": "The decisions, habits, or rules that reveal the institution's culture and impact the brand. Every company has them even if undocumented; surfacing them is the diagnostic work.",
+              "triggerQuestions": [
+                "What does your company do that no competitor does, even if you do not advertise it?",
+                "Is there something you would never do in your business, even if it made more money?",
+                "What decision did you once make that made no financial sense but felt right?",
+                "What is the first thing someone who works with you for a week would notice?",
+                "If your company disappeared tomorrow, what would clients miss that they could not find elsewhere?"
+              ],
+              "fields": [
+                {
+                  "id": "quirks",
+                  "label": "Cultural decisions, habits and rules",
+                  "type": "list"
+                }
+              ]
+            },
+            {
+              "id": "reality.service",
+              "name": "Service",
+              "resolver": "client",
+              "kind": "input",
+              "internal": false,
+              "reads": [],
+              "helpText": "What the institution concretely offers. Not the promise or the differentiator, the operational description of what is sold.",
+              "triggerQuestions": [
+                "What exactly do you sell?",
+                "Do you have more than one service or product line?",
+                "Are they complementary or independent?"
+              ],
+              "fields": [
+                {
+                  "id": "lines",
+                  "label": "Service and product lines",
+                  "type": "list"
+                },
+                {
+                  "id": "relationship",
+                  "label": "Are the lines complementary or independent?",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "reality.service-structure",
+              "name": "Service Structure",
+              "resolver": "client",
+              "kind": "input",
+              "internal": false,
+              "reads": [
+                "reality.service"
+              ],
+              "helpText": "Packages and pricing. The structure of how the offering is sold, including what scope each package covers and the role the institution plays in each.",
+              "triggerQuestions": [
+                "What packages or tiers do you offer?",
+                "What does each one include and what phase does it cover?",
+                "What is the price range and your role in each?"
+              ],
+              "fields": [
+                {
+                  "id": "packages",
+                  "label": "Packages",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "package",
+                      "label": "Package",
+                      "type": "text"
+                    },
+                    {
+                      "id": "for-whom",
+                      "label": "For whom",
+                      "type": "text"
+                    },
+                    {
+                      "id": "includes",
+                      "label": "What it includes",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "phase",
+                      "label": "Phase covered",
+                      "type": "text"
+                    },
+                    {
+                      "id": "price",
+                      "label": "Price / time",
+                      "type": "text"
+                    },
+                    {
+                      "id": "role",
+                      "label": "Role",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "reality.brand-architecture",
+              "name": "Brand Architecture (inventory)",
+              "resolver": "collab",
+              "kind": "partial",
+              "internal": false,
+              "reads": [
+                "reality.service"
+              ],
+              "helpText": "How brands, products, or lines are organized today. This is a diagnosis of what exists, not a definition of how they should relate (that happens in Communication).",
+              "triggerQuestions": [
+                "Does your company have more than one brand, product, or line?",
+                "Are they complementary or independent?",
+                "Does the public know they belong to the same company?",
+                "Do they share clients or does each have its own audience?"
+              ],
+              "fields": [
+                {
+                  "id": "brands",
+                  "label": "Existing brands inventory",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "brand",
+                      "label": "Brand / product / line",
+                      "type": "text"
+                    },
+                    {
+                      "id": "role",
+                      "label": "Role today",
+                      "type": "text"
+                    },
+                    {
+                      "id": "recognition",
+                      "label": "Public recognition",
+                      "type": "text"
+                    },
+                    {
+                      "id": "relationship",
+                      "label": "Relationship to the others",
+                      "type": "textarea"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "reality.acquisition-channels",
+              "name": "Acquisition Channels",
+              "resolver": "client",
+              "kind": "input",
+              "internal": false,
+              "reads": [
+                "reality.ideal-client"
+              ],
+              "helpText": "How clients reach the institution, and the strategy behind each channel, not just where it publishes.",
+              "triggerQuestions": [
+                "How do your clients find you today?",
+                "Which channel brings the best clients (not the most, the best)?",
+                "Is there a channel you would like to activate but have not been able to?"
+              ],
+              "fields": [
+                {
+                  "id": "channels",
+                  "label": "Channel map",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "channel",
+                      "label": "Channel",
+                      "type": "text"
+                    },
+                    {
+                      "id": "function",
+                      "label": "Function",
+                      "type": "text"
+                    },
+                    {
+                      "id": "audience",
+                      "label": "Audience",
+                      "type": "text"
+                    },
+                    {
+                      "id": "brand",
+                      "label": "Brand",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "id": "primary",
+                  "label": "Primary channel",
+                  "type": "text"
+                }
+              ]
+            },
+            {
+              "id": "reality.capacity",
+              "name": "Capacity",
+              "resolver": "client",
+              "kind": "input",
+              "internal": false,
+              "reads": [],
+              "helpText": "The real resources available to operate. Defines how many projects can be taken on, with what dedication, and under what conditions. Has direct pricing implications.",
+              "triggerQuestions": [
+                "How many projects can you handle at once without sacrificing quality?",
+                "Are there resources you lack to operate the way you want?",
+                "What would have to happen for you to dedicate yourself to this full time?"
+              ],
+              "fields": [
+                {
+                  "id": "availability",
+                  "label": "Current availability",
+                  "type": "textarea"
+                },
+                {
+                  "id": "capacity",
+                  "label": "Project capacity at current availability",
+                  "type": "textarea"
+                },
+                {
+                  "id": "pricing-implication",
+                  "label": "Implication for pricing",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "reality.evaluation-criteria",
+              "name": "Evaluation Criteria",
+              "resolver": "designer",
+              "kind": "eval",
+              "internal": true,
+              "reads": [
+                "reality.problem",
+                "reality.differentiator",
+                "reality.business-stage",
+                "reality.capacity"
+              ],
+              "helpText": "Internal viability gate applied before committing to any project. Twelve Yes/No items in three buckets. A 'No' on a non-negotiable (#1 or #3) blocks the project; other non-negotiable failures flag a business-model or iteration risk.",
+              "triggerQuestions": [
+                "Do the four non-negotiable conditions hold?",
+                "Are any warning signs present?",
+                "Are the positive signals present that make this an ideal engagement?"
+              ],
+              "fields": [
+                {
+                  "id": "criteria",
+                  "label": "Viability criteria",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "criterion",
+                      "label": "Criterion",
+                      "type": "text"
+                    },
+                    {
+                      "id": "type",
+                      "label": "Type",
+                      "type": "enum",
+                      "options": [
+                        "non-negotiable",
+                        "warning",
+                        "positive"
+                      ]
+                    },
+                    {
+                      "id": "answer",
+                      "label": "Answer",
+                      "type": "enum",
+                      "options": [
+                        "yes",
+                        "no"
+                      ]
+                    },
+                    {
+                      "id": "implication",
+                      "label": "Implication",
+                      "type": "textarea"
+                    }
+                  ],
+                  "items": [
+                    {
+                      "criterion": "Does the business have recurring sales?",
+                      "type": "non-negotiable",
+                      "implication": "No = do not proceed."
+                    },
+                    {
+                      "criterion": "Can the founder describe their differentiator in one sentence without hesitating?",
+                      "type": "non-negotiable",
+                      "implication": "No = the issue is the business model, not the brand."
+                    },
+                    {
+                      "criterion": "Is there a budget assigned to the project?",
+                      "type": "non-negotiable",
+                      "implication": "No = do not proceed."
+                    },
+                    {
+                      "criterion": "Is there a clear decision-maker who can approve creative direction?",
+                      "type": "non-negotiable",
+                      "implication": "No = risk of endless iteration."
+                    },
+                    {
+                      "criterion": "Is the client asking for 'just a logo' with no interest in the process?",
+                      "type": "warning",
+                      "implication": "Yes = risk. You can educate, but if there is active resistance, do not proceed."
+                    },
+                    {
+                      "criterion": "Is the founder willing to engage personally in the process?",
+                      "type": "warning",
+                      "implication": "No = the result loses depth; if they delegate everything without participating, the strategic phase fails."
+                    },
+                    {
+                      "criterion": "Do they know who their audience is?",
+                      "type": "warning",
+                      "implication": "No = the issue is segmentation, not the brand."
+                    },
+                    {
+                      "criterion": "Have they changed designer or agency more than twice in a short period?",
+                      "type": "warning",
+                      "implication": "Yes = possible problem on the client side."
+                    },
+                    {
+                      "criterion": "Do they feel their image got too small for what the business already is?",
+                      "type": "positive",
+                      "implication": "Yes = the perfect tension for branding."
+                    },
+                    {
+                      "criterion": "Have they tried to solve the brand on their own and it did not work?",
+                      "type": "positive",
+                      "implication": "Yes = they understand the value of the process."
+                    },
+                    {
+                      "criterion": "Are they in a moment of growth or transition?",
+                      "type": "positive",
+                      "implication": "Yes = the brand has real urgency."
+                    },
+                    {
+                      "criterion": "Does the founder show curiosity about understanding the process?",
+                      "type": "positive",
+                      "implication": "Yes = ideal client."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "identity",
+          "name": "Identity",
+          "tagline": "client opens up, designer interprets",
+          "sections": [
+            {
+              "id": "identity.origin",
+              "name": "Origin",
+              "resolver": "client",
+              "kind": "input",
+              "internal": false,
+              "reads": [
+                "reality.operational-quirks"
+              ],
+              "helpText": "The institution's story: how it was born, what shaped it, the experiences that defined its way of working. Not a decorative biography, the root of today's decisions. For institutions with multiple founders or a team, include the collective story.",
+              "triggerQuestions": [
+                "How did your business start?",
+                "Was there a specific moment that changed the way you work?",
+                "What past experience explains why you do things the way you do today?",
+                "What did you learn from your worst projects?"
+              ],
+              "fields": [
+                {
+                  "id": "narrative",
+                  "label": "Origin story (as narrative)",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "identity.self-perception",
+              "name": "Self-Perception",
+              "resolver": "client",
+              "kind": "input",
+              "internal": false,
+              "reads": [
+                "identity.origin"
+              ],
+              "helpText": "How the institution sees itself right now, honestly, with strengths and limitations. Not how it wants to be seen or how others see it. For teams, contrast the founder's view with the team's.",
+              "triggerQuestions": [
+                "If you introduced your business to a stranger, what would you say in three sentences?",
+                "What do you do well and what have you not yet figured out?",
+                "How do you describe yourself professionally today, not how you wish to be?"
+              ],
+              "fields": [
+                {
+                  "id": "statement",
+                  "label": "Honest self-description today",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "identity.aspiration",
+              "name": "Aspiration",
+              "resolver": "client",
+              "kind": "input",
+              "internal": false,
+              "reads": [],
+              "helpText": "Where the institution wants to go. Not a sales target or a five-year plan, the vision of what it wants to be when everything works as it should.",
+              "triggerQuestions": [
+                "How would you like to be described in five years?",
+                "What would have to happen for you to feel you made it?",
+                "Is there anyone in your industry already where you want to be?"
+              ],
+              "fields": [
+                {
+                  "id": "statement",
+                  "label": "Aspiration",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "identity.principle",
+              "name": "Principle",
+              "resolver": "collab",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "identity.self-perception",
+                "identity.beliefs"
+              ],
+              "helpText": "The non-negotiable rule the institution sets for itself. Not a value or an aspiration, the minimum standard it measures itself against. If it is not met, there is incoherence.",
+              "triggerQuestions": [
+                "What is the one thing you would never sacrifice in how you work?",
+                "How would you know if you were failing at what matters most?",
+                "What promise do you make to yourself, not to the client?"
+              ],
+              "fields": [
+                {
+                  "id": "statement",
+                  "label": "Non-negotiable principle",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "identity.beliefs",
+              "name": "Beliefs",
+              "resolver": "client",
+              "kind": "input",
+              "internal": false,
+              "reads": [],
+              "helpText": "The convictions that define how the institution understands its field. Not operating values or motivational phrases, the ideas that guide professional decisions and do not change with trends.",
+              "triggerQuestions": [
+                "What do you believe is true in your industry that most people ignore?",
+                "What would you do differently if you could change how your sector works?",
+                "Is there something you believe firmly even if it is not popular?",
+                "What advice would you give someone starting out in what you do?"
+              ],
+              "fields": [
+                {
+                  "id": "beliefs",
+                  "label": "Core beliefs",
+                  "type": "list"
+                }
+              ]
+            },
+            {
+              "id": "identity.position",
+              "name": "Position Toward the Industry",
+              "resolver": "collab",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "identity.beliefs",
+                "reality.market-context"
+              ],
+              "helpText": "A subjective declaration of which ways of working the institution defines itself against, and why. Built from experience, not opinion. Do not repeat the market description (that is Market Context); here you take a stance.",
+              "triggerQuestions": [
+                "Who do your clients compare you to?",
+                "What do others in your industry do that you would not?",
+                "Is there anyone whose work you respect even though it differs from yours?",
+                "What kind of competitor frustrates you most, and why?"
+              ],
+              "fields": [
+                {
+                  "id": "against",
+                  "label": "Ways of working you define yourself against",
+                  "type": "textarea"
+                },
+                {
+                  "id": "respected",
+                  "label": "A reference you respect, and why",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "identity.golden-circle",
+              "name": "Golden Circle",
+              "resolver": "collab",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "identity.beliefs",
+                "reality.value-proposition"
+              ],
+              "helpText": "Three questions that synthesize the institution's reason for being. The 'how' is motivational (how you work because you believe in it), distinct from the competitive Differentiator. If they coincide, it is coherence, not redundancy.",
+              "triggerQuestions": [
+                "What do you concretely do for your client? (what)",
+                "What is your particular way of doing it? (how)",
+                "What moves you to do it beyond money? (why)"
+              ],
+              "fields": [
+                {
+                  "id": "what",
+                  "label": "What",
+                  "type": "textarea"
+                },
+                {
+                  "id": "how",
+                  "label": "How",
+                  "type": "textarea"
+                },
+                {
+                  "id": "why",
+                  "label": "Why",
+                  "type": "textarea"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "image",
+          "name": "Image",
+          "tagline": "designer works, client only supplies contacts",
+          "sections": [
+            {
+              "id": "image.survey-design",
+              "name": "Survey Design",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "identity.self-perception",
+                "identity.beliefs",
+                "identity.golden-circle"
+              ],
+              "helpText": "The central tool of this pillar. Questions are born directly from Identity: each claim becomes a hypothesis the survey validates or contradicts. The goal is not to collect praise but to find gaps. Split into professional and personal sets.",
+              "triggerQuestions": [
+                "Which aspects of the identity do you most urgently need to validate?",
+                "Who knows your work best (not who likes you most)?",
+                "Is there anyone who decided not to work with you? Their perspective is valuable."
+              ],
+              "fields": [
+                {
+                  "id": "professional-questions",
+                  "label": "Questions for clients and colleagues (professional)",
+                  "type": "list"
+                },
+                {
+                  "id": "personal-questions",
+                  "label": "Questions for acquaintances and friends (personal)",
+                  "type": "list"
+                }
+              ]
+            },
+            {
+              "id": "image.respondents",
+              "name": "Respondent Selection",
+              "resolver": "collab",
+              "kind": "input",
+              "internal": false,
+              "reads": [
+                "image.survey-design"
+              ],
+              "helpText": "Minimum 5 respondents to spot patterns, ideally 10+. Fewer than 5 is anecdotal. The sample must include different relationships: at least 2 clients, 2 colleagues or suppliers, 1 who knows the founder but not the work, ideally 1 who chose a competitor.",
+              "triggerQuestions": [
+                "Who knows the result of your work (clients)?",
+                "Who knows your way of working (colleagues, suppliers)?",
+                "Who knows you as a person but not your service?",
+                "Is there someone who declined to work with you, to reveal hidden objections?"
+              ],
+              "fields": [
+                {
+                  "id": "respondents",
+                  "label": "Selected respondents",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "name",
+                      "label": "Name / label",
+                      "type": "text"
+                    },
+                    {
+                      "id": "relationship",
+                      "label": "Relationship",
+                      "type": "text"
+                    },
+                    {
+                      "id": "language",
+                      "label": "Language",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "image.distribution",
+              "name": "Survey Distribution",
+              "resolver": "client",
+              "kind": "input",
+              "internal": false,
+              "reads": [
+                "image.respondents"
+              ],
+              "helpText": "The medium changes the depth of answers. WhatsApp / direct message for spontaneous, honest answers (small close circles); email for considered answers (corporate); form for structured, tabulatable answers or anonymity (large samples).",
+              "triggerQuestions": [
+                "Which medium fits each respondent group?",
+                "Do you need anonymity for honest answers?",
+                "Are the relationships close and informal, or formal and corporate?"
+              ],
+              "fields": [
+                {
+                  "id": "medium",
+                  "label": "Distribution medium and rationale",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "image.results",
+              "name": "Results",
+              "resolver": "collab",
+              "kind": "input",
+              "internal": false,
+              "reads": [
+                "image.survey-design",
+                "image.distribution"
+              ],
+              "helpText": "The raw survey responses, gathered per respondent. Client provides contacts and forwards; designer collects. Keep responses verbatim here; synthesis happens downstream.",
+              "triggerQuestions": [
+                "What did each respondent answer to each question?",
+                "Did anyone give an answer that surprised you?"
+              ],
+              "fields": [
+                {
+                  "id": "responses",
+                  "label": "Responses by respondent",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "respondent",
+                      "label": "Respondent",
+                      "type": "text"
+                    },
+                    {
+                      "id": "describe-work",
+                      "label": "Describes my work",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "way-of-working",
+                      "label": "Way of working",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "strength",
+                      "label": "Biggest strength",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "improve",
+                      "label": "Could improve",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "recommend",
+                      "label": "Would recommend?",
+                      "type": "textarea"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "image.pattern-analysis",
+              "name": "Pattern Analysis",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "image.results"
+              ],
+              "helpText": "Synthesis of what the results reveal together. Not a summary of individual answers, the recurring patterns that define how the institution is actually perceived: strengths, way of working, areas to improve, recommendation rate.",
+              "triggerQuestions": [
+                "What words or ideas repeat without you having suggested them?",
+                "Is there something people mention that you did not include in the identity?",
+                "Which strengths are mentioned most, and which least?",
+                "Do the areas to improve converge or are they scattered?"
+              ],
+              "fields": [
+                {
+                  "id": "strengths",
+                  "label": "Most-mentioned strengths",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "strength",
+                      "label": "Strength",
+                      "type": "text"
+                    },
+                    {
+                      "id": "mentions",
+                      "label": "Mentions",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "id": "way-of-working",
+                  "label": "Perceived way of working",
+                  "type": "textarea"
+                },
+                {
+                  "id": "improvements",
+                  "label": "Areas to improve",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "area",
+                      "label": "Area",
+                      "type": "text"
+                    },
+                    {
+                      "id": "mentions",
+                      "label": "Mentions",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "id": "recommendation",
+                  "label": "Recommendation rate",
+                  "type": "text"
+                }
+              ]
+            },
+            {
+              "id": "image.contrast",
+              "name": "Contrast with Identity",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "identity.self-perception",
+                "identity.golden-circle",
+                "image.pattern-analysis"
+              ],
+              "helpText": "The most revealing moment of the pillar. Place what the institution believes about itself next to what people perceive. Matches validate identity; differences reveal gaps to address before defining communication. The central gap exercise.",
+              "triggerQuestions": [
+                "Does what they said match how you described yourself in self-perception?",
+                "Is there something they mention that you had not thought of?",
+                "Is there something you believed important that no one mentioned?",
+                "Is the gap one of ability, of visibility, or of coherence?"
+              ],
+              "fields": [
+                {
+                  "id": "how-they-see",
+                  "label": "How they see me (image)",
+                  "type": "textarea"
+                },
+                {
+                  "id": "how-i-see",
+                  "label": "How I see myself (identity)",
+                  "type": "textarea"
+                },
+                {
+                  "id": "gap",
+                  "label": "The gap (one sentence)",
+                  "type": "textarea"
+                },
+                {
+                  "id": "validates",
+                  "label": "What the image validates of the identity",
+                  "type": "textarea"
+                },
+                {
+                  "id": "reveals",
+                  "label": "What the image reveals that the identity did not say",
+                  "type": "textarea"
+                },
+                {
+                  "id": "action",
+                  "label": "Action this implies for communication",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "image.key-finding",
+              "name": "Key Finding",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "image.pattern-analysis",
+                "image.contrast"
+              ],
+              "helpText": "The single most consolidated insight from the survey: a word or idea that appears organically and repeatedly across respondents, confirming a perception the strategy can build on.",
+              "triggerQuestions": [
+                "What is the one perception that appears again and again, unprompted?",
+                "Which strategic claim does the survey confirm is real, not invented?"
+              ],
+              "fields": [
+                {
+                  "id": "finding",
+                  "label": "Key finding",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "image.sample-limitation",
+              "name": "Sample Limitation",
+              "resolver": "designer",
+              "kind": "input",
+              "internal": false,
+              "reads": [
+                "image.respondents"
+              ],
+              "helpText": "Honest acknowledgement of how the sample biases the image (e.g. only close contacts, no detractors). Does not invalidate patterns, but names what the sample cannot capture.",
+              "triggerQuestions": [
+                "Who is missing from the sample (detractors, neutrals, those who chose a competitor)?",
+                "How does that bias the perceived image?",
+                "What objections might the close circle not be able to see?"
+              ],
+              "fields": [
+                {
+                  "id": "limitation",
+                  "label": "Sample limitation",
+                  "type": "textarea"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "communication",
+          "name": "Communication",
+          "tagline": "designer creates, client validates",
+          "sections": [
+            {
+              "id": "communication.purpose",
+              "name": "Purpose",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "identity.golden-circle",
+                "image.contrast"
+              ],
+              "helpText": "The institution's reason for being beyond making money. Internal but can be public. Answers why the institution exists and what void it would leave. Not a slogan, the founding declaration. If it sounds like the Value Proposition, deepen it.",
+              "triggerQuestions": [
+                "Why does your company exist beyond making money?",
+                "What would happen if your business disappeared tomorrow?",
+                "What void would you fill if you could change something in your industry?"
+              ],
+              "fields": [
+                {
+                  "id": "statement",
+                  "label": "Purpose",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "communication.values",
+              "name": "Values",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "image.pattern-analysis",
+                "image.contrast"
+              ],
+              "helpText": "Principles that guide decisions, verifiable in practice, ordered by what the survey confirmed (what people see is what to amplify). 3 to 5 communicable values; more than 5 dilutes, fewer than 3 fails to define.",
+              "triggerQuestions": [
+                "What principle guides your decisions when there is a dilemma?",
+                "What would you do even if it were not profitable?",
+                "What behavior would you not tolerate in your team?",
+                "What is the first thing clients notice about how you work?"
+              ],
+              "fields": [
+                {
+                  "id": "values",
+                  "label": "Communicable values (3-5, ordered by survey)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "value",
+                      "label": "Value",
+                      "type": "text"
+                    },
+                    {
+                      "id": "description",
+                      "label": "Description",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "confirmed-by",
+                      "label": "Confirmed by (survey)",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "communication.operating-principles",
+              "name": "Operating Principles",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "communication.values",
+                "image.pattern-analysis"
+              ],
+              "helpText": "Principles practiced internally but not preached publicly. If the survey shows them as a perceived strength but they are not a communicable value, they are operating principles: demonstrated, not declared.",
+              "triggerQuestions": [
+                "Which principles guide internal decisions but do not need to be public?",
+                "What standard does the client experience without you having to say it?"
+              ],
+              "fields": [
+                {
+                  "id": "principles",
+                  "label": "Operating principles",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "principle",
+                      "label": "Principle",
+                      "type": "text"
+                    },
+                    {
+                      "id": "description",
+                      "label": "Description",
+                      "type": "textarea"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "communication.personality",
+              "name": "Personality",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "image.contrast",
+                "identity.self-perception"
+              ],
+              "helpText": "How the brand behaves in practice (a meeting, an email, a decision, a conflict). Defined from real behavior patterns and validated against the image. 3 to 5 distinguishable, verifiable traits.",
+              "triggerQuestions": [
+                "If your brand were a person in a meeting, how would it behave?",
+                "What three adjectives would clients use for the experience of working with you?",
+                "What kind of person is your brand NOT?",
+                "How does your company make decisions?",
+                "What bothers your brand? What does it not tolerate?"
+              ],
+              "fields": [
+                {
+                  "id": "traits",
+                  "label": "Personality traits (3-5)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "trait",
+                      "label": "Trait",
+                      "type": "text"
+                    },
+                    {
+                      "id": "description",
+                      "label": "Description",
+                      "type": "textarea"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "communication.tone",
+              "name": "Tone of Voice",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "communication.personality",
+                "image.contrast"
+              ],
+              "helpText": "How the brand speaks, consistent across any channel or piece. Not the execution (that is design), the definition of how it should always sound. 3 to 5 characteristics, each applicable to any piece from an email to a post.",
+              "triggerQuestions": [
+                "If your brand wrote a client email, would it sound formal, close, technical, warm?",
+                "Does your brand use humor? What kind?",
+                "Does it prefer examples or getting straight to the point?",
+                "How much does it talk? Long paragraphs or short sentences?",
+                "How does it sound when it says no?"
+              ],
+              "fields": [
+                {
+                  "id": "characteristics",
+                  "label": "Tone characteristics (3-5)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "characteristic",
+                      "label": "Characteristic",
+                      "type": "text"
+                    },
+                    {
+                      "id": "description",
+                      "label": "Description",
+                      "type": "textarea"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "communication.promise",
+              "name": "Brand Promise",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "communication.purpose",
+                "communication.values"
+              ],
+              "helpText": "What the audience can always expect when they choose to work with the institution. Not a slogan, an implicit commitment. If the real experience does not meet it, the promise breaks. If it cannot be broken, it is a description, not a promise.",
+              "triggerQuestions": [
+                "What can someone working with you always expect?",
+                "What should never happen in the experience with your brand?",
+                "If a client told another what they received, what would you want them to say?"
+              ],
+              "fields": [
+                {
+                  "id": "statement",
+                  "label": "Brand promise",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "communication.brand-architecture",
+              "name": "Brand Architecture (definition)",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "reality.brand-architecture",
+                "image.contrast"
+              ],
+              "helpText": "How the brands should relate strategically: which is the parent, which is a product, what is discarded, how they coexist across channels. Decided after the identity/image contrast, since perception may show a sub-brand is not recognized.",
+              "triggerQuestions": [
+                "Of the existing brands, which holds the public's trust?",
+                "Does any sub-brand have its own recognition or does it depend on the founder's name?",
+                "Can the client manage more than one brand with current capacity?",
+                "Do the brands strengthen each other or compete for the same attention?",
+                "If you could keep only one brand, which would it be and why?"
+              ],
+              "fields": [
+                {
+                  "id": "definition",
+                  "label": "Defined architecture (parent / product / discarded)",
+                  "type": "textarea"
+                },
+                {
+                  "id": "coexistence",
+                  "label": "How they coexist across channels",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "communication.deferred",
+              "name": "Deferred Items",
+              "resolver": "designer",
+              "kind": "input",
+              "internal": false,
+              "reads": [
+                "communication.tone",
+                "communication.personality"
+              ],
+              "helpText": "Elements identified here but produced later, once the brand concept gives direction: manifesto (Planning), naming and verbal identity (Design). Names what is coming and why it waits.",
+              "triggerQuestions": [
+                "Which communication elements need the brand concept before they can be produced?",
+                "Where does each deferred element get produced and why?"
+              ],
+              "fields": [
+                {
+                  "id": "items",
+                  "label": "Deferred items",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "element",
+                      "label": "Element",
+                      "type": "text"
+                    },
+                    {
+                      "id": "produced-in",
+                      "label": "Produced in",
+                      "type": "text"
+                    },
+                    {
+                      "id": "reason",
+                      "label": "Reason",
+                      "type": "textarea"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "handoff",
+      "name": "Strategy Close / Handoff",
+      "pillars": [
+        {
+          "id": "strategic-document",
+          "name": "Strategic Document",
+          "tagline": "designer writes, client validates",
+          "sections": [
+            {
+              "id": "strategic-document.reality",
+              "name": "1. Reality (context)",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "reality.problem",
+                "reality.solution",
+                "reality.ideal-client",
+                "reality.market-context",
+                "reality.brand-architecture"
+              ],
+              "helpText": "Client-facing narrative synthesis, first person, no jargon. A brief intro that anchors the rest. Half a page. Excludes pricing, packages, channels, capacity, operational quirks (that is internal operation).",
+              "triggerQuestions": [
+                "What is the minimum someone needs to know about this company for the rest to make sense?",
+                "Can I summarize problem, solution and ideal client in one paragraph without losing precision?",
+                "Am I repeating what the client said verbatim, or interpreting it?"
+              ],
+              "fields": [
+                {
+                  "id": "narrative",
+                  "label": "Reality narrative (context)",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "strategic-document.identity",
+              "name": "2. Identity",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "identity.origin",
+                "identity.self-perception",
+                "identity.aspiration",
+                "identity.principle",
+                "identity.beliefs",
+                "identity.position",
+                "identity.golden-circle"
+              ],
+              "helpText": "How the institution sees itself. The most human section, generating emotional connection. Origin first (as narrative), closing with the reason for being (Golden Circle). 2 to 3 pages.",
+              "triggerQuestions": [
+                "Does the origin read as a story or a list of facts?",
+                "Is the self-perception honest or aspirational?",
+                "Do the beliefs sound like real convictions or motivational phrases?",
+                "Does the position declare something concrete or is it a generic complaint?"
+              ],
+              "fields": [
+                {
+                  "id": "narrative",
+                  "label": "Identity narrative",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "strategic-document.image",
+              "name": "3. Image",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "image.contrast",
+                "image.key-finding"
+              ],
+              "helpText": "How others see the institution. The section that most surprises the client. Patterns as conclusions, not raw data or individual respondents. The gap stated in one sentence. 1 to 2 pages.",
+              "triggerQuestions": [
+                "Am I presenting patterns or listing individual answers? Patterns only.",
+                "Is the gap clear in one sentence?",
+                "Did I separate what enriches the identity from what is operational?",
+                "Does what it validates feel like a discovery, not an obvious confirmation?"
+              ],
+              "fields": [
+                {
+                  "id": "narrative",
+                  "label": "Image narrative",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "strategic-document.communication",
+              "name": "4. Communication",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "communication.purpose",
+                "communication.values",
+                "communication.operating-principles",
+                "communication.personality",
+                "communication.tone",
+                "communication.promise"
+              ],
+              "helpText": "How the brand should express itself. The most practical section: the client leaves with purpose, values, personality, tone and promise. Excludes image-validation and trigger questions (that is process). 2 to 3 pages.",
+              "triggerQuestions": [
+                "Is the purpose understood without context, or does it need explanation?",
+                "Is each value verifiable in practice or aspirational?",
+                "Are the personality traits distinguishable from one another?",
+                "Could the tone characteristics apply to any piece of communication?",
+                "Is the promise something the client can fail to keep?"
+              ],
+              "fields": [
+                {
+                  "id": "narrative",
+                  "label": "Communication narrative",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "strategic-document.direction",
+              "name": "5. Direction",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "image.contrast",
+                "communication.deferred"
+              ],
+              "helpText": "Where the design is heading. A brief close that signals what comes without executing it. Names the pending items (manifesto, naming, verbal identity) and bridges to the concept and design plan. Should feel like a starting point. 1 page.",
+              "triggerQuestions": [
+                "Is the main action clear in the first sentence?",
+                "Are the pending items named without explaining them?",
+                "Does the close feel like an opening rather than a conclusion?"
+              ],
+              "fields": [
+                {
+                  "id": "narrative",
+                  "label": "Direction narrative",
+                  "type": "textarea"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "brief",
+          "name": "Strategic Brief",
+          "tagline": "designer-internal, one page",
+          "sections": [
+            {
+              "id": "brief.central-pattern",
+              "name": "Central Pattern",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "reads": [
+                "reality.value-proposition",
+                "reality.differentiator",
+                "image.key-finding",
+                "identity.golden-circle"
+              ],
+              "helpText": "The idea that repeats across the 4 pillars unforced. Not what the institution says it is, what appears again and again when reality, identity, image and communication cross. Reducible to one word.",
+              "triggerQuestions": [
+                "What word or idea appears in more than one pillar without being forced?",
+                "Is there something the client said, the survey confirmed, and the value proposition already contained?",
+                "If you had to summarize the whole strategy in one word, what would it be?"
+              ],
+              "fields": [
+                {
+                  "id": "pattern",
+                  "label": "Central pattern",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "brief.main-tension",
+              "name": "Main Tension",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "reads": [
+                "image.contrast"
+              ],
+              "helpText": "The biggest gap between identity and image. Not a problem to solve but a tension that gives direction: it shows where the project's energy is. Classify it.",
+              "triggerQuestions": [
+                "What does the institution believe about itself that people do not perceive?",
+                "Is there something people see that the institution did not know it projected?",
+                "Is the gap one of ability, of visibility, or of coherence?"
+              ],
+              "fields": [
+                {
+                  "id": "tension",
+                  "label": "Main tension",
+                  "type": "textarea"
+                },
+                {
+                  "id": "classification",
+                  "label": "Type of gap",
+                  "type": "enum",
+                  "options": [
+                    "ability",
+                    "visibility",
+                    "coherence",
+                    "other"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "brief.constraint",
+              "name": "Constraint",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "reads": [
+                "identity.principle",
+                "identity.beliefs",
+                "reality.capacity"
+              ],
+              "helpText": "The limits the institutional principle, beliefs and operational reality impose on design. Not obstacles, edges that sharpen creativity. The clearer the limits, the more precise the result.",
+              "triggerQuestions": [
+                "What does the institutional principle say the brand cannot contradict?",
+                "Is there a belief that, if the design contradicted it, would invalidate everything?",
+                "Does operational reality limit the scope of the design (budget, capacity, business stage)?"
+              ],
+              "fields": [
+                {
+                  "id": "constraint",
+                  "label": "Constraint",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "brief.emotional-territory",
+              "name": "Emotional Territory",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "reads": [
+                "communication.personality",
+                "communication.tone",
+                "image.pattern-analysis"
+              ],
+              "helpText": "The expressive space where the brand should live. Not an adjective or a moodboard, the sensation the brand should provoke when experienced. Built by crossing personality, tone of voice, and the image findings.",
+              "triggerQuestions": [
+                "What should someone feel when interacting with this brand?",
+                "What sensation do the personality, the tone, and the external perception share?",
+                "If the brand were a place, how would it feel to be there?"
+              ],
+              "fields": [
+                {
+                  "id": "territory",
+                  "label": "Emotional territory",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "brief.must-resolve",
+              "name": "What the Concept Must Resolve",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "reads": [
+                "brief.central-pattern",
+                "brief.main-tension"
+              ],
+              "helpText": "The specific question only this brand answers. If the concept does not resolve this, it fails as a filter. Must be specific, not generic. Not 'how do we differentiate?' but a question only this brand needs to answer.",
+              "triggerQuestions": [
+                "What is the most important question the brand needs to answer with its design?",
+                "If the concept works, what problem stops existing?",
+                "What design decision would be impossible to make without this concept?"
+              ],
+              "fields": [
+                {
+                  "id": "question",
+                  "label": "What the concept must resolve",
+                  "type": "textarea"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "planning",
+      "name": "Planning",
+      "pillars": [
+        {
+          "id": "concept",
+          "name": "Brand Concept",
+          "tagline": "designer proposes, client approves",
+          "sections": [
+            {
+              "id": "concept",
+              "name": "Brand Concept",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "brief.central-pattern",
+                "brief.main-tension",
+                "brief.constraint",
+                "brief.emotional-territory",
+                "brief.must-resolve"
+              ],
+              "helpText": "The guiding idea that translates strategy into an organizing principle, filtering every design and communication decision. Internal, not a slogan. Distilled from the brief, not invented. Must be specific, directional, and traceable. Apply the three tests; a brief failure on more than one field means reject.",
+              "triggerQuestions": [
+                "Starting from the central pattern, what does that pattern produce when it works?",
+                "What does the client feel when that result happens?",
+                "Why does that matter beyond the project?",
+                "What analogies outside design describe the same thing?",
+                "What phrase comes out naturally, without searching for it?"
+              ],
+              "fields": [
+                {
+                  "id": "statement",
+                  "label": "Concept statement (the phrase)",
+                  "type": "text"
+                },
+                {
+                  "id": "description",
+                  "label": "Description (one short paragraph)",
+                  "type": "textarea"
+                },
+                {
+                  "id": "distillation",
+                  "label": "Distillation (pattern -> produces -> client feels -> why -> analogies -> natural phrase)",
+                  "type": "textarea"
+                },
+                {
+                  "id": "eval-against-brief",
+                  "label": "Evaluation against the brief (each of the 5 fields; fail >1 = reject)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "brief-field",
+                      "label": "Brief field",
+                      "type": "text"
+                    },
+                    {
+                      "id": "verdict",
+                      "label": "How the concept addresses it",
+                      "type": "textarea"
+                    }
+                  ]
+                },
+                {
+                  "id": "filter-test",
+                  "label": "Filter test (applied to real design/copy/web/logo decisions)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "decision",
+                      "label": "Real decision",
+                      "type": "text"
+                    },
+                    {
+                      "id": "verdict",
+                      "label": "Verdict",
+                      "type": "textarea"
+                    }
+                  ]
+                },
+                {
+                  "id": "recognition-test",
+                  "label": "Recognition test (founder / team / public each recognize it?)",
+                  "type": "textarea"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "insights",
+          "name": "Reusable Insights",
+          "tagline": "byproducts of concept distillation",
+          "sections": [
+            {
+              "id": "insights",
+              "name": "Reusable Insights",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "concept"
+              ],
+              "helpText": "Ideas, phrases and images that emerged on the path to the concept but are not the concept itself. Filtered by the concept and traceable to the pillars. Material for the manifesto, copy, content, website, and case study.",
+              "triggerQuestions": [
+                "What phrase came out of a real conversation that captures the brand's voice?",
+                "Which candidate ideas were not the concept but are still powerful as images?",
+                "Does this insight trace back to the pillars and pass the concept filter?"
+              ],
+              "fields": [
+                {
+                  "id": "insights",
+                  "label": "Reusable insights",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "title",
+                      "label": "Title",
+                      "type": "text"
+                    },
+                    {
+                      "id": "description",
+                      "label": "Description",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "possibleUses",
+                      "label": "Possible uses",
+                      "type": "textarea"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "manifesto",
+          "name": "Manifesto",
+          "tagline": "designer writes, client validates",
+          "sections": [
+            {
+              "id": "manifesto",
+              "name": "Manifesto",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "concept",
+                "communication.personality",
+                "communication.tone",
+                "insights"
+              ],
+              "helpText": "The first translation of the concept into narrative language: the brand speaking for the first time, with voice, emotion and personality. Not a slogan or a service description. Built from the concept (as filter), personality and tone (as manner of speaking), and the insights that pass the filter. The client must feel represented; if not, iterate.",
+              "triggerQuestions": [
+                "If the brand could speak in first person, what would it say first?",
+                "What does this brand believe that no one else in its industry says?",
+                "How would it sound explaining what it believes and why it does what it does?",
+                "Can it be read aloud without sounding forced or pretentious?",
+                "Does the founder read it and feel it is them speaking, not a copywriter?"
+              ],
+              "fields": [
+                {
+                  "id": "text",
+                  "label": "Manifesto text",
+                  "type": "textarea"
+                },
+                {
+                  "id": "construction",
+                  "label": "How it was built (structure and rationale)",
+                  "type": "textarea"
+                },
+                {
+                  "id": "evaluation",
+                  "label": "Evaluation (against concept, personality, tone, promise)",
+                  "type": "textarea"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "audit",
+          "name": "Brand Audit",
+          "tagline": "designer evaluates, client supplies assets",
+          "sections": [
+            {
+              "id": "audit",
+              "name": "Brand Audit",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "concept"
+              ],
+              "helpText": "Review of existing design assets against the strategy and concept. The concept is the filter; each asset is kept, adjusted, or created from scratch. The result defines the design plan's scope. Conditionally skipped if greenfield (no prior assets); then the Design Plan sources everything as 'create'.",
+              "triggerQuestions": [
+                "What brand assets exist today (name, logo, colors, type, manual, templates, applications)?",
+                "Who designed them and under what criteria?",
+                "Are they used consistently or applied however each person likes?",
+                "Does the current name sustain the strategic direction?",
+                "Does the current visual system reflect the defined personality and tone?",
+                "Are there assets that work and can evolve, or must everything start from scratch?"
+              ],
+              "fields": [
+                {
+                  "id": "assets",
+                  "label": "Asset evaluation vs the concept",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "asset",
+                      "label": "Asset",
+                      "type": "text"
+                    },
+                    {
+                      "id": "currentState",
+                      "label": "Current state",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "evalVsConcept",
+                      "label": "Evaluation vs concept",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "action",
+                      "label": "Action",
+                      "type": "enum",
+                      "options": [
+                        "keep",
+                        "adjust",
+                        "create"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "design-plan",
+          "name": "Design Plan (Brief)",
+          "tagline": "collab, the scope handoff",
+          "sections": [
+            {
+              "id": "design-plan",
+              "name": "Design Plan",
+              "resolver": "collab",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "audit"
+              ],
+              "helpText": "Defines what is intervened, at what scope, on which touchpoints. Built directly from the audit: 'create' enters with priority (High), 'adjust' with less urgency (Medium/Low), 'keep' is excluded. Three scope levels: Definition, Identity Systems, Implementation.",
+              "triggerQuestions": [
+                "What did the audit reveal needs to be created from scratch?",
+                "Which identity systems does the brand need to function (not every project needs all of them)?",
+                "What are the real touchpoints where the brand lives today and needs to live?",
+                "What is the priority given the business stage and operational capacity?",
+                "What can be done now and what can wait?"
+              ],
+              "fields": [
+                {
+                  "id": "scope-levels",
+                  "label": "Scope levels activated",
+                  "type": "enum",
+                  "options": [
+                    "Definition",
+                    "Identity Systems",
+                    "Implementation"
+                  ]
+                },
+                {
+                  "id": "verbal-identity",
+                  "label": "Verbal identity (naming, narrative, copy, manifesto)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "component",
+                      "label": "Asset",
+                      "type": "text"
+                    },
+                    {
+                      "id": "auditState",
+                      "label": "Audit state",
+                      "type": "text"
+                    },
+                    {
+                      "id": "action",
+                      "label": "Action",
+                      "type": "enum",
+                      "options": [
+                        "create",
+                        "adjust",
+                        "keep"
+                      ]
+                    },
+                    {
+                      "id": "priority",
+                      "label": "Priority",
+                      "type": "enum",
+                      "options": [
+                        "High",
+                        "Medium",
+                        "Low",
+                        "Future",
+                        "Done"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "visual-identity",
+                  "label": "Visual identity (logo, sub-brand logo, palette, type, system elements, photography, iconography, illustration)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "component",
+                      "label": "Component",
+                      "type": "text"
+                    },
+                    {
+                      "id": "auditState",
+                      "label": "Audit state",
+                      "type": "text"
+                    },
+                    {
+                      "id": "action",
+                      "label": "Action",
+                      "type": "enum",
+                      "options": [
+                        "create",
+                        "adjust",
+                        "keep"
+                      ]
+                    },
+                    {
+                      "id": "priority",
+                      "label": "Priority",
+                      "type": "enum",
+                      "options": [
+                        "High",
+                        "Medium",
+                        "Low",
+                        "Future",
+                        "Done"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "motion-identity",
+                  "label": "Motion identity (often Future)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "component",
+                      "label": "Asset",
+                      "type": "text"
+                    },
+                    {
+                      "id": "auditState",
+                      "label": "Audit state",
+                      "type": "text"
+                    },
+                    {
+                      "id": "action",
+                      "label": "Action",
+                      "type": "enum",
+                      "options": [
+                        "create",
+                        "adjust",
+                        "keep"
+                      ]
+                    },
+                    {
+                      "id": "priority",
+                      "label": "Priority",
+                      "type": "enum",
+                      "options": [
+                        "High",
+                        "Medium",
+                        "Low",
+                        "Future",
+                        "Done"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sound-identity",
+                  "label": "Sound identity (often Future)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "component",
+                      "label": "Asset",
+                      "type": "text"
+                    },
+                    {
+                      "id": "auditState",
+                      "label": "Audit state",
+                      "type": "text"
+                    },
+                    {
+                      "id": "action",
+                      "label": "Action",
+                      "type": "enum",
+                      "options": [
+                        "create",
+                        "adjust",
+                        "keep"
+                      ]
+                    },
+                    {
+                      "id": "priority",
+                      "label": "Priority",
+                      "type": "enum",
+                      "options": [
+                        "High",
+                        "Medium",
+                        "Low",
+                        "Future",
+                        "Done"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "touchpoints",
+                  "label": "Touchpoints (P1 must exist / P2 must transform / P3 can wait)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "point",
+                      "label": "Touchpoint",
+                      "type": "text"
+                    },
+                    {
+                      "id": "priority",
+                      "label": "Priority",
+                      "type": "enum",
+                      "options": [
+                        "P1",
+                        "P2",
+                        "P3"
+                      ]
+                    },
+                    {
+                      "id": "state",
+                      "label": "State",
+                      "type": "text"
+                    },
+                    {
+                      "id": "action",
+                      "label": "Action",
+                      "type": "textarea"
+                    }
+                  ]
+                },
+                {
+                  "id": "deliverables",
+                  "label": "Deliverables",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "deliverable",
+                      "label": "Deliverable",
+                      "type": "text"
+                    },
+                    {
+                      "id": "contains",
+                      "label": "Contains",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "phase",
+                      "label": "Phase",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "id": "execution-order",
+                  "label": "Execution order (dependency-chained: naming -> logo/system -> copy -> web -> channels -> templates)",
+                  "type": "list"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "design",
+      "name": "Design",
+      "pillars": [
+        {
+          "id": "naming",
+          "name": "Naming",
+          "tagline": "designer executes, client chooses",
+          "sections": [
+            {
+              "id": "naming.constraints",
+              "name": "Naming Constraints",
+              "resolver": "collab",
+              "kind": "input",
+              "internal": false,
+              "reads": [
+                "concept",
+                "communication.personality",
+                "communication.tone",
+                "communication.brand-architecture"
+              ],
+              "helpText": "Constraints defined from strategy before exploring names. Not limitations, edges that sharpen the search: language, personality limits, architecture, existing assets, person-brand vs institution.",
+              "triggerQuestions": [
+                "Must the name work in more than one language? Which?",
+                "Does the brand personality limit the tone of the name?",
+                "Is there a brand architecture the name must respect?",
+                "Are there existing assets that condition the name?",
+                "Is the name for a person-brand or an institution?"
+              ],
+              "fields": [
+                {
+                  "id": "constraints",
+                  "label": "Naming constraints",
+                  "type": "list"
+                }
+              ]
+            },
+            {
+              "id": "naming.phonetic-profile",
+              "name": "Phonetic Profile",
+              "resolver": "collab",
+              "kind": "input",
+              "internal": false,
+              "reads": [
+                "naming.constraints"
+              ],
+              "helpText": "How the name should sound, defined before chasing meanings. Don'ts come first (clearer and more intuitive); musts are refined during exploration. Personal references reveal the phonetic pattern that attracts.",
+              "triggerQuestions": [
+                "How many syllables? Short or long?",
+                "Does it sound like a person, a place, a material, a concept?",
+                "Real word, invented, or a transformed expression?",
+                "What do you NOT want it to sound like?",
+                "What names of brands, bands, places or words do you like by how they sound, and what do they share?"
+              ],
+              "fields": [
+                {
+                  "id": "donts",
+                  "label": "Don'ts (defined first)",
+                  "type": "list"
+                },
+                {
+                  "id": "musts",
+                  "label": "Musts (refined during exploration)",
+                  "type": "list"
+                },
+                {
+                  "id": "references",
+                  "label": "Personal phonetic references",
+                  "type": "list"
+                },
+                {
+                  "id": "pattern",
+                  "label": "Extracted phonetic pattern",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "naming.exploration",
+              "name": "Naming Exploration",
+              "resolver": "designer",
+              "kind": "input",
+              "internal": false,
+              "reads": [
+                "naming.phonetic-profile"
+              ],
+              "helpText": "A divergent process: open territories, test candidates, discard with arguments, converge. Each discard sharpens the search. A name that works by sound but fails by meaning (or vice versa) signals the wrong territory, not closeness.",
+              "triggerQuestions": [
+                "Which directions did you explore and what did each one teach?",
+                "What were the inflection points that changed the direction?",
+                "Which decisors defined the final direction?"
+              ],
+              "fields": [
+                {
+                  "id": "directions",
+                  "label": "Explored directions",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "direction",
+                      "label": "Direction / candidate",
+                      "type": "text"
+                    },
+                    {
+                      "id": "learning",
+                      "label": "Learning / why discarded",
+                      "type": "textarea"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "naming.evaluation",
+              "name": "Naming Evaluation",
+              "resolver": "designer",
+              "kind": "eval",
+              "internal": false,
+              "reads": [
+                "naming.exploration",
+                "concept",
+                "brief.central-pattern"
+              ],
+              "helpText": "The three core tests plus three naming-specific tools applied to each candidate. Filter test, evaluation against the brief, recognition test, bilingual phonetic test, real connotations, technical verification.",
+              "triggerQuestions": [
+                "Does the name pass the filter test, the brief evaluation, and the recognition test?",
+                "Does it sound good in both languages with no negative-sounding homonym?",
+                "What associations does it create across audiences who know the reference, the language, or nothing?"
+              ],
+              "fields": [
+                {
+                  "id": "core-tests",
+                  "label": "Core tests",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "test",
+                      "label": "Test",
+                      "type": "enum",
+                      "options": [
+                        "Filter Test",
+                        "Evaluation Against Brief",
+                        "Recognition Test",
+                        "Bilingual Phonetic Test"
+                      ]
+                    },
+                    {
+                      "id": "result",
+                      "label": "Result",
+                      "type": "enum",
+                      "options": [
+                        "Pass",
+                        "Pass with caveat",
+                        "Fail"
+                      ]
+                    },
+                    {
+                      "id": "notes",
+                      "label": "Notes",
+                      "type": "textarea"
+                    }
+                  ]
+                },
+                {
+                  "id": "connotations",
+                  "label": "Real connotations",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "audience",
+                      "label": "Audience",
+                      "type": "text"
+                    },
+                    {
+                      "id": "association",
+                      "label": "Association",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "type",
+                      "label": "Type",
+                      "type": "enum",
+                      "options": [
+                        "positive",
+                        "neutral",
+                        "negative"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "naming.technical-verification",
+              "name": "Technical Verification",
+              "resolver": "designer",
+              "kind": "eval",
+              "internal": false,
+              "reads": [
+                "naming.evaluation"
+              ],
+              "helpText": "Availability checklist run before getting emotionally attached. A critical failure (identical same-sector name, inaccessible domain) discards the name; minor failures (handle taken but adaptable, distant-category homonyms) are case-by-case.",
+              "triggerQuestions": [
+                "Is there a same-sector company with this or a similar name?",
+                "Is the .com (or relevant extension) available at a reasonable price?",
+                "Are the social handles available? If not, which variations work?",
+                "Does it need a descriptor (studio, co) to differentiate on platforms?",
+                "Are there legal-registry homonyms in the same sector where it will register?",
+                "Do adjacent-category collisions cause confusion?"
+              ],
+              "fields": [
+                {
+                  "id": "checklist",
+                  "label": "Availability checklist",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "item",
+                      "label": "Check",
+                      "type": "text"
+                    },
+                    {
+                      "id": "result",
+                      "label": "Result",
+                      "type": "enum",
+                      "options": [
+                        "Pass",
+                        "Pass with caveat",
+                        "Fail"
+                      ]
+                    },
+                    {
+                      "id": "notes",
+                      "label": "Notes",
+                      "type": "textarea"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "naming.presentation",
+              "name": "Naming Presentation",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "naming.evaluation",
+                "naming.technical-verification"
+              ],
+              "helpText": "Present 2 to 3 surviving candidates with their etymology, meaning, strategic connections and evaluation. The client chooses the direction.",
+              "triggerQuestions": [
+                "Which 2 to 3 candidates survived evaluation and verification?",
+                "What is the etymology, meaning and strategic connection of each?",
+                "How does each one feel when said aloud and recognized?"
+              ],
+              "fields": [
+                {
+                  "id": "candidates",
+                  "label": "Presented candidates (2-3)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "name",
+                      "label": "Name",
+                      "type": "text"
+                    },
+                    {
+                      "id": "etymology",
+                      "label": "Etymology",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "meaning",
+                      "label": "Meaning",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "connections",
+                      "label": "Strategic connections",
+                      "type": "textarea"
+                    }
+                  ]
+                },
+                {
+                  "id": "chosen",
+                  "label": "Chosen name",
+                  "type": "text"
+                }
+              ]
+            },
+            {
+              "id": "naming.digital-securing",
+              "name": "Digital Securing",
+              "resolver": "collab",
+              "kind": "input",
+              "internal": false,
+              "reads": [
+                "naming.presentation"
+              ],
+              "helpText": "Buy the domain and secure social handles immediately once the name is chosen. Legal registry can wait; digital presence is prioritized.",
+              "triggerQuestions": [
+                "Is the domain purchased?",
+                "Are the social handles created or reserved (including prefix/dot/suffix variants)?",
+                "Which platforms still need verification?"
+              ],
+              "fields": [
+                {
+                  "id": "assets",
+                  "label": "Digital assets secured",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "platform",
+                      "label": "Platform",
+                      "type": "text"
+                    },
+                    {
+                      "id": "handle",
+                      "label": "Handle / URL",
+                      "type": "text"
+                    },
+                    {
+                      "id": "state",
+                      "label": "State",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "territory",
+          "name": "Visual Territories",
+          "tagline": "designer explores, client validates",
+          "sections": [
+            {
+              "id": "territory.exploration",
+              "name": "Territory Exploration",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "concept",
+                "naming.presentation",
+                "brief.emotional-territory"
+              ],
+              "helpText": "Build 2 to 3 complete aesthetic directions that compete with each other, each an argued answer to 'how should the brand look?'. Each must be distinct enough that choosing one means sacrificing something of another. 5 to 8 curated references each (max 10).",
+              "triggerQuestions": [
+                "Which visual direction best translates the brand concept?",
+                "Does this direction feel like arriving at the name?",
+                "Which dimension of the strategy does this territory prioritize?",
+                "What does it sacrifice, and is that sacrifice acceptable?",
+                "Does 'this territory is [brand] as...' complete with a clear image?"
+              ],
+              "fields": [
+                {
+                  "id": "territories",
+                  "label": "Territories (2-3)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "summaryPhrase",
+                      "label": "Summary phrase ('Brand as...')",
+                      "type": "text"
+                    },
+                    {
+                      "id": "argument",
+                      "label": "Argument",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "atmosphere",
+                      "label": "Atmosphere",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "typeDirection",
+                      "label": "Type direction",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "colorDirection",
+                      "label": "Color direction",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "photoDirection",
+                      "label": "Photo / image direction",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "textureMateriality",
+                      "label": "Texture and materiality",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "references",
+                      "label": "References (5-8, max 10)",
+                      "type": "textarea"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "territory.definition",
+              "name": "Territory Definition",
+              "resolver": "collab",
+              "kind": "eval",
+              "internal": false,
+              "reads": [
+                "territory.exploration",
+                "concept",
+                "naming.presentation",
+                "communication.personality",
+                "brief.main-tension"
+              ],
+              "helpText": "Choose and argue the territory that best translates strategy into visual language: why this one, why not the others, what it resolves better (the 4 filters), what it sacrifices (with mitigation) and what it gains. Each filter is Pass / Fail.",
+              "triggerQuestions": [
+                "Why this territory and not the others?",
+                "What did each discarded territory teach, and what was rescued?",
+                "Which 4 filters does it resolve better than the alternatives?",
+                "What is sacrificed and how is it mitigated?",
+                "What is gained?"
+              ],
+              "fields": [
+                {
+                  "id": "chosen",
+                  "label": "Chosen territory",
+                  "type": "textarea"
+                },
+                {
+                  "id": "whyThis",
+                  "label": "Why this one",
+                  "type": "textarea"
+                },
+                {
+                  "id": "discardedAndWhy",
+                  "label": "Discarded territories and why",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "territory",
+                      "label": "Territory",
+                      "type": "text"
+                    },
+                    {
+                      "id": "whyDiscarded",
+                      "label": "Why discarded",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "rescued",
+                      "label": "What was rescued",
+                      "type": "textarea"
+                    }
+                  ]
+                },
+                {
+                  "id": "filters",
+                  "label": "Four filters (each Pass / Fail)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "filter",
+                      "label": "Filter",
+                      "type": "enum",
+                      "options": [
+                        "Against Concept",
+                        "Against Name",
+                        "Against Personality",
+                        "Against the Gap"
+                      ]
+                    },
+                    {
+                      "id": "result",
+                      "label": "Result",
+                      "type": "enum",
+                      "options": [
+                        "Pass",
+                        "Fail"
+                      ]
+                    },
+                    {
+                      "id": "notes",
+                      "label": "Notes",
+                      "type": "textarea"
+                    }
+                  ]
+                },
+                {
+                  "id": "sacrificed",
+                  "label": "What was sacrificed (with mitigation)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "sacrifice",
+                      "label": "Sacrifice",
+                      "type": "text"
+                    },
+                    {
+                      "id": "mitigation",
+                      "label": "Mitigation",
+                      "type": "textarea"
+                    }
+                  ]
+                },
+                {
+                  "id": "gained",
+                  "label": "What was gained",
+                  "type": "list"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "system",
+          "name": "Brand System",
+          "tagline": "designer executes, client approves",
+          "sections": [
+            {
+              "id": "system.logo-exploration",
+              "name": "Logo Exploration",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "territory.definition",
+                "concept",
+                "naming.presentation"
+              ],
+              "helpText": "Explore at least 3 logo directions within the chosen territory. The logo identifies, it does not communicate; the name differentiates; the brand is the whole system.",
+              "triggerQuestions": [
+                "Which directions belong to the chosen territory's world?",
+                "Does each direction identify the brand without trying to communicate what it does?",
+                "Which elements could become the generative principle of the system?"
+              ],
+              "fields": [
+                {
+                  "id": "directions",
+                  "label": "Logo directions (min 3)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "direction",
+                      "label": "Direction",
+                      "type": "text"
+                    },
+                    {
+                      "id": "rationale",
+                      "label": "Rationale",
+                      "type": "textarea"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "system.logo-evaluation",
+              "name": "Logo Evaluation",
+              "resolver": "designer",
+              "kind": "eval",
+              "internal": false,
+              "reads": [
+                "system.logo-exploration",
+                "concept",
+                "naming.presentation",
+                "communication.personality",
+                "territory.definition"
+              ],
+              "helpText": "14 parameters across 2 levels. Founding principle: the logo identifies, it does not communicate. Each parameter result is Pass / Pass with caveat / Fail. Both levels must pass (strategic pass + technical fail = reject, and vice versa).",
+              "triggerQuestions": [
+                "Does the logo identify the brand the strategy defined (strategic level)?",
+                "Does it function as a graphic sign: style, classification, legibility, versatility, reproducibility (technical level)?",
+                "Do both the strategic and technical levels pass?"
+              ],
+              "fields": [
+                {
+                  "id": "parameters",
+                  "label": "Evaluation parameters (4 strategic + 10 technical)",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "parameter",
+                      "label": "Parameter",
+                      "type": "text"
+                    },
+                    {
+                      "id": "level",
+                      "label": "Level",
+                      "type": "enum",
+                      "options": [
+                        "strategic",
+                        "technical"
+                      ]
+                    },
+                    {
+                      "id": "result",
+                      "label": "Result",
+                      "type": "enum",
+                      "options": [
+                        "Pass",
+                        "Pass with caveat",
+                        "Fail"
+                      ]
+                    },
+                    {
+                      "id": "notes",
+                      "label": "Notes",
+                      "type": "textarea"
+                    }
+                  ],
+                  "items": [
+                    {
+                      "parameter": "Against Concept",
+                      "level": "strategic"
+                    },
+                    {
+                      "parameter": "Against Name",
+                      "level": "strategic"
+                    },
+                    {
+                      "parameter": "Against Personality",
+                      "level": "strategic"
+                    },
+                    {
+                      "parameter": "Against Visual Territory",
+                      "level": "strategic"
+                    },
+                    {
+                      "parameter": "Style",
+                      "level": "technical"
+                    },
+                    {
+                      "parameter": "Typological Classification (logotype/isotype/imagotype/isologo)",
+                      "level": "technical"
+                    },
+                    {
+                      "parameter": "Semantic Compatibility",
+                      "level": "technical"
+                    },
+                    {
+                      "parameter": "Legibility",
+                      "level": "technical"
+                    },
+                    {
+                      "parameter": "Graphic Quality",
+                      "level": "technical"
+                    },
+                    {
+                      "parameter": "Distinctiveness",
+                      "level": "technical"
+                    },
+                    {
+                      "parameter": "Versatility",
+                      "level": "technical"
+                    },
+                    {
+                      "parameter": "Timelessness",
+                      "level": "technical"
+                    },
+                    {
+                      "parameter": "Reproducibility",
+                      "level": "technical"
+                    },
+                    {
+                      "parameter": "Memorability",
+                      "level": "technical"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "system.logo-definition",
+              "name": "Logo Definition",
+              "resolver": "collab",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "system.logo-evaluation"
+              ],
+              "helpText": "The resolved logo, often a system of versions for different use contexts (monumental, horizontal, reduced/isotype) sharing a common identity element. Defines classification, typography, and descriptor.",
+              "triggerQuestions": [
+                "What versions does the logo system need to cover all contexts?",
+                "What element ties the versions together across scales?",
+                "What is the typography and does it need a descriptor?"
+              ],
+              "fields": [
+                {
+                  "id": "versions",
+                  "label": "Logo versions",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "version",
+                      "label": "Version",
+                      "type": "text"
+                    },
+                    {
+                      "id": "classification",
+                      "label": "Classification",
+                      "type": "text"
+                    },
+                    {
+                      "id": "use",
+                      "label": "Use context",
+                      "type": "textarea"
+                    }
+                  ]
+                },
+                {
+                  "id": "typography",
+                  "label": "Logotype and descriptor typography",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "system.color",
+              "name": "Color",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "system.logo-definition",
+                "concept",
+                "territory.definition"
+              ],
+              "helpText": "The color palette, where each color has a reason traced to the concept and territory, not chosen by taste.",
+              "triggerQuestions": [
+                "What reason justifies each color in the palette?",
+                "Does the palette belong to the chosen territory?",
+                "Does it work across the defined touchpoints (light/dark, print/digital)?"
+              ],
+              "fields": [
+                {
+                  "id": "palette",
+                  "label": "Color palette",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "color",
+                      "label": "Color",
+                      "type": "text"
+                    },
+                    {
+                      "id": "value",
+                      "label": "Value (hex / spec)",
+                      "type": "text"
+                    },
+                    {
+                      "id": "role",
+                      "label": "Role",
+                      "type": "text"
+                    },
+                    {
+                      "id": "reason",
+                      "label": "Reason",
+                      "type": "textarea"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "system.typography",
+              "name": "Typography",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "system.logo-definition",
+                "territory.definition"
+              ],
+              "helpText": "Type families with clear roles, chosen by fit to the territory and concept, not by trend.",
+              "triggerQuestions": [
+                "Which families fit the territory, not the trend?",
+                "What role does each family play (display, body, accents)?",
+                "Do they pair coherently with the logotype?"
+              ],
+              "fields": [
+                {
+                  "id": "families",
+                  "label": "Type families with roles",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "family",
+                      "label": "Family",
+                      "type": "text"
+                    },
+                    {
+                      "id": "role",
+                      "label": "Role",
+                      "type": "text"
+                    },
+                    {
+                      "id": "reason",
+                      "label": "Reason / fit",
+                      "type": "textarea"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "system.visual-elements",
+              "name": "Visual Elements",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "system.logo-definition",
+                "territory.definition",
+                "concept"
+              ],
+              "helpText": "The generative logic of the system: patterns, containers, textures, dividers born from the logo's logic and applied across touchpoints. Defines what is fixed and what is flexible.",
+              "triggerQuestions": [
+                "What is the generative principle the system elements grow from?",
+                "What is fixed and what is flexible?",
+                "How do the elements make the process visible, not just the result?"
+              ],
+              "fields": [
+                {
+                  "id": "elements",
+                  "label": "System elements",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "element",
+                      "label": "Element",
+                      "type": "text"
+                    },
+                    {
+                      "id": "logic",
+                      "label": "Generative logic",
+                      "type": "textarea"
+                    },
+                    {
+                      "id": "fixedFlexible",
+                      "label": "Fixed / flexible",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "system.photography",
+              "name": "Photography",
+              "resolver": "designer-client",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "territory.definition",
+                "concept"
+              ],
+              "helpText": "The photographic direction coherent with the system: subject, treatment, light, composition.",
+              "triggerQuestions": [
+                "What photographic direction is coherent with the territory?",
+                "What is the treatment, light and composition?",
+                "Does the direction reinforce the concept?"
+              ],
+              "fields": [
+                {
+                  "id": "direction",
+                  "label": "Photographic direction",
+                  "type": "textarea"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "closure",
+          "name": "Closure",
+          "tagline": "designer executes, client approves",
+          "sections": [
+            {
+              "id": "closure.approval",
+              "name": "Approval",
+              "resolver": "collab",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "system.logo-definition",
+                "system.color",
+                "system.typography",
+                "system.visual-elements",
+                "system.photography"
+              ],
+              "helpText": "Formal presentation for client review. Every design decision must trace back to the brand concept. Anything that feels imposed rather than discovered is iterated.",
+              "triggerQuestions": [
+                "Does every decision trace back to the concept?",
+                "Does anything feel imposed rather than discovered?",
+                "Has the client approved the direction?"
+              ],
+              "fields": [
+                {
+                  "id": "notes",
+                  "label": "Approval notes and iterations",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "id": "closure.application",
+              "name": "Application",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "closure.approval",
+                "design-plan"
+              ],
+              "helpText": "Real or simulated pieces that prove the system works on the defined touchpoints. Functional tests, not decorative mockups.",
+              "triggerQuestions": [
+                "Which touchpoints from the design plan are being tested?",
+                "Does the system hold up functionally on each?",
+                "Do the applications prove the system, not just decorate it?"
+              ],
+              "fields": [
+                {
+                  "id": "applications",
+                  "label": "Applications",
+                  "type": "table",
+                  "columns": [
+                    {
+                      "id": "touchpoint",
+                      "label": "Touchpoint",
+                      "type": "text"
+                    },
+                    {
+                      "id": "proof",
+                      "label": "What it proves",
+                      "type": "textarea"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "closure.brand-manual",
+              "name": "Brand Manual",
+              "resolver": "designer",
+              "kind": "synthesis",
+              "internal": false,
+              "reads": [
+                "closure.approval",
+                "concept",
+                "system.logo-definition"
+              ],
+              "helpText": "The brand manual deliverable: brand concept, usage guidelines, and application protocols.",
+              "triggerQuestions": [
+                "Does the manual capture the concept as the filter for all decisions?",
+                "Are the usage guidelines clear (fixed vs flexible)?",
+                "Are the application protocols defined for the touchpoints?"
+              ],
+              "fields": [
+                {
+                  "id": "contents",
+                  "label": "Manual contents (concept, guidelines, protocols)",
+                  "type": "textarea"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

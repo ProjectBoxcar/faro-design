@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# Local data — irreplaceable project/client work, never commit
+**/data/*.db
+**/data/*.db-shm
+**/data/*.db-wal
+**/data/backups/
+
+# Secrets
+.env
+.env.local
+*.pem
+
+# OS / editor
+.DS_Store
+Thumbs.db

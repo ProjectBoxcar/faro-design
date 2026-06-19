@@ -1,0 +1,393 @@
+{
+  "overview": {
+    "title": "Build Your Brand, Step by Step",
+    "tagline": "Turn what makes your business special into a clear plan a designer can bring to life.",
+    "summary": "This is a guided walk through everything that makes up a real brand, not just a logo. You answer simple questions about your business, and the app helps shape those answers into a clear direction and a brief you can hand straight to a graphic designer. You will end up knowing what your brand stands for, how it should sound and look, and what to make first. No experience needed, you just need to know your own business.",
+    "phases": [
+      { "id": "strategic", "name": "Strategic", "oneLiner": "You explain what your business does, what you believe, how people see you, and how it should come across.", "produces": "A solid understanding of your business that every later decision can lean on." },
+      { "id": "handoff", "name": "Strategy Close / Handoff", "oneLiner": "Everything you figured out gets written up cleanly, once for you and once as a quick internal note for the designer.", "produces": "A tidy strategy document plus a one-page internal summary of the key insights." },
+      { "id": "planning", "name": "Planning", "oneLiner": "The strategy gets boiled down into one guiding idea, written into the brand's first words, and turned into a to-do list.", "produces": "A guiding idea, a short manifesto, and a clear plan of what to design." },
+      { "id": "design", "name": "Design", "oneLiner": "The fun part: a name, a visual look, a logo, colors and type, all tested against the plan.", "produces": "A finished name and visual identity, with proof it works in the real world." }
+    ]
+  },
+  "phases": {
+    "strategic": { "intro": "This first phase is all about understanding before deciding. You describe what your business really is, what it believes, how people actually see it, and how it should express itself. It comes first because you can't design a brand for a business you haven't pinned down yet." },
+    "handoff": { "intro": "Now that the thinking is done, it gets written up clearly. One version is a friendly document for you, the other is a short internal cheat-sheet that pulls out the few insights the design will be built on. This bridge makes sure nothing gets lost between thinking and making." },
+    "planning": { "intro": "Here the strategy turns into direction. You distill one guiding idea that will steer every choice, give the brand its first real voice, check what you already have, and decide exactly what needs to be designed. It sits between strategy and design because it turns ideas into a concrete plan." },
+    "design": { "intro": "This is where it all becomes visible: a name, a look, a logo, colors, and type. Everything is created from the plan and tested against it, so nothing is just decoration. It comes last because good design needs a clear foundation to build on." }
+  },
+  "pillars": {
+    "reality": { "intro": "The plain facts of your business: what you sell, who you sell to, how you make money, and what makes you different. This is the ground truth everything else stands on." },
+    "identity": { "intro": "How your business sees itself from the inside: where it came from, what it believes, and where it wants to go." },
+    "image": { "intro": "How people on the outside actually see you. You'll ask a handful of real clients and contacts, then compare what they say to how you see yourself." },
+    "communication": { "intro": "How the brand should express itself: its purpose, values, personality, voice, and the promise it makes to customers." },
+    "strategic-document": { "intro": "A clean, readable write-up of everything you've discovered, organized into a document you could share or keep as your brand's reference." },
+    "brief": { "intro": "A short internal note, just for the design work, that pulls out the few key patterns and tensions the design needs to answer." },
+    "concept": { "intro": "The one guiding idea behind the whole brand, the thought that every later decision gets checked against." },
+    "insights": { "intro": "Useful phrases and ideas that popped up while finding the guiding idea, saved for reuse in writing and content later." },
+    "manifesto": { "intro": "A short, heartfelt piece of writing where the brand speaks for the first time, in its own voice." },
+    "audit": { "intro": "A quick review of any design you already have, to decide what to keep, fix, or remake. Skipped if you're starting from scratch." },
+    "design-plan": { "intro": "The to-do list for the design work: what gets made, how big the job is, and where it will appear." },
+    "naming": { "intro": "Finding and testing a name that sounds right and means the right thing." },
+    "territory": { "intro": "Exploring a few complete visual directions for the brand, then picking the strongest one." },
+    "system": { "intro": "Building the actual look: the logo, colors, fonts, and visual pieces that work together as one system." },
+    "closure": { "intro": "Wrapping up: getting final sign-off, showing the brand on real things, and packaging it into a simple guide." }
+  },
+  "sections": {
+    "reality.problem": {
+      "whatItIs": "A clear description of the pain or need your customers have before they find you.",
+      "whyItMatters": "Knowing the problem you solve keeps the whole brand focused on what customers actually care about.",
+      "takeaway": "A plain statement of the customer problem you exist to solve."
+    },
+    "reality.solution": {
+      "whatItIs": "A description of what you actually give the customer to solve that problem.",
+      "whyItMatters": "It separates what you really deliver from any vague promises, so the brand stays honest.",
+      "takeaway": "A clear account of what your customer walks away with."
+    },
+    "reality.value-proposition": {
+      "whatItIs": "A single sentence summing up what you do and why it matters, from the customer's point of view.",
+      "whyItMatters": "It's your ten-second answer to 'what do you sell?', useful everywhere from your website to a chat at a party.",
+      "takeaway": "A one-sentence summary of what you offer and why it's valuable."
+    },
+    "reality.differentiator": {
+      "whatItIs": "The concrete reason someone would choose you over a competitor, especially the part that can't be copied.",
+      "whyItMatters": "If you can't say why you're different, neither can your customers, and the brand has nothing to stand on.",
+      "takeaway": "A clear statement of what sets you apart and can't be copied."
+    },
+    "reality.ideal-client": {
+      "whatItIs": "A picture of the kind of customer you work best with, not just anyone who pays.",
+      "whyItMatters": "Knowing who you're for helps the brand speak directly to the right people.",
+      "takeaway": "A clear profile of the customer you serve best."
+    },
+    "reality.business-stage": {
+      "whatItIs": "An honest note on where your business is right now: just starting, growing, settled, or reinventing.",
+      "whyItMatters": "Your stage decides how big and ambitious the branding work should realistically be.",
+      "takeaway": "A clear sense of your current stage and where you're heading."
+    },
+    "reality.market-context": {
+      "whatItIs": "A practical look at who else does what you do and how you stack up next to them.",
+      "whyItMatters": "Knowing the landscape helps your brand stand out instead of blending in.",
+      "takeaway": "A clear view of your competitors and how you differ in practice."
+    },
+    "reality.operational-quirks": {
+      "whatItIs": "The little habits, rules, and decisions that reveal what your business is really like inside.",
+      "whyItMatters": "These quirks often hold the most genuine, hard-to-copy parts of your brand's character.",
+      "takeaway": "A list of the habits and rules that make your business uniquely itself."
+    },
+    "reality.service": {
+      "whatItIs": "A straightforward description of what you actually sell, including any separate product or service lines.",
+      "whyItMatters": "It gets the basics on paper so nothing about your offering is left fuzzy.",
+      "takeaway": "A clear inventory of what you sell."
+    },
+    "reality.service-structure": {
+      "whatItIs": "How your offering is packaged and priced, and what each package includes.",
+      "whyItMatters": "It shows how money actually flows in, which keeps the brand grounded in your real business.",
+      "takeaway": "A clear breakdown of your packages, what's in them, and their price ranges."
+    },
+    "reality.brand-architecture": {
+      "whatItIs": "A snapshot of how your different brands, products, or lines are arranged today.",
+      "whyItMatters": "Seeing what exists now is the first step before deciding later how they should fit together.",
+      "takeaway": "A clear inventory of your existing brands and how they currently relate."
+    },
+    "reality.acquisition-channels": {
+      "whatItIs": "A map of how customers find you today and which channels bring your best ones.",
+      "whyItMatters": "It shows where the brand needs to show up and work hardest.",
+      "takeaway": "A clear map of where your customers come from and which channel matters most."
+    },
+    "reality.capacity": {
+      "whatItIs": "An honest look at your real resources: time, team, and how much work you can take on well.",
+      "whyItMatters": "It keeps the branding plan realistic so you don't promise more than you can deliver.",
+      "takeaway": "A clear picture of how much you can actually handle right now."
+    },
+    "reality.evaluation-criteria": {
+      "whatItIs": "A quick internal check the designer does, a short yes/no list to see whether a branding project is even worth starting.",
+      "whyItMatters": "It catches deal-breakers early, like no budget or no clear decision-maker, before time gets wasted.",
+      "takeaway": "A simple internal go/no-go read on whether the project is ready."
+    },
+    "identity.origin": {
+      "whatItIs": "The story of how your business started and what shaped the way you work.",
+      "whyItMatters": "Your origin often explains why you do things your way, which is gold for a brand's story.",
+      "takeaway": "A short story of how your business began and what formed it."
+    },
+    "identity.self-perception": {
+      "whatItIs": "An honest description of how you see your business right now, strengths and rough edges included.",
+      "whyItMatters": "Being honest here gives you something real to compare against how others see you later.",
+      "takeaway": "A frank self-description of your business as it is today."
+    },
+    "identity.aspiration": {
+      "whatItIs": "Where you want your business to be once everything is working as it should.",
+      "whyItMatters": "It points the brand in the direction you're growing toward, not just where you are.",
+      "takeaway": "A clear picture of where you want the business to go."
+    },
+    "identity.principle": {
+      "whatItIs": "The one rule you'd never break in how you work, the line you hold no matter what.",
+      "whyItMatters": "It becomes a guardrail, so the brand never ends up contradicting what you stand for.",
+      "takeaway": "Your single non-negotiable rule, stated plainly."
+    },
+    "identity.beliefs": {
+      "whatItIs": "The convictions you hold about your industry, the things you think are true even if others ignore them.",
+      "whyItMatters": "Strong beliefs give a brand a point of view, which is what makes it interesting.",
+      "takeaway": "A list of the core beliefs that guide your decisions."
+    },
+    "identity.position": {
+      "whatItIs": "A clear stance on which ways of working in your industry you stand against, and why.",
+      "whyItMatters": "Knowing what you're not helps define what you are, sharply.",
+      "takeaway": "A clear statement of what you stand against in your field."
+    },
+    "identity.golden-circle": {
+      "whatItIs": "Three short answers that capture your reason for being: what you do, how you do it, and why.",
+      "whyItMatters": "The 'why' is the heart of a brand, and this ties it neatly to the 'what' and 'how'.",
+      "takeaway": "A clear what, how, and why for your business."
+    },
+    "image.survey-design": {
+      "whatItIs": "A short set of questions, built from your identity, to ask people who know you.",
+      "whyItMatters": "Good questions are how you find out whether people see you the way you think they do.",
+      "takeaway": "A ready-to-send set of questions for clients and contacts."
+    },
+    "image.respondents": {
+      "whatItIs": "Choosing the handful of people you'll ask, a mix of clients, peers, and others who know you.",
+      "whyItMatters": "A varied group of at least five gives you real patterns instead of one-off opinions.",
+      "takeaway": "A short, balanced list of people to ask."
+    },
+    "image.distribution": {
+      "whatItIs": "Deciding how you'll send the questions, by message, email, or form, to each person.",
+      "whyItMatters": "The right method gets you honest, useful answers instead of polite ones.",
+      "takeaway": "A simple plan for how to reach each person and why."
+    },
+    "image.results": {
+      "whatItIs": "The actual answers people gave, gathered together word for word.",
+      "whyItMatters": "These raw responses are the evidence you'll look at for patterns next.",
+      "takeaway": "All the collected answers, kept in their own words."
+    },
+    "image.pattern-analysis": {
+      "whatItIs": "A look across all the answers to spot what people keep saying, the repeating themes.",
+      "whyItMatters": "Patterns reveal how you're truly seen, more reliably than any single comment.",
+      "takeaway": "A clear summary of the strengths and themes people mentioned most."
+    },
+    "image.contrast": {
+      "whatItIs": "Placing how you see yourself next to how others see you, to spot where they match and differ.",
+      "whyItMatters": "The gaps you find here are exactly what the brand needs to fix or make clearer.",
+      "takeaway": "A one-sentence gap between how you see yourself and how others do."
+    },
+    "image.key-finding": {
+      "whatItIs": "The single biggest insight from all the feedback, the thing people said again and again.",
+      "whyItMatters": "It gives you one solid, proven truth the whole strategy can build on.",
+      "takeaway": "The one standout perception your strategy can trust."
+    },
+    "image.sample-limitation": {
+      "whatItIs": "An honest note on who you didn't ask and how that might tilt the picture.",
+      "whyItMatters": "Naming the blind spots keeps you from reading too much into friendly feedback.",
+      "takeaway": "A short, honest note on what your feedback can't show."
+    },
+    "communication.purpose": {
+      "whatItIs": "Your reason for existing beyond making money, the bigger why behind the business.",
+      "whyItMatters": "A clear purpose gives the brand meaning that customers can connect with.",
+      "takeaway": "A clear statement of why your business exists."
+    },
+    "communication.values": {
+      "whatItIs": "The three to five principles that guide your decisions and that you'd be happy to make public.",
+      "whyItMatters": "Values you actually live become things the brand can confidently say out loud.",
+      "takeaway": "A short list of values you can stand behind and show."
+    },
+    "communication.operating-principles": {
+      "whatItIs": "Principles you live by internally but don't need to announce, shown through how you work.",
+      "whyItMatters": "Keeping these separate stops your public values from getting cluttered.",
+      "takeaway": "A list of the quiet standards you demonstrate rather than declare."
+    },
+    "communication.personality": {
+      "whatItIs": "How your brand behaves, described as three to five traits, like how it would act in a meeting.",
+      "whyItMatters": "A clear personality keeps the brand feeling consistent and human everywhere.",
+      "takeaway": "A short set of personality traits that describe how the brand acts."
+    },
+    "communication.tone": {
+      "whatItIs": "How your brand sounds when it speaks or writes, defined as a few consistent traits.",
+      "whyItMatters": "A defined voice keeps emails, posts, and pages all sounding like the same brand.",
+      "takeaway": "A clear set of rules for how the brand should always sound."
+    },
+    "communication.promise": {
+      "whatItIs": "The one thing customers can always count on when they choose you.",
+      "whyItMatters": "A real promise sets expectations and tells the brand what it must always deliver.",
+      "takeaway": "A clear promise your customers can rely on every time."
+    },
+    "communication.brand-architecture": {
+      "whatItIs": "A decision on how your brands or products should relate: which leads, which supports, which gets dropped.",
+      "whyItMatters": "It stops your brands from competing with each other and keeps things simple for customers.",
+      "takeaway": "A clear plan for how your brands fit together going forward."
+    },
+    "communication.deferred": {
+      "whatItIs": "A short list of pieces you've spotted but will make later, once the guiding idea is set.",
+      "whyItMatters": "It parks things like the name and manifesto until there's enough direction to do them well.",
+      "takeaway": "A clear note of what's coming later and why it waits."
+    },
+    "strategic-document.reality": {
+      "whatItIs": "A short, friendly write-up of the basics: your problem, solution, and ideal customer.",
+      "whyItMatters": "It sets the scene so the rest of the strategy document makes sense to any reader.",
+      "takeaway": "A clear opening section that grounds the whole strategy."
+    },
+    "strategic-document.identity": {
+      "whatItIs": "The warm, story-driven section about who your business is and what it believes.",
+      "whyItMatters": "It's the part that creates emotional connection and explains where you come from.",
+      "takeaway": "A readable narrative of your business's identity and beliefs."
+    },
+    "strategic-document.image": {
+      "whatItIs": "A write-up of how others see you and the main gap that surfaced.",
+      "whyItMatters": "It turns the feedback into clear conclusions, often the most eye-opening part for owners.",
+      "takeaway": "A clear summary of how you're perceived and the key gap."
+    },
+    "strategic-document.communication": {
+      "whatItIs": "The practical section laying out your purpose, values, personality, voice, and promise.",
+      "whyItMatters": "It's the part you'll reach for most when actually making things in your brand's voice.",
+      "takeaway": "A clear, usable summary of how your brand should express itself."
+    },
+    "strategic-document.direction": {
+      "whatItIs": "A short closing section pointing to where the design work is headed next.",
+      "whyItMatters": "It hands the baton from thinking to making, without diving into the design yet.",
+      "takeaway": "A brief, forward-looking close that opens the door to design."
+    },
+    "brief.central-pattern": {
+      "whatItIs": "The one idea that keeps showing up across everything you've learned, often a single word.",
+      "whyItMatters": "It's the thread the guiding idea will be spun from, so it has to be the real one.",
+      "takeaway": "The single recurring idea at the heart of your strategy."
+    },
+    "brief.main-tension": {
+      "whatItIs": "The biggest gap between how you see yourself and how others see you.",
+      "whyItMatters": "This tension shows where the brand's energy and effort should go.",
+      "takeaway": "A clear statement of the main gap the brand needs to address."
+    },
+    "brief.constraint": {
+      "whatItIs": "The limits your principles, beliefs, and resources place on the design work.",
+      "whyItMatters": "Clear edges actually make creativity sharper, not weaker.",
+      "takeaway": "A clear list of the boundaries the design must respect."
+    },
+    "brief.emotional-territory": {
+      "whatItIs": "The feeling the brand should give people when they experience it.",
+      "whyItMatters": "Naming the feeling guides every look-and-sound choice toward the same mood.",
+      "takeaway": "A clear description of the feeling your brand should create."
+    },
+    "brief.must-resolve": {
+      "whatItIs": "The one specific question only your brand needs to answer with its design.",
+      "whyItMatters": "It's the test the guiding idea must pass, keeping the design pointed at what truly matters.",
+      "takeaway": "The single question your guiding idea must answer."
+    },
+    "concept": {
+      "whatItIs": "The one guiding idea that captures your strategy and steers every design and writing choice.",
+      "whyItMatters": "It's the filter everything gets checked against, so the brand stays coherent.",
+      "takeaway": "A clear guiding idea you can use to judge every later decision."
+    },
+    "insights": {
+      "whatItIs": "A collection of strong phrases and ideas that came up while finding the guiding idea.",
+      "whyItMatters": "They're ready-made raw material for your manifesto, website, and content later.",
+      "takeaway": "A handy stash of phrases and ideas to reuse in writing."
+    },
+    "manifesto": {
+      "whatItIs": "A short, spoken-from-the-heart piece where the brand says what it believes, in its own voice.",
+      "whyItMatters": "It proves the strategy can actually speak, and gives you a piece that should feel like you.",
+      "takeaway": "A short manifesto that sounds genuinely like your brand."
+    },
+    "audit": {
+      "whatItIs": "A review of any design you already have, marking each piece to keep, adjust, or remake. Skip it if you're starting fresh.",
+      "whyItMatters": "It tells you what's worth saving and sets the size of the design job ahead.",
+      "takeaway": "A clear keep/adjust/remake decision for each existing asset."
+    },
+    "design-plan": {
+      "whatItIs": "The to-do list for design: what gets made, how urgent each piece is, and where it'll appear.",
+      "whyItMatters": "It turns everything so far into a concrete, ordered plan a designer can run with.",
+      "takeaway": "A clear, prioritized plan of what to design and where it goes."
+    },
+    "naming.constraints": {
+      "whatItIs": "The ground rules for the name, set from your strategy before you start brainstorming.",
+      "whyItMatters": "Clear rules, like which languages it must work in, keep the name search focused.",
+      "takeaway": "A clear list of rules the name must follow."
+    },
+    "naming.phonetic-profile": {
+      "whatItIs": "A description of how the name should sound, starting with what to avoid.",
+      "whyItMatters": "Sound shapes first impressions, so getting the feel right guides the whole search.",
+      "takeaway": "A clear picture of the sound and rhythm you're aiming for."
+    },
+    "naming.exploration": {
+      "whatItIs": "The brainstorming stage: trying out name directions and learning from each one you drop.",
+      "whyItMatters": "Every name you rule out, with a reason, brings you closer to the right one.",
+      "takeaway": "A record of the directions you tried and what each taught you."
+    },
+    "naming.evaluation": {
+      "whatItIs": "Testing each name candidate against a set of checks, including how it sounds in each language.",
+      "whyItMatters": "It separates names that just sound nice from names that genuinely fit and work.",
+      "takeaway": "A clear, tested shortlist of names that hold up."
+    },
+    "naming.technical-verification": {
+      "whatItIs": "A practical availability check: is the web domain free, are the social handles open, any name clashes?",
+      "whyItMatters": "It catches real-world problems before you fall in love with a name you can't use.",
+      "takeaway": "A clear yes/no on whether each name is actually usable."
+    },
+    "naming.presentation": {
+      "whatItIs": "Presenting the two or three best names with their meaning and story, so a choice can be made.",
+      "whyItMatters": "It lays out the finalists clearly so picking the name is an easy, informed decision.",
+      "takeaway": "A clear shortlist of finalist names, each explained, and a chosen one."
+    },
+    "naming.digital-securing": {
+      "whatItIs": "Locking in the chosen name's web domain and social handles right away.",
+      "whyItMatters": "Grabbing them fast stops someone else from taking your name online.",
+      "takeaway": "Your name secured across the web and social accounts."
+    },
+    "territory.exploration": {
+      "whatItIs": "Building two or three complete visual directions, each a different mood with its own references.",
+      "whyItMatters": "Seeing real options side by side makes choosing a look a clear, confident decision.",
+      "takeaway": "A few distinct visual directions to choose between."
+    },
+    "territory.definition": {
+      "whatItIs": "Choosing the strongest visual direction and explaining why, including what it gives up.",
+      "whyItMatters": "Committing to one direction, with reasons, keeps the design focused and defensible.",
+      "takeaway": "A chosen visual direction with clear reasons behind it."
+    },
+    "system.logo-exploration": {
+      "whatItIs": "Sketching at least three logo directions inside your chosen visual look.",
+      "whyItMatters": "Exploring options keeps you from settling on the first idea before finding the best one.",
+      "takeaway": "Several logo directions to compare."
+    },
+    "system.logo-evaluation": {
+      "whatItIs": "Checking each logo against both meaning and craft, like clarity and how well it scales down.",
+      "whyItMatters": "A logo has to fit the strategy and work technically, this makes sure it does both.",
+      "takeaway": "A clear verdict on which logo passes on every count."
+    },
+    "system.logo-definition": {
+      "whatItIs": "Finalizing the logo, usually as a small set of versions for different uses and sizes.",
+      "whyItMatters": "Real-world use needs a logo that works big, small, and everywhere in between.",
+      "takeaway": "A finished logo with the versions you'll actually need."
+    },
+    "system.color": {
+      "whatItIs": "Choosing the color palette, with a real reason behind each color, not just taste.",
+      "whyItMatters": "Colors carry feeling, so tying them to your idea keeps the look meaningful.",
+      "takeaway": "A defined color palette where each color has a purpose."
+    },
+    "system.typography": {
+      "whatItIs": "Picking the fonts and the job each one does, chosen for fit rather than trend.",
+      "whyItMatters": "The right type makes everything you write feel on-brand and easy to read.",
+      "takeaway": "A chosen set of fonts with a clear role for each."
+    },
+    "system.visual-elements": {
+      "whatItIs": "The supporting visual pieces, like patterns, shapes, and textures, all built from the same logic.",
+      "whyItMatters": "These extras let the brand stay recognizable across many different things.",
+      "takeaway": "A set of visual building blocks that work together."
+    },
+    "system.photography": {
+      "whatItIs": "The direction for photos and images: their subject, style, light, and feel.",
+      "whyItMatters": "Consistent imagery keeps the brand looking like itself across every photo.",
+      "takeaway": "A clear style guide for the brand's photos and images."
+    },
+    "closure.approval": {
+      "whatItIs": "The formal sign-off where the finished design is reviewed against the guiding idea.",
+      "whyItMatters": "It's the moment to confirm every choice fits, and to fix anything that feels off.",
+      "takeaway": "An approved design with any final tweaks noted."
+    },
+    "closure.application": {
+      "whatItIs": "Showing the brand on real or realistic items to prove the whole system actually works.",
+      "whyItMatters": "Seeing it in use confirms the brand holds up beyond the drawing board.",
+      "takeaway": "Real examples that prove the brand works in practice."
+    },
+    "closure.brand-manual": {
+      "whatItIs": "A simple guide that captures the idea, the rules, and how to use the brand correctly.",
+      "whyItMatters": "It lets you and anyone you work with keep the brand consistent over time.",
+      "takeaway": "A clear handbook for using your brand the right way."
+    }
+  }
+}
