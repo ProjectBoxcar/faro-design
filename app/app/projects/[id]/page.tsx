@@ -16,6 +16,7 @@ import { StrategyArc, type ArcPhase } from "@/components/StrategyArc";
 import { type PhaseItem } from "@/components/PhaseList";
 import { FullPlan } from "@/components/FullPlan";
 import { DeleteProjectButton } from "@/components/DeleteProjectButton";
+import { PublishPanel } from "@/components/PublishPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -109,18 +110,29 @@ export default async function ProjectHub({
   });
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-5 py-8 lg:px-10 lg:py-14">
-      <section className="mb-7">
-        <h2 className="font-serif text-xl font-semibold tracking-tight">The path to your brand</h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">{ov.tagline}</p>
+    <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-12 lg:py-12 2xl:max-w-[104rem]">
+      <section className="mb-8">
+        <h2 className="font-serif text-4xl font-medium leading-[1.05] tracking-tight lg:text-5xl">
+          The path to your brand
+        </h2>
+        <p className="mt-2 text-sm text-[var(--muted)]">{ov.tagline}</p>
         <div className="mt-4">
           <StrategyArc phases={tracker} />
         </div>
       </section>
 
-      <div className="space-y-5" id="plan">
-        <UpNextCard next={next} />
-        <FullPlan projectId={id} phases={phaseItems} defaultOpen={plan === "open"} />
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-12 2xl:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="min-w-0 space-y-5" id="plan">
+          <UpNextCard next={next} />
+          <FullPlan projectId={id} phases={phaseItems} defaultOpen={plan === "open"} />
+        </div>
+
+        <aside className="mt-10 lg:mt-0 lg:sticky lg:top-8 lg:self-start">
+          <h2 className="mb-3 font-serif text-lg font-semibold tracking-tight">
+            Hand off to your designer
+          </h2>
+          <PublishPanel projectId={id} initialToken={project.share_token} />
+        </aside>
       </div>
 
       <div className="mt-12 border-t border-[var(--border)] pt-6">

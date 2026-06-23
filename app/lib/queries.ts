@@ -110,6 +110,26 @@ export function saveSection(input: {
   return getSectionRow(input.projectId, input.key)!;
 }
 
+// Publish a project: mint an unguessable share token (reuse if one already exists)
+// and (re)stamp published_at. Returns the share token for the public handover link.
+export function publishProject(id: string): string {
+  const existing = getProject(id);
+  const token = existing?.share_token ?? nanoid();
+  db.update(projects)
+    .set({ share_token: token, published_at: new Date(), updated_at: new Date() })
+    .where(eq(projects.id, id))
+    .run();
+  return token;
+}
+
+// Unpublish: revoke the share link by clearing the token and published timestamp.
+export function unpublishProject(id: string): void {
+  db.update(projects)
+    .set({ share_token: null, published_at: null, updated_at: new Date() })
+    .where(eq(projects.id, id))
+    .run();
+}
+
 // Set of section keys that have at least draft content — used for dependency gating.
 export function filledKeys(projectId: string): Set<string> {
   return new Set(

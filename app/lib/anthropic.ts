@@ -1,14 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.warn(
-    "[anthropic] ANTHROPIC_API_KEY is not set — AI-draft features will fail until you add it to .env.local"
-  );
-}
-
-export const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+import { getApiKey } from "@/lib/settings";
 
 export const MODELS = {
   // Synthesis (Brief, Concept, Manifesto, Strategic Document, Communication block,
@@ -20,4 +11,15 @@ export const MODELS = {
   parsing: "claude-haiku-4-5-20251001",
 } as const;
 
-export const hasApiKey = () => Boolean(process.env.ANTHROPIC_API_KEY);
+// True when a key is available (from the in-app Settings page or the env var).
+export function hasApiKey(): boolean {
+  return Boolean(getApiKey());
+}
+
+// Build a client using the resolved key. Throws if none is configured — callers
+// should check hasApiKey() first and show a friendly "set it in Settings" message.
+export function getClient(): Anthropic {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error("No Anthropic API key configured");
+  return new Anthropic({ apiKey });
+}

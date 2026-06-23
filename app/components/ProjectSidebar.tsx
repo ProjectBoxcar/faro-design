@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Check, Lock } from "lucide-react";
+import { ArrowLeft, Check, Lock, Settings } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
 
 export type SidebarPhase = {
@@ -32,7 +32,7 @@ export function ProjectSidebar({
   return (
     <aside
       className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col border-r border-[var(--border)] lg:flex"
-      style={{ backgroundColor: "rgba(255,255,255,0.72)", backdropFilter: "blur(20px)" }}
+      style={{ backgroundColor: "rgba(250,248,243,0.82)", backdropFilter: "blur(20px)" }}
     >
       <div className="p-5">
         <Link
@@ -99,6 +99,15 @@ export function ProjectSidebar({
           View all steps →
         </Link>
       </nav>
+
+      <div className="border-t border-[var(--border)] p-3">
+        <Link
+          href="/settings"
+          className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm text-[var(--muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+        >
+          <Settings size={15} /> Settings
+        </Link>
+      </div>
     </aside>
   );
 }

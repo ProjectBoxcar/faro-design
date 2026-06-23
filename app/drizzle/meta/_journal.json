@@ -8,6 +8,13 @@
       "when": 1781797376151,
       "tag": "0000_absurd_la_nuit",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1782246345827,
+      "tag": "0001_lame_terror",
+      "breakpoints": true
     }
   ]
 }

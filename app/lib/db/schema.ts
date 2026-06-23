@@ -8,6 +8,10 @@ export const settings = sqliteTable("settings", {
   designer_name: text("designer_name"),
   // Default reasoning model for synthesis drafts. See lib/anthropic.ts MODELS.
   default_model: text("default_model").notNull().default("claude-opus-4-8"),
+  // Anthropic API key set from the in-app Settings page (local, single-user).
+  // Falls back to the ANTHROPIC_API_KEY env var when null. Stored plaintext in
+  // the local SQLite file (gitignored) — fine for a personal local tool.
+  anthropic_api_key: text("anthropic_api_key"),
   debug_mode: integer("debug_mode", { mode: "boolean" }).notNull().default(false),
   created_at: integer("created_at", { mode: "timestamp" })
     .notNull()

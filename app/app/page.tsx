@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Settings } from "lucide-react";
 import { listProjects, completedCountByProject } from "@/lib/queries";
 import { NewProjectButton } from "@/components/NewProjectButton";
 import { StrategyArc, type ArcPhase } from "@/components/StrategyArc";
@@ -34,18 +35,29 @@ export default function Home() {
   }));
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-10 lg:px-10 lg:py-14">
+    <main className="mx-auto max-w-7xl px-5 py-10 lg:px-12 lg:py-14 2xl:max-w-[110rem]">
       <header className="mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-serif text-3xl font-semibold tracking-tight">{ov.title}</h1>
-          <p className="mt-1.5 text-[15px] text-[var(--foreground)]">{ov.tagline}</p>
+          <h1 className="font-serif text-5xl font-medium leading-[1.02] tracking-tight lg:text-7xl">
+            {ov.title}
+          </h1>
+          <p className="mt-3 max-w-xl text-base text-[var(--muted)]">{ov.tagline}</p>
         </div>
-        <NewProjectButton />
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href="/settings"
+            aria-label="Settings"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-strong)] text-[var(--muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+          >
+            <Settings size={17} />
+          </Link>
+          <NewProjectButton />
+        </div>
       </header>
 
       {/* What this app is for */}
       <section className="mb-10 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow lg:p-8">
-        <p className="max-w-2xl text-[15px] leading-relaxed text-[var(--muted)]">{ov.summary}</p>
+        <p className="max-w-2xl text-base leading-relaxed text-[var(--muted)]">{ov.summary}</p>
         <h2 className="mt-6 mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
           How it works — four phases
         </h2>
@@ -66,7 +78,7 @@ export default function Home() {
           </p>
         </div>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {projects.map((p) => (
             <li key={p.id}>
               <Link

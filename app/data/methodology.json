@@ -798,7 +798,8 @@
                   "label": "Questions for acquaintances and friends (personal)",
                   "type": "list"
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "image.respondents",
@@ -839,7 +840,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "image.distribution",
@@ -862,7 +864,8 @@
                   "label": "Distribution medium and rationale",
                   "type": "textarea"
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "image.results",
@@ -917,7 +920,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "image.pattern-analysis",
@@ -980,7 +984,8 @@
                   "label": "Recommendation rate",
                   "type": "text"
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "image.contrast",
@@ -1031,7 +1036,8 @@
                   "label": "Action this implies for communication",
                   "type": "textarea"
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "image.key-finding",
@@ -1054,7 +1060,8 @@
                   "label": "Key finding",
                   "type": "textarea"
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "image.sample-limitation",
@@ -1077,7 +1084,8 @@
                   "label": "Sample limitation",
                   "type": "textarea"
                 }
-              ]
+              ],
+              "optional": true
             }
           ]
         },
@@ -1356,7 +1364,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "optional": true
             }
           ]
         }
@@ -1779,7 +1788,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "optional": true
             }
           ]
         },
@@ -2177,7 +2187,8 @@
                   "label": "Naming constraints",
                   "type": "list"
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "naming.phonetic-profile",
@@ -2217,7 +2228,8 @@
                   "label": "Extracted phonetic pattern",
                   "type": "textarea"
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "naming.exploration",
@@ -2252,7 +2264,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "naming.evaluation",
@@ -2332,7 +2345,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "naming.technical-verification",
@@ -2380,7 +2394,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "naming.presentation",
@@ -2431,7 +2446,8 @@
                   "label": "Chosen name",
                   "type": "text"
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "naming.digital-securing",
@@ -2471,7 +2487,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "optional": true
             }
           ]
         },
@@ -2547,7 +2564,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "territory.definition",
@@ -2657,7 +2675,8 @@
                   "label": "What was gained",
                   "type": "list"
                 }
-              ]
+              ],
+              "optional": true
             }
           ]
         },
@@ -2701,7 +2720,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "system.logo-evaluation",
@@ -2817,7 +2837,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "system.logo-definition",
@@ -2862,7 +2883,8 @@
                   "label": "Logotype and descriptor typography",
                   "type": "textarea"
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "system.color",
@@ -2909,7 +2931,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "system.typography",
@@ -2950,7 +2973,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "system.visual-elements",
@@ -2992,7 +3016,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "system.photography",
@@ -3016,7 +3041,8 @@
                   "label": "Photographic direction",
                   "type": "textarea"
                 }
-              ]
+              ],
+              "optional": true
             }
           ]
         },
@@ -3050,7 +3076,8 @@
                   "label": "Approval notes and iterations",
                   "type": "textarea"
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "closure.application",
@@ -3086,7 +3113,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "optional": true
             },
             {
               "id": "closure.brand-manual",
@@ -3111,7 +3139,8 @@
                   "label": "Manual contents (concept, guidelines, protocols)",
                   "type": "textarea"
                 }
-              ]
+              ],
+              "optional": true
             }
           ]
         }

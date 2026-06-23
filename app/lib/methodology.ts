@@ -29,6 +29,7 @@ export type Section = {
   resolver: Resolver;
   kind: SectionKind;
   internal?: boolean; // never shown to client/handover views
+  optional?: boolean; // not required to finish a phase / the journey
   reads?: string[];
   helpText?: string;
   triggerQuestions?: string[];

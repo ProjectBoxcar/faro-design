@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { Section, Field } from "@/lib/methodology";
-import { Sparkles, Trash2 } from "lucide-react";
+import { Sparkles, Trash2, Check, X, RotateCw } from "lucide-react";
 
 type Value = Record<string, unknown>;
 
@@ -13,16 +13,12 @@ export function SectionEditor({
   initialValue,
   initialStatus,
   aiGenerated,
-  generatable,
-  missingReads,
 }: {
   projectId: string;
   section: Section;
   initialValue: Value;
   initialStatus: string;
   aiGenerated: boolean;
-  generatable: boolean;
-  missingReads: string[];
 }) {
   const router = useRouter();
   const [value, setValue] = useState<Value>(initialValue);
@@ -31,6 +27,79 @@ export function SectionEditor({
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+  // The AI's proposed values — shown for review; never overwrites silently.
+  const [proposal, setProposal] = useState<Value | null>(null);
+
+  const lastSaved = useRef(JSON.stringify(initialValue));
+
+  // Send the owner's current notes to Claude and PROPOSE an improved version.
+  // Nothing changes in the fields until they click "Use this".
+  async function improveWithAI() {
+    setGenerating(true);
+    setGenError(null);
+    setProposal(null);
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId, key: section.id, value }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setGenError(data.error ?? "Couldn't generate. Try again.");
+      setGenerating(false);
+      return;
+    }
+    const data = await res.json();
+    if (data.values && Object.keys(data.values).length > 0) {
+      setProposal(data.values as Value);
+    } else {
+      setGenError("The AI didn't return anything usable. Add a few notes and try again.");
+    }
+    setGenerating(false);
+  }
+
+  function acceptProposal() {
+    if (!proposal) return;
+    setValue((prev) => ({ ...prev, ...proposal }));
+    setProposal(null);
+  }
+
+  // Debounced autosave: any edit is saved as a draft ~1.2s after you stop typing,
+  // so navigating away never loses work. Completion is still explicit.
+  useEffect(() => {
+    const serialized = JSON.stringify(value);
+    if (serialized === lastSaved.current || saving) return;
+    const t = setTimeout(() => {
+      void autosave(serialized);
+    }, 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  async function autosave(serialized: string) {
+    try {
+      const res = await fetch("/api/sections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          key: section.id,
+          value,
+          status: status === "empty" ? "draft" : status,
+        }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const row = data.row ?? data;
+      lastSaved.current = serialized;
+      setStatus(row.status);
+      setSavedAt(new Date().toLocaleTimeString());
+    } catch {
+      /* silent — manual Save remains available */
+    }
+  }
 
   async function clearStep() {
     setSaving(true);
@@ -46,15 +115,16 @@ export function SectionEditor({
       return;
     }
     setValue({});
+    lastSaved.current = "{}";
     setStatus("empty");
     setConfirmClear(false);
+    setProposal(null);
     setSavedAt(null);
     setSaving(false);
     router.refresh();
   }
 
   const fields = section.fields ?? [];
-  const isSynthesis = section.kind === "synthesis" || section.kind === "partial";
 
   function setField(id: string, v: unknown) {
     setValue((prev) => ({ ...prev, [id]: v }));
@@ -77,6 +147,7 @@ export function SectionEditor({
     const data = await res.json();
     const row = data.row ?? data;
     setStatus(row.status);
+    lastSaved.current = JSON.stringify(value);
 
     // On completion, jump straight to the next step (or back to the hub if
     // there's nothing actionable left). Keep the button disabled through the nav.
@@ -109,23 +180,58 @@ export function SectionEditor({
         </div>
       )}
 
-      {isSynthesis && (
-        <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-[var(--designer)]/40 bg-[var(--surface)] p-4">
-          <div className="text-sm">
-            <div className="font-medium">AI draft</div>
-            <div className="text-[var(--muted)]">
-              {generatable
-                ? "Generate a first draft from the sections this builds on, then edit."
-                : `Fill these first: ${missingReads.join(", ") || "upstream sections"}.`}
+      <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-[var(--designer)]/40 bg-[var(--surface)] p-4">
+        <div className="text-sm">
+          <div className="font-medium">Write it with AI</div>
+          <div className="text-[var(--muted)]">
+            Jot rough notes below (or leave them empty), then let AI turn them into clear,
+            well-written content. You review it before anything changes.
+          </div>
+          {genError && <div className="mt-1 text-[var(--danger)]">{genError}</div>}
+        </div>
+        <button
+          onClick={improveWithAI}
+          disabled={generating}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--designer)] px-4 py-2 text-sm font-medium text-[var(--designer)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+        >
+          <Sparkles size={15} /> {generating ? "Writing…" : "Improve with AI"}
+        </button>
+      </div>
+
+      {/* AI proposal — review and accept; never overwrites silently. */}
+      {proposal && (
+        <div className="mb-6 rounded-lg border border-[var(--designer)] bg-[var(--surface)] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-sm font-medium text-[var(--designer)]">
+              AI suggestion — review before applying
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={improveWithAI}
+                disabled={generating}
+                className="inline-flex items-center gap-1 rounded-full border border-[var(--border-strong)] px-3 py-1.5 text-xs text-[var(--muted)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+              >
+                <RotateCw size={13} /> {generating ? "…" : "Regenerate"}
+              </button>
+              <button
+                onClick={() => setProposal(null)}
+                className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs text-[var(--muted)] transition hover:bg-[var(--surface-2)]"
+              >
+                <X size={13} /> Discard
+              </button>
+              <button
+                onClick={acceptProposal}
+                className="inline-flex items-center gap-1 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)]"
+              >
+                <Check size={13} /> Use this
+              </button>
             </div>
           </div>
-          <button
-            disabled
-            title="AI generation is wired up in step 3 of the roadmap."
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--designer)] px-4 py-2 text-sm font-medium text-[var(--designer)] opacity-50"
-          >
-            <Sparkles size={15} /> Generate draft
-          </button>
+          <div className="mt-3 space-y-3">
+            {fields.map((f) => (
+              <ProposalValue key={f.id} field={f} value={proposal[f.id]} />
+            ))}
+          </div>
         </div>
       )}
 
@@ -190,6 +296,75 @@ export function SectionEditor({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+// Read-only render of one proposed field value (skips empties).
+function ProposalValue({ field, value }: { field: Field; value: unknown }) {
+  const empty =
+    value == null ||
+    (typeof value === "string" && value.trim() === "") ||
+    (Array.isArray(value) && value.length === 0);
+  if (empty) return null;
+
+  const label = (
+    <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--subtle)]">
+      {field.label}
+    </div>
+  );
+
+  if (field.type === "list" && Array.isArray(value)) {
+    return (
+      <div>
+        {label}
+        <ul className="mt-0.5 list-disc pl-5 text-sm text-[var(--foreground)]">
+          {(value as unknown[]).map((it, i) => (
+            <li key={i}>{String(it)}</li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  if (field.type === "table" && Array.isArray(value)) {
+    const cols = field.columns ?? [];
+    const rows = value as Record<string, string>[];
+    return (
+      <div>
+        {label}
+        <div className="mt-0.5 overflow-x-auto rounded border border-[var(--border)]">
+          <table className="w-full text-sm">
+            <thead className="bg-[var(--surface-2)]">
+              <tr>
+                {cols.map((c) => (
+                  <th key={c.id} className="px-2 py-1 text-left font-medium">
+                    {c.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={i} className="border-t border-[var(--border)]">
+                  {cols.map((c) => (
+                    <td key={c.id} className="px-2 py-1">
+                      {r?.[c.id] ?? ""}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {label}
+      <p className="mt-0.5 whitespace-pre-wrap text-sm text-[var(--foreground)]">{String(value)}</p>
     </div>
   );
 }

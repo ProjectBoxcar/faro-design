@@ -70,75 +70,48 @@ function isComplete(map: StatusMap, sectionId: string): boolean {
   return map.get(sectionId) === "complete";
 }
 
-// "Filled" = has at least draft content (used for dependency gating).
-function isFilled(map: StatusMap, sectionId: string): boolean {
-  const s = map.get(sectionId);
-  return s != null && s !== "empty";
+// Required = counts toward finishing a phase / the journey. Optional sections
+// (Image survey, the whole design phase, byproducts) are reachable and useful
+// but never block progress.
+function isRequired(sectionId: string): boolean {
+  return !getSection(sectionId)?.optional;
 }
 
-// A phase is "done" when every section in it is complete.
+// A phase is "done" when every REQUIRED section in it is complete.
 export function phaseDone(phaseId: string, map: StatusMap): boolean {
-  return flow.filter((s) => s.phaseId === phaseId).every((s) => isComplete(map, s.sectionId));
+  return flow
+    .filter((s) => s.phaseId === phaseId && isRequired(s.sectionId))
+    .every((s) => isComplete(map, s.sectionId));
 }
 
+// Progress counts required sections only, so 100% lines up with "phase done".
 export function phaseProgress(phaseId: string, map: StatusMap): { done: number; total: number } {
-  const inPhase = flow.filter((s) => s.phaseId === phaseId);
-  return { done: inPhase.filter((s) => isComplete(map, s.sectionId)).length, total: inPhase.length };
+  const req = flow.filter((s) => s.phaseId === phaseId && isRequired(s.sectionId));
+  return { done: req.filter((s) => isComplete(map, s.sectionId)).length, total: req.length };
 }
 
 export function overallProgress(map: StatusMap): { done: number; total: number } {
-  return { done: flow.filter((s) => isComplete(map, s.sectionId)).length, total: flow.length };
+  const req = flow.filter((s) => isRequired(s.sectionId));
+  return { done: req.filter((s) => isComplete(map, s.sectionId)).length, total: req.length };
 }
 
-// A phase unlocks once all earlier phases are done.
-export function phaseUnlocked(phaseId: string, map: StatusMap): boolean {
-  for (const phase of methodology.phases) {
-    if (phase.id === phaseId) return true;
-    if (!phaseDone(phase.id, map)) return false;
-  }
+// No hard locks — the owner can work any step in any order, and "Improve with AI"
+// works everywhere. Order is guidance (Up next + "builds on" hints), not a gate.
+export function phaseUnlocked(_phaseId: string, _map: StatusMap): boolean {
   return true;
 }
 
 export type Lock = { locked: boolean; reason?: string };
 
-// Why (if at all) a section can't be worked on yet.
-export function sectionLock(sectionId: string, map: StatusMap): Lock {
-  const step = stepByKey.get(sectionId);
-  const section = getSection(sectionId);
-  if (!step || !section) return { locked: false };
-
-  if (!phaseUnlocked(step.phaseId, map)) {
-    const prev = earlierUnfinishedPhase(step.phaseId, map);
-    return { locked: true, reason: prev ? `Finish the ${prev.name} phase first` : "Locked" };
-  }
-
-  // Synthesis sections need their upstream inputs before they can be drafted.
-  if ((section.kind === "synthesis" || section.kind === "partial") && section.reads?.length) {
-    const missing = section.reads.filter((r) => !isFilled(map, r));
-    if (missing.length) {
-      const names = missing.map((id) => getSection(id)?.name ?? id);
-      return { locked: true, reason: `Add ${names.join(", ")} first` };
-    }
-  }
+export function sectionLock(_sectionId: string, _map: StatusMap): Lock {
   return { locked: false };
 }
 
-function earlierUnfinishedPhase(phaseId: string, map: StatusMap): Phase | undefined {
-  for (const phase of methodology.phases) {
-    if (phase.id === phaseId) return undefined;
-    if (!phaseDone(phase.id, map)) return phase;
-  }
-  return undefined;
-}
-
-// The single "do this now" step: earliest incomplete section that isn't locked.
-// If every incomplete step is locked, returns the earliest incomplete one anyway
-// (so the user can see what's blocking). Null means the whole journey is complete.
+// The single "do this now" step: earliest incomplete REQUIRED section.
+// Null means everything required is complete (ready to hand off).
 export function upNext(map: StatusMap): string | null {
-  const incomplete = flow.filter((s) => !isComplete(map, s.sectionId));
-  if (incomplete.length === 0) return null;
-  const actionable = incomplete.find((s) => !sectionLock(s.sectionId, map).locked);
-  return (actionable ?? incomplete[0]).sectionId;
+  const next = flow.find((s) => isRequired(s.sectionId) && !isComplete(map, s.sectionId));
+  return next?.sectionId ?? null;
 }
 
 export function currentPhaseId(map: StatusMap): string {

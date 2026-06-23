@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Settings } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
 
 // Mobile-only sticky top bar: frosted, with a context-aware back button (out to
@@ -24,7 +24,7 @@ export function ProjectMobileBar({
     <header
       className="sticky top-0 z-40 border-b border-[var(--border)] lg:hidden"
       style={{
-        backgroundColor: "rgba(255,255,255,0.8)",
+        backgroundColor: "rgba(250,248,243,0.85)",
         backdropFilter: "blur(20px)",
         paddingTop: "env(safe-area-inset-top)",
       }}
@@ -38,6 +38,13 @@ export function ProjectMobileBar({
           <ArrowLeft size={18} />
         </Link>
         <span className="flex-1 truncate text-sm font-medium">{projectName}</span>
+        <Link
+          href="/settings"
+          aria-label="Settings"
+          className="-mr-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted)] transition active:bg-[var(--surface-2)]"
+        >
+          <Settings size={17} />
+        </Link>
       </div>
       <ProgressBar done={overall.done} total={overall.total} />
     </header>

@@ -35,7 +35,7 @@ export type PhaseItem = {
 
 export function PhaseList({ projectId, phases }: { projectId: string; phases: PhaseItem[] }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 xl:grid xl:grid-cols-2 xl:items-start xl:gap-3 xl:space-y-0 2xl:grid-cols-3">
       {phases.map((phase) => (
         <PhaseRow key={phase.id} projectId={projectId} phase={phase} />
       ))}

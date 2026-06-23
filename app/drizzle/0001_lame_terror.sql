@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `anthropic_api_key` text;
