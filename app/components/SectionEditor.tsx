@@ -167,6 +167,19 @@ export function SectionEditor({
 
   return (
     <div>
+      {aiGenerated && status === "draft" && (
+        <div className="mb-6 flex items-start gap-2.5 rounded-lg border border-[var(--designer)]/40 bg-[var(--accent-soft)] p-4 text-sm">
+          <Sparkles size={16} className="mt-0.5 shrink-0 text-[var(--designer)]" />
+          <div>
+            <span className="font-medium">This is your AI draft.</span>{" "}
+            <span className="text-[var(--muted)]">
+              We wrote it from your Quick Start answers. Read it over, edit anything that doesn&apos;t sound like you,
+              then choose <strong>Complete &amp; continue</strong> to move on.
+            </span>
+          </div>
+        </div>
+      )}
+
       {section.triggerQuestions && section.triggerQuestions.length > 0 && (
         <div className="mb-6 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-[var(--subtle)]">

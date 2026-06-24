@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getProject, getSections } from "@/lib/queries";
 import { methodology, getPillarOf, getPhaseOf } from "@/lib/methodology";
@@ -25,15 +27,17 @@ export default async function ProjectHub({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ plan?: string }>;
+  searchParams: Promise<{ plan?: string; drafted?: string }>;
 }) {
   const { id } = await params;
-  const { plan } = await searchParams;
+  const { plan, drafted } = await searchParams;
   const project = getProject(id);
   if (!project) notFound();
 
   const rows = getSections(id);
   const statusMap: StatusMap = new Map(rows.map((r) => [r.section_key, r.status]));
+  // Did the Quick Start interview structure pasted customer feedback (vs. only prep a survey)?
+  const gaveFeedback = rows.some((r) => r.section_key === "image.results" && r.status !== "empty");
 
   const ov = overview();
   const currentPhase = currentPhaseId(statusMap);
@@ -111,6 +115,34 @@ export default async function ProjectHub({
 
   return (
     <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-12 lg:py-12 2xl:max-w-[104rem]">
+      {drafted === "1" && (
+        <div className="mb-8 rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-6 py-6">
+          <h2 className="font-serif text-2xl font-medium tracking-tight">Your first draft is ready ✨</h2>
+          <p className="mt-2 max-w-2xl text-[var(--muted)]">
+            We turned your answers into the first drafts of your brand. Now we&apos;ll walk you through your strategy{" "}
+            <strong className="text-[var(--foreground)]">one step at a time</strong>. Most steps already have a draft to
+            read and tweak; for a few, you&apos;ll add a detail or let AI draft them with one click. Your progress saves
+            as you go, and you can stop and come back anytime.
+          </p>
+          <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
+            {gaveFeedback
+              ? "The feedback you pasted is organized under the Image step, further along."
+              : "We also prepared a short customer survey under the Image step, for you to send when you're ready."}
+          </p>
+          {next && !next.locked && (
+            <Link
+              href={`/projects/${id}/${encodeURIComponent(next.sectionId)}`}
+              className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+            >
+              Start reviewing <ArrowRight size={16} />
+            </Link>
+          )}
+          <p className="mt-3 text-xs text-[var(--subtle)]">
+            Prefer the map? The full list of steps is further down under “View all steps.”
+          </p>
+        </div>
+      )}
+
       <section className="mb-8">
         <h2 className="font-serif text-4xl font-medium leading-[1.05] tracking-tight lg:text-5xl">
           The path to your brand
