@@ -130,6 +130,25 @@ export function unpublishProject(id: string): void {
     .run();
 }
 
+// Mark every section in a reviewed pillar that actually has content as complete.
+// Empty steps (e.g. an Image survey the owner skipped) are left alone.
+export function completeSectionsWithContent(projectId: string, keys: string[]): void {
+  for (const key of keys) {
+    const row = getSectionRow(projectId, key);
+    if (!row?.value) continue;
+    const v = row.value as Record<string, unknown>;
+    const hasContent = Object.values(v).some((x) => {
+      if (x == null) return false;
+      if (typeof x === "string") return x.trim() !== "";
+      if (Array.isArray(x)) return x.length > 0;
+      return true;
+    });
+    if (!hasContent) continue;
+    db.update(sections).set({ status: "complete", updated_at: new Date() }).where(eq(sections.id, row.id)).run();
+  }
+  db.update(projects).set({ updated_at: new Date() }).where(eq(projects.id, projectId)).run();
+}
+
 // Set of section keys that have at least draft content — used for dependency gating.
 export function filledKeys(projectId: string): Set<string> {
   return new Set(

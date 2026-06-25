@@ -120,4 +120,46 @@ export function currentPhaseId(map: StatusMap): string {
   return methodology.phases[methodology.phases.length - 1].id;
 }
 
+// ---- Grouped review: the owner walks the journey one PILLAR at a time, not one
+// section at a time. The Design phase is the designer's job (not the owner's
+// guided review), so it's excluded here; it stays reachable via the full step list.
+
+export type ReviewPillar = { id: string; name: string; phaseId: string; sectionIds: string[] };
+
+const reviewPillarList: ReviewPillar[] = [];
+for (const phase of methodology.phases) {
+  if (phase.id === "design") continue;
+  for (const pillar of phase.pillars) {
+    const sectionIds = pillar.sections.filter((s) => !s.internal).map((s) => s.id);
+    if (sectionIds.length === 0) continue;
+    reviewPillarList.push({ id: pillar.id, name: pillar.name, phaseId: phase.id, sectionIds });
+  }
+}
+
+export function reviewPillars(): ReviewPillar[] {
+  return reviewPillarList;
+}
+
+export function getReviewPillar(id: string): ReviewPillar | undefined {
+  return reviewPillarList.find((p) => p.id === id);
+}
+
+export function reviewPillarPosition(id: string): { pos: number; total: number } {
+  return { pos: reviewPillarList.findIndex((p) => p.id === id) + 1, total: reviewPillarList.length };
+}
+
+export function nextReviewPillarId(id: string): string | null {
+  const i = reviewPillarList.findIndex((p) => p.id === id);
+  return i >= 0 ? reviewPillarList[i + 1]?.id ?? null : null;
+}
+
+// The pillar the owner should work next: the first with any incomplete REQUIRED
+// section. Null ⇒ the guided review is finished (ready to hand off).
+export function firstIncompleteReviewPillar(map: StatusMap): string | null {
+  for (const p of reviewPillarList) {
+    if (p.sectionIds.some((id) => isRequired(id) && !isComplete(map, id))) return p.id;
+  }
+  return null;
+}
+
 export type { Phase, Pillar, Section };

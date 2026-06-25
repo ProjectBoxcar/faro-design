@@ -2,18 +2,20 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getProject, getSections } from "@/lib/queries";
-import { methodology, getPillarOf, getPhaseOf } from "@/lib/methodology";
+import { methodology } from "@/lib/methodology";
 import {
   overallProgress,
   phaseProgress,
   phaseDone,
   phaseUnlocked,
   sectionLock,
-  upNext,
   currentPhaseId,
+  firstIncompleteReviewPillar,
+  getReviewPillar,
+  reviewPillarPosition,
   type StatusMap,
 } from "@/lib/flow";
-import { phaseIntro, pillarIntro, sectionGuide } from "@/lib/guide";
+import { phaseIntro, pillarIntro } from "@/lib/guide";
 import { UpNextCard, type UpNext } from "@/components/UpNextCard";
 import { type PhaseItem } from "@/components/PhaseList";
 import { FullPlan } from "@/components/FullPlan";
@@ -45,26 +47,19 @@ export default async function ProjectHub({
   // surface "publish" on a fresh project where there's nothing to hand off yet.
   const handoffReady = phaseDone("strategic", statusMap);
 
-  // Up-next card
-  const nextId = upNext(statusMap);
+  // Up-next card — points at the next PILLAR to review, not a single section.
+  const reviewPillarId = firstIncompleteReviewPillar(statusMap);
   let next: UpNext | null = null;
-  if (nextId) {
-    const lock = sectionLock(nextId, statusMap);
-    const phase = getPhaseOf(nextId)!;
-    const pillar = getPillarOf(nextId)!;
-    const sec = pillar.sections.find((s) => s.id === nextId)!;
-    const pp = phaseProgress(phase.id, statusMap);
+  if (reviewPillarId) {
+    const rp = getReviewPillar(reviewPillarId)!;
+    const { pos, total } = reviewPillarPosition(reviewPillarId);
     next = {
       projectId: id,
-      sectionId: nextId,
-      name: sec.name,
-      pillarName: pillar.name,
-      phaseName: phase.name,
-      whatItIs: sectionGuide(nextId).whatItIs,
-      phasePercent: pp.total === 0 ? 0 : Math.round((pp.done / pp.total) * 100),
+      href: `/projects/${id}/review/${reviewPillarId}`,
+      name: rp.name,
+      label: `Part ${pos} of ${total}`,
+      whatItIs: pillarIntro(reviewPillarId),
       overall,
-      locked: lock.locked,
-      lockReason: lock.reason,
     };
   }
 
@@ -106,18 +101,19 @@ export default async function ProjectHub({
           <h2 className="font-serif text-2xl font-medium tracking-tight">Your first draft is ready ✨</h2>
           <p className="mt-2 max-w-2xl text-[var(--muted)]">
             We turned your answers into the first drafts of your brand. Now we&apos;ll walk you through your strategy{" "}
-            <strong className="text-[var(--foreground)]">one step at a time</strong>. Most steps already have a draft to
-            read and tweak; for a few, you&apos;ll add a detail or let AI draft them with one click. Your progress saves
-            as you go, and you can stop and come back anytime.
+            <strong className="text-[var(--foreground)]">one step at a time</strong>. Every step is written for you from
+            what you told us — you just read it and tweak anything that&apos;s off. A few later steps fill in
+            automatically once you add your customer survey. Your progress saves as you go, and you can stop and come
+            back anytime.
           </p>
           <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
             {gaveFeedback
               ? "The feedback you pasted is organized under the Image step, further along."
               : "We also prepared a short customer survey under the Image step, for you to send when you're ready."}
           </p>
-          {next && !next.locked && (
+          {reviewPillarId && (
             <Link
-              href={`/projects/${id}/${encodeURIComponent(next.sectionId)}`}
+              href={`/projects/${id}/review/${reviewPillarId}`}
               className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
             >
               Start reviewing <ArrowRight size={16} />

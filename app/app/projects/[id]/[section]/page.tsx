@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { getProject, getSectionRow, getSections } from "@/lib/queries";
-import { getSection, getPillarOf, getPhaseOf, readsOf } from "@/lib/methodology";
+import { getSection, getPillarOf, getPhaseOf, readsOf, canGenerate } from "@/lib/methodology";
 import { phaseProgress, nextSectionId, prevSectionId, type StatusMap } from "@/lib/flow";
 import { sectionGuide } from "@/lib/guide";
 import { SectionEditor } from "@/components/SectionEditor";
@@ -31,6 +31,19 @@ export default async function SectionPage({
   const filled = new Set([...statusMap].filter(([, s]) => s !== "empty").map(([k]) => k));
 
   const reads = readsOf(sectionKey);
+
+  // Derived (synthesis/partial) steps shouldn't greet the owner with a blank
+  // form after we promised "just review". Auto-draft from upstream when:
+  //  - it's a Reality/Identity foundation step (reads only the owner's answers,
+  //    safe to draft even with partial upstream), or
+  //  - its declared inputs are all filled (e.g. once the customer survey exists).
+  // Otherwise it's genuinely waiting on later inputs — say so honestly.
+  const isSynthesis = section.kind === "synthesis" || section.kind === "partial";
+  const sectionEmpty = !row?.value || Object.keys(row.value as Record<string, unknown>).length === 0;
+  const inFoundation = pillar?.id === "reality" || pillar?.id === "identity";
+  const autoDraft = isSynthesis && sectionEmpty && (inFoundation || canGenerate(sectionKey, filled));
+  const awaitingInputs = isSynthesis && sectionEmpty && !autoDraft;
+  const missingReads = awaitingInputs ? reads.filter((r) => !filled.has(r.id)) : [];
 
   const phaseProg = phase ? phaseProgress(phase.id, statusMap) : { done: 0, total: 0 };
   const phasePercent = phaseProg.total === 0 ? 0 : Math.round((phaseProg.done / phaseProg.total) * 100);
@@ -80,12 +93,27 @@ export default async function SectionPage({
             </p>
           )}
 
+          {awaitingInputs && (
+            <div className="mb-5 rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
+              We&apos;ll write this step for you too — it just builds on things that come a little later
+              {missingReads.length > 0 && (
+                <>
+                  , like{" "}
+                  <span className="text-[var(--foreground)]">{missingReads.map((r) => r.name).join(", ")}</span>
+                </>
+              )}
+              . Once those are filled in, open this step again and it drafts itself. You can also write it yourself now
+              if you&apos;d rather.
+            </div>
+          )}
+
           <SectionEditor
             projectId={id}
             section={section}
             initialValue={(row?.value as Record<string, unknown>) ?? {}}
             initialStatus={row?.status ?? "empty"}
             aiGenerated={row?.ai_generated ?? false}
+            autoDraft={autoDraft}
           />
 
           {/* Back / Next */}

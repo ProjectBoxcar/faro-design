@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Settings } from "lucide-react";
 import { listProjects, completedCountByProject } from "@/lib/queries";
 import { NewProjectButton } from "@/components/NewProjectButton";
-import { StrategyArc, type ArcPhase } from "@/components/StrategyArc";
 import { ProgressBar } from "@/components/ProgressBar";
 import { overview } from "@/lib/guide";
 import { totalSteps } from "@/lib/flow";
@@ -27,12 +26,20 @@ export default function Home() {
   const completed = completedCountByProject();
   const total = totalSteps();
   const ov = overview();
-  const arc: ArcPhase[] = ov.phases.map((p) => ({
-    id: p.id,
-    name: p.name,
-    oneLiner: p.oneLiner,
-    produces: p.produces,
-  }));
+
+  // Plain-language explainer of the four things a brand is built from — the first
+  // concepts a newcomer meets ("Reality", "Identity"…) and needs defined up front.
+  const PARTS = [
+    { name: "Reality", text: "The plain facts: what you sell, who it's for, and what makes you different." },
+    { name: "Identity", text: "How you see yourself: your story, what you believe, and where you're headed." },
+    { name: "Image", text: "How your customers actually see you — gathered from a short survey." },
+    { name: "Communication", text: "How your brand should sound and behave, and the promise it makes." },
+  ];
+  const STEPS = [
+    "Answer a handful of plain questions about your business.",
+    "The app drafts your whole strategy from your answers.",
+    "Review each piece, then hand a clear brief to your designer.",
+  ];
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 lg:px-12 lg:py-14 2xl:max-w-[110rem]">
@@ -41,7 +48,9 @@ export default function Home() {
           <h1 className="font-serif text-5xl font-medium leading-[1.02] tracking-tight lg:text-7xl">
             {ov.title}
           </h1>
-          <p className="mt-3 max-w-3xl text-base text-[var(--muted)]">{ov.tagline}</p>
+          <p className="mt-4 max-w-3xl font-serif text-2xl font-normal leading-snug tracking-tight text-[var(--foreground)] lg:text-3xl">
+            {ov.tagline}
+          </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Link
@@ -57,11 +66,40 @@ export default function Home() {
 
       {/* What this app is for */}
       <section className="mb-10 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow lg:p-8">
-        <p className="text-base leading-relaxed text-[var(--muted)]">{ov.summary}</p>
-        <h2 className="mt-6 mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
-          How it works — four phases
+        <p className="max-w-3xl text-base leading-relaxed text-[var(--muted)]">{ov.summary}</p>
+
+        <h2 className="mt-7 mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
+          How it works
         </h2>
-        <StrategyArc phases={arc} />
+        <ol className="grid gap-3 sm:grid-cols-3">
+          {STEPS.map((step, i) => (
+            <li
+              key={i}
+              className="flex gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm text-[var(--muted)]"
+            >
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[11px] font-medium text-white">
+                {i + 1}
+              </span>
+              <span>{step}</span>
+            </li>
+          ))}
+        </ol>
+
+        <h2 className="mt-7 text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
+          What goes into your brand
+        </h2>
+        <p className="mb-3 mt-1 max-w-3xl text-sm text-[var(--muted)]">
+          A brand is more than a logo. You&apos;ll work through the four things it&apos;s built on — the app drafts each
+          from your answers, and you just review:
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {PARTS.map((p) => (
+            <div key={p.name} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+              <div className="text-sm font-semibold">{p.name}</div>
+              <p className="mt-0.5 text-sm text-[var(--muted)]">{p.text}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       <div className="mb-4 flex items-center justify-between">

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { Section, Field } from "@/lib/methodology";
-import { Sparkles, Trash2, Check, X, RotateCw } from "lucide-react";
+import { Sparkles, Trash2, Check, X, RotateCw, Loader2 } from "lucide-react";
 
 type Value = Record<string, unknown>;
 
@@ -13,12 +13,20 @@ export function SectionEditor({
   initialValue,
   initialStatus,
   aiGenerated,
+  autoDraft = false,
+  embedded = false,
 }: {
   projectId: string;
   section: Section;
   initialValue: Value;
   initialStatus: string;
   aiGenerated: boolean;
+  // When true and the section is empty, draft it from upstream answers on open —
+  // so derived steps arrive pre-written to review, never as a blank form.
+  autoDraft?: boolean;
+  // Embedded inside a pillar review screen: drop the per-step Save/Complete/Clear
+  // footer (the pillar screen owns completion) and rely on autosave.
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const [value, setValue] = useState<Value>(initialValue);
@@ -32,7 +40,41 @@ export function SectionEditor({
   // The AI's proposed values — shown for review; never overwrites silently.
   const [proposal, setProposal] = useState<Value | null>(null);
 
+  const isEmptyInitial = Object.keys(initialValue).length === 0;
+  const [autoDrafting, setAutoDrafting] = useState(autoDraft && isEmptyInitial);
+  const [justAutoDrafted, setJustAutoDrafted] = useState(false);
+
   const lastSaved = useRef(JSON.stringify(initialValue));
+
+  // Auto-draft an empty derived step from the answers already on file, so the
+  // owner reviews written content instead of facing a blank form. Runs once.
+  useEffect(() => {
+    if (!autoDraft || !isEmptyInitial) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId, key: section.id, value: {} }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled && data.values && Object.keys(data.values).length > 0) {
+            setValue((prev) => ({ ...prev, ...data.values }));
+            setJustAutoDrafted(true);
+          }
+        }
+      } catch {
+        /* fall through to the normal editor */
+      }
+      if (!cancelled) setAutoDrafting(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Send the owner's current notes to Claude and PROPOSE an improved version.
   // Nothing changes in the fields until they click "Use this".
@@ -167,49 +209,61 @@ export function SectionEditor({
 
   return (
     <div>
-      {aiGenerated && status === "draft" && (
-        <div className="mb-6 flex items-start gap-2.5 rounded-lg border border-[var(--designer)]/40 bg-[var(--accent-soft)] p-4 text-sm">
-          <Sparkles size={16} className="mt-0.5 shrink-0 text-[var(--designer)]" />
-          <div>
-            <span className="font-medium">This is your AI draft.</span>{" "}
-            <span className="text-[var(--muted)]">
-              We wrote it from your Quick Start answers. Read it over, edit anything that doesn&apos;t sound like you,
-              then choose <strong>Complete &amp; continue</strong> to move on.
-            </span>
-          </div>
+      {/* One clear "AI is working" signal — covers both auto-draft-on-open and manual (re)writes. */}
+      {(autoDrafting || generating) && (
+        <div className="mb-6 flex items-center gap-3 rounded-lg border border-[var(--designer)]/40 bg-[var(--accent-soft)] p-4 text-sm">
+          <Loader2 size={18} className="shrink-0 animate-spin text-[var(--designer)]" />
+          <span className="font-medium text-[var(--designer)]">Writing this with AI</span>
+          <span className="inline-flex gap-0.5 text-[var(--designer)]" aria-hidden="true">
+            <span className="animate-bounce">.</span>
+            <span className="animate-bounce" style={{ animationDelay: "0.15s" }}>.</span>
+            <span className="animate-bounce" style={{ animationDelay: "0.3s" }}>.</span>
+          </span>
+          <span className="ml-1 text-[var(--muted)]">This can take a few seconds.</span>
         </div>
       )}
 
-      {section.triggerQuestions && section.triggerQuestions.length > 0 && (
-        <div className="mb-6 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[var(--subtle)]">
-            Prompts to explore
+      {/* Single AI box: review notice with an inline rewrite, or a compact "draft it" prompt. */}
+      {!autoDrafting && !generating && !proposal &&
+        ((aiGenerated || justAutoDrafted) && status !== "complete" ? (
+          <div className="mb-6 flex items-start justify-between gap-3 rounded-lg border border-[var(--designer)]/40 bg-[var(--accent-soft)] p-4 text-sm">
+            <div>
+              <span className="font-medium">This is your AI draft.</span>{" "}
+              <span className="text-[var(--muted)]">Read it over and edit anything that doesn&apos;t sound like you.</span>
+            </div>
+            <button
+              onClick={improveWithAI}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--designer)] px-3 py-1.5 text-xs font-medium text-[var(--designer)] transition hover:bg-[var(--surface-2)]"
+            >
+              <RotateCw size={13} /> Rewrite
+            </button>
           </div>
+        ) : (
+          <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-sm">
+            <span className="text-[var(--muted)]">Want the AI to write this? Add a few notes below, or just generate it.</span>
+            <button
+              onClick={improveWithAI}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)]"
+            >
+              <Sparkles size={13} /> Draft with AI
+            </button>
+          </div>
+        ))}
+
+      {genError && <div className="mb-4 text-sm text-[var(--danger)]">{genError}</div>}
+
+      {section.triggerQuestions && section.triggerQuestions.length > 0 && (
+        <details className="mb-6 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-[var(--subtle)]">
+            Prompts to explore
+          </summary>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
             {section.triggerQuestions.map((q, i) => (
               <li key={i}>{q}</li>
             ))}
           </ul>
-        </div>
+        </details>
       )}
-
-      <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-[var(--designer)]/40 bg-[var(--surface)] p-4">
-        <div className="text-sm">
-          <div className="font-medium">Write it with AI</div>
-          <div className="text-[var(--muted)]">
-            Jot rough notes below (or leave them empty), then let AI turn them into clear,
-            well-written content. You review it before anything changes.
-          </div>
-          {genError && <div className="mt-1 text-[var(--danger)]">{genError}</div>}
-        </div>
-        <button
-          onClick={improveWithAI}
-          disabled={generating}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--designer)] px-4 py-2 text-sm font-medium text-[var(--designer)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
-        >
-          <Sparkles size={15} /> {generating ? "Writing…" : "Improve with AI"}
-        </button>
-      </div>
 
       {/* AI proposal — review and accept; never overwrites silently. */}
       {proposal && (
@@ -260,6 +314,11 @@ export function SectionEditor({
         </div>
       )}
 
+      {embedded ? (
+        <div className="mt-3 h-4 text-xs text-[var(--subtle)]">
+          {saving ? "Saving…" : savedAt ? `Saved ${savedAt}` : ""}
+        </div>
+      ) : (
       <div className="mt-8 flex items-center gap-3">
         <button
           onClick={() => save()}
@@ -309,6 +368,7 @@ export function SectionEditor({
           </button>
         )}
       </div>
+      )}
     </div>
   );
 }
