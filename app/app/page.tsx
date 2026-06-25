@@ -41,7 +41,7 @@ export default function Home() {
           <h1 className="font-serif text-5xl font-medium leading-[1.02] tracking-tight lg:text-7xl">
             {ov.title}
           </h1>
-          <p className="mt-3 max-w-xl text-base text-[var(--muted)]">{ov.tagline}</p>
+          <p className="mt-3 max-w-3xl text-base text-[var(--muted)]">{ov.tagline}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Link
@@ -57,7 +57,7 @@ export default function Home() {
 
       {/* What this app is for */}
       <section className="mb-10 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow lg:p-8">
-        <p className="max-w-2xl text-base leading-relaxed text-[var(--muted)]">{ov.summary}</p>
+        <p className="text-base leading-relaxed text-[var(--muted)]">{ov.summary}</p>
         <h2 className="mt-6 mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
           How it works — four phases
         </h2>

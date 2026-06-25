@@ -7,14 +7,14 @@
       { "id": "strategic", "name": "Strategic", "oneLiner": "You explain what your business does, what you believe, how people see you, and how it should come across.", "produces": "A solid understanding of your business that every later decision can lean on." },
       { "id": "handoff", "name": "Strategy Close / Handoff", "oneLiner": "Everything you figured out gets written up cleanly, once for you and once as a quick internal note for the designer.", "produces": "A tidy strategy document plus a one-page internal summary of the key insights." },
       { "id": "planning", "name": "Planning", "oneLiner": "The strategy gets boiled down into one guiding idea, written into the brand's first words, and turned into a to-do list.", "produces": "A guiding idea, a short manifesto, and a clear plan of what to design." },
-      { "id": "design", "name": "Design", "oneLiner": "The fun part: a name, a visual look, a logo, colors and type, all tested against the plan.", "produces": "A finished name and visual identity, with proof it works in the real world." }
+      { "id": "design", "name": "Design", "oneLiner": "Hand your brief to a graphic designer to bring the brand to life. If you want, you can also explore names and visual directions here — the app guides and checks each choice against your plan.", "produces": "A designer-ready hand-off, plus optional tools to steer and pressure-test naming, logo and visual options. The artwork itself is created by your designer, not the app." }
     ]
   },
   "phases": {
     "strategic": { "intro": "This first phase is all about understanding before deciding. You describe what your business really is, what it believes, how people actually see it, and how it should express itself. It comes first because you can't design a brand for a business you haven't pinned down yet." },
     "handoff": { "intro": "Now that the thinking is done, it gets written up clearly. One version is a friendly document for you, the other is a short internal cheat-sheet that pulls out the few insights the design will be built on. This bridge makes sure nothing gets lost between thinking and making." },
     "planning": { "intro": "Here the strategy turns into direction. You distill one guiding idea that will steer every choice, give the brand its first real voice, check what you already have, and decide exactly what needs to be designed. It sits between strategy and design because it turns ideas into a concrete plan." },
-    "design": { "intro": "This is where it all becomes visible: a name, a look, a logo, colors, and type. Everything is created from the plan and tested against it, so nothing is just decoration. It comes last because good design needs a clear foundation to build on." }
+    "design": { "intro": "This is the hand-off. The app doesn't draw your logo — a graphic designer does. What everything before this produces is a clear brief they can build from. If you'd like to go further yourself, this phase also lets you explore and test names and visual directions against your plan, so whoever designs it stays true to the strategy." }
   },
   "pillars": {
     "reality": { "intro": "The plain facts of your business: what you sell, who you sell to, how you make money, and what makes you different. This is the ground truth everything else stands on." },
