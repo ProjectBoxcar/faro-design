@@ -6,15 +6,15 @@ import { methodology, getPillarOf, getPhaseOf } from "@/lib/methodology";
 import {
   overallProgress,
   phaseProgress,
+  phaseDone,
   phaseUnlocked,
   sectionLock,
   upNext,
   currentPhaseId,
   type StatusMap,
 } from "@/lib/flow";
-import { overview, phaseIntro, pillarIntro, sectionGuide } from "@/lib/guide";
+import { phaseIntro, pillarIntro, sectionGuide } from "@/lib/guide";
 import { UpNextCard, type UpNext } from "@/components/UpNextCard";
-import { StrategyArc, type ArcPhase } from "@/components/StrategyArc";
 import { type PhaseItem } from "@/components/PhaseList";
 import { FullPlan } from "@/components/FullPlan";
 import { DeleteProjectButton } from "@/components/DeleteProjectButton";
@@ -39,9 +39,11 @@ export default async function ProjectHub({
   // Did the Quick Start interview structure pasted customer feedback (vs. only prep a survey)?
   const gaveFeedback = rows.some((r) => r.section_key === "image.results" && r.status !== "empty");
 
-  const ov = overview();
   const currentPhase = currentPhaseId(statusMap);
   const overall = overallProgress(statusMap);
+  // The hand-off brief only has anything in it once the strategy is done — don't
+  // surface "publish" on a fresh project where there's nothing to hand off yet.
+  const handoffReady = phaseDone("strategic", statusMap);
 
   // Up-next card
   const nextId = upNext(statusMap);
@@ -65,22 +67,6 @@ export default async function ProjectHub({
       lockReason: lock.reason,
     };
   }
-
-  // Big-picture tracker
-  const tracker: ArcPhase[] = methodology.phases.map((phase) => {
-    const prog = phaseProgress(phase.id, statusMap);
-    const ovPhase = ov.phases?.find((p) => p.id === phase.id);
-    return {
-      id: phase.id,
-      name: phase.name,
-      oneLiner: ovPhase?.oneLiner ?? "",
-      produces: ovPhase?.produces ?? "",
-      done: prog.done,
-      total: prog.total,
-      unlocked: phaseUnlocked(phase.id, statusMap),
-      isCurrent: phase.id === currentPhase,
-    };
-  });
 
   // Phase accordion
   const phaseItems: PhaseItem[] = methodology.phases.map((phase) => {
@@ -143,15 +129,12 @@ export default async function ProjectHub({
         </div>
       )}
 
-      <section className="mb-8">
-        <h2 className="font-serif text-4xl font-medium leading-[1.05] tracking-tight lg:text-5xl">
-          The path to your brand
-        </h2>
-        <p className="mt-2 text-sm text-[var(--muted)]">{ov.tagline}</p>
-        <div className="mt-4">
-          <StrategyArc phases={tracker} />
-        </div>
-      </section>
+      <div className="mb-8">
+        <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">{project.name}</h1>
+        <p className="mt-1.5 text-sm text-[var(--muted)]">
+          Continue where you left off, or revisit any step anytime.
+        </p>
+      </div>
 
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-12 2xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="min-w-0 space-y-5" id="plan">
@@ -163,7 +146,14 @@ export default async function ProjectHub({
           <h2 className="mb-3 font-serif text-lg font-semibold tracking-tight">
             Hand off to your designer
           </h2>
-          <PublishPanel projectId={id} initialToken={project.share_token} />
+          {handoffReady || project.share_token ? (
+            <PublishPanel projectId={id} initialToken={project.share_token} />
+          ) : (
+            <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
+              This is the finish line. Once you&apos;ve worked through your strategy, you&apos;ll create a private,
+              read-only brief to share with your designer right here — there&apos;s nothing to hand off until then.
+            </div>
+          )}
         </aside>
       </div>
 

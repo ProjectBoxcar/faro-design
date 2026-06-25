@@ -83,8 +83,15 @@ export function ProjectSidebar({
                   {complete ? <Check size={13} /> : !p.unlocked ? <Lock size={11} /> : i + 1}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className={`block truncate text-sm ${p.isCurrent ? "font-medium" : ""}`}>
-                    {p.name}
+                  <span className="flex items-center gap-2">
+                    <span className={`truncate text-sm ${p.isCurrent ? "font-medium" : "text-[var(--muted)]"}`}>
+                      {p.name}
+                    </span>
+                    {p.isCurrent && (
+                      <span className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+                        Now
+                      </span>
+                    )}
                   </span>
                   <ProgressBar done={p.done} total={p.total} className="mt-1.5" />
                 </span>
