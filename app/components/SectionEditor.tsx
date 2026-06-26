@@ -39,12 +39,50 @@ export function SectionEditor({
   const [genError, setGenError] = useState<string | null>(null);
   // The AI's proposed values — shown for review; never overwrites silently.
   const [proposal, setProposal] = useState<Value | null>(null);
+  // Whether the current content is AI-authored and untouched. Persisted as the
+  // `ai_generated` flag; a manual edit flips it false (designer ownership).
+  const [aiOwned, setAiOwned] = useState(aiGenerated);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const isEmptyInitial = Object.keys(initialValue).length === 0;
   const [autoDrafting, setAutoDrafting] = useState(autoDraft && isEmptyInitial);
   const [justAutoDrafted, setJustAutoDrafted] = useState(false);
 
   const lastSaved = useRef(JSON.stringify(initialValue));
+
+  // Live mirrors so the unmount flush below reads current values, not a stale closure.
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const statusRef = useRef(status);
+  statusRef.current = status;
+  const aiOwnedRef = useRef(aiOwned);
+  aiOwnedRef.current = aiOwned;
+
+  // Flush any unsaved edit when navigating away (e.g. "Looks good — continue"
+  // before the debounce fired). `keepalive` lets the request finish post-unmount.
+  useEffect(() => {
+    return () => {
+      const serialized = JSON.stringify(valueRef.current);
+      if (serialized === lastSaved.current) return;
+      try {
+        void fetch("/api/sections", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          keepalive: true,
+          body: JSON.stringify({
+            projectId,
+            key: section.id,
+            value: valueRef.current,
+            status: statusRef.current === "empty" ? "draft" : statusRef.current,
+            aiGenerated: aiOwnedRef.current,
+          }),
+        });
+      } catch {
+        /* best effort */
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-draft an empty derived step from the answers already on file, so the
   // owner reviews written content instead of facing a blank form. Runs once.
@@ -62,11 +100,14 @@ export function SectionEditor({
           const data = await res.json();
           if (!cancelled && data.values && Object.keys(data.values).length > 0) {
             setValue((prev) => ({ ...prev, ...data.values }));
+            setAiOwned(true);
             setJustAutoDrafted(true);
           }
+        } else if (!cancelled) {
+          setGenError("Couldn't draft this automatically — use “Draft with AI” below to try again.");
         }
       } catch {
-        /* fall through to the normal editor */
+        if (!cancelled) setGenError("Couldn't draft this automatically — use “Draft with AI” below to try again.");
       }
       if (!cancelled) setAutoDrafting(false);
     })();
@@ -105,6 +146,7 @@ export function SectionEditor({
   function acceptProposal() {
     if (!proposal) return;
     setValue((prev) => ({ ...prev, ...proposal }));
+    setAiOwned(true);
     setProposal(null);
   }
 
@@ -130,16 +172,21 @@ export function SectionEditor({
           key: section.id,
           value,
           status: status === "empty" ? "draft" : status,
+          aiGenerated: aiOwned,
         }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        setSaveError("Couldn't save your changes — check your connection.");
+        return;
+      }
       const data = await res.json();
       const row = data.row ?? data;
       lastSaved.current = serialized;
       setStatus(row.status);
       setSavedAt(new Date().toLocaleTimeString());
+      setSaveError(null);
     } catch {
-      /* silent — manual Save remains available */
+      setSaveError("Couldn't save your changes — check your connection.");
     }
   }
 
@@ -170,6 +217,7 @@ export function SectionEditor({
 
   function setField(id: string, v: unknown) {
     setValue((prev) => ({ ...prev, [id]: v }));
+    setAiOwned(false); // a manual edit hands ownership to the designer
   }
 
   async function save(nextStatus?: string, advance = false) {
@@ -178,7 +226,7 @@ export function SectionEditor({
     const res = await fetch("/api/sections", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId, key: section.id, value, status: nextStatus ?? status }),
+      body: JSON.stringify({ projectId, key: section.id, value, status: nextStatus ?? status, aiGenerated: aiOwned }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -189,6 +237,7 @@ export function SectionEditor({
     const data = await res.json();
     const row = data.row ?? data;
     setStatus(row.status);
+    setSaveError(null);
     lastSaved.current = JSON.stringify(value);
 
     // On completion, jump straight to the next step (or back to the hub if
@@ -315,8 +364,12 @@ export function SectionEditor({
       )}
 
       {embedded ? (
-        <div className="mt-3 h-4 text-xs text-[var(--subtle)]">
-          {saving ? "Saving…" : savedAt ? `Saved ${savedAt}` : ""}
+        <div className="mt-3 h-4 text-xs">
+          {saveError ? (
+            <span className="text-[var(--danger)]">{saveError}</span>
+          ) : (
+            <span className="text-[var(--subtle)]">{saving ? "Saving…" : savedAt ? `Saved ${savedAt}` : ""}</span>
+          )}
         </div>
       ) : (
       <div className="mt-8 flex items-center gap-3">
@@ -337,7 +390,8 @@ export function SectionEditor({
         {aiGenerated && (
           <span className="text-xs text-[var(--designer)]">Current content was AI-drafted</span>
         )}
-        {savedAt && <span className="text-xs text-[var(--subtle)]">Saved {savedAt}</span>}
+        {savedAt && !saveError && <span className="text-xs text-[var(--subtle)]">Saved {savedAt}</span>}
+        {saveError && <span className="text-xs text-[var(--danger)]">{saveError}</span>}
         {error && <span className="text-xs text-[var(--danger)]">{error}</span>}
 
         {/* Clear this step's answers. */}

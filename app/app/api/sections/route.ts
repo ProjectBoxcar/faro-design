@@ -9,6 +9,9 @@ const SaveSchema = z.object({
   key: z.string().min(1),
   value: z.record(z.string(), z.unknown()),
   status: z.enum(["empty", "draft", "complete", "client_submitted"]).optional(),
+  // Whether the content is AI-authored and untouched. The client flips this false
+  // on a manual edit, so the flag stays accurate (and provenance is preserved).
+  aiGenerated: z.boolean().optional(),
 });
 
 export async function POST(req: Request) {
@@ -20,13 +23,14 @@ export async function POST(req: Request) {
   if (!getSection(parsed.data.key)) {
     return NextResponse.json({ error: `Unknown section: ${parsed.data.key}` }, { status: 400 });
   }
-  // A manual save always clears the AI flag (designer ownership of the content).
+  // Persist the AI-ownership flag the client computed (it flips false on a manual
+  // edit), so an untouched AI draft keeps its provenance across reloads.
   const row = saveSection({
     projectId: parsed.data.projectId,
     key: parsed.data.key,
     value: parsed.data.value as Record<string, never>,
     status: parsed.data.status,
-    aiGenerated: false,
+    aiGenerated: parsed.data.aiGenerated ?? false,
   });
 
   // When a step is completed, tell the client where to go next: the earliest
