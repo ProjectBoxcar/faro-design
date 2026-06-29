@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { getReviewPillar } from "@/lib/flow";
+import { getReviewGroup } from "@/lib/flow";
 
-// Brief "chapter card" on each move between pillar review screens, so the owner
+// Brief "chapter card" on each move between the four review screens, so the owner
 // clearly sees they advanced. Re-mounts per navigation (it's a template).
 export default function ReviewTemplate({ children }: { children: React.ReactNode }) {
-  const params = useParams<{ pillar: string }>();
-  const pillar = params?.pillar ? getReviewPillar(decodeURIComponent(params.pillar)) : undefined;
+  const params = useParams<{ group: string }>();
+  const group = params?.group ? getReviewGroup(decodeURIComponent(params.group)) : undefined;
 
   const [showCard, setShowCard] = useState(true);
   useEffect(() => {
@@ -20,7 +20,7 @@ export default function ReviewTemplate({ children }: { children: React.ReactNode
   return (
     <>
       <AnimatePresence>
-        {showCard && pillar && (
+        {showCard && group && (
           <motion.div
             key="chapter-card"
             initial={{ opacity: 0 }}
@@ -36,7 +36,7 @@ export default function ReviewTemplate({ children }: { children: React.ReactNode
               className="px-6 text-center"
             >
               <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">Reviewing</div>
-              <h1 className="mt-3 font-serif text-5xl font-medium tracking-tight lg:text-6xl">{pillar.name}</h1>
+              <h1 className="mt-3 font-serif text-5xl font-medium tracking-tight lg:text-6xl">{group.name}</h1>
             </motion.div>
           </motion.div>
         )}

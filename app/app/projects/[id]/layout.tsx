@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
 import { getProject, getSections } from "@/lib/queries";
-import { methodology } from "@/lib/methodology";
 import {
-  phaseProgress,
-  phaseUnlocked,
-  overallProgress,
-  currentPhaseId,
+  reviewGroups,
+  reviewGroupProgress,
+  currentReviewGroupId,
+  reviewProgress,
   type StatusMap,
 } from "@/lib/flow";
 import { ProjectSidebar, type SidebarPhase } from "@/components/ProjectSidebar";
@@ -25,17 +24,18 @@ export default async function ProjectLayout({
   if (!project) notFound();
 
   const statusMap: StatusMap = new Map(getSections(id).map((r) => [r.section_key, r.status]));
-  const overall = overallProgress(statusMap);
-  const current = currentPhaseId(statusMap);
-  const phases: SidebarPhase[] = methodology.phases.map((p) => {
-    const pr = phaseProgress(p.id, statusMap);
+  const overall = reviewProgress(statusMap);
+  const current = currentReviewGroupId(statusMap);
+  // The sidebar reflects the owner's real journey: the four review screens.
+  const phases: SidebarPhase[] = reviewGroups().map((g) => {
+    const pr = reviewGroupProgress(g.id, statusMap);
     return {
-      id: p.id,
-      name: p.name,
+      id: g.id,
+      name: g.name,
       done: pr.done,
       total: pr.total,
-      unlocked: phaseUnlocked(p.id, statusMap),
-      isCurrent: p.id === current,
+      unlocked: true,
+      isCurrent: g.id === current,
     };
   });
 

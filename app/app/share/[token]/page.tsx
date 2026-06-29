@@ -20,6 +20,19 @@ const GROUPS: { heading: string; keys: string[] }[] = [
     ],
   },
   { heading: "Manifesto", keys: ["manifesto"] },
+  {
+    // The concrete scope a designer needs that the strategic brief omits:
+    // what's offered (and how broad), pricing tier, where it lives, and what exists.
+    heading: "Practical scope",
+    keys: [
+      "reality.ideal-client",
+      "reality.service",
+      "reality.service-structure",
+      "reality.acquisition-channels",
+      "reality.brand-architecture",
+      "audit",
+    ],
+  },
   { heading: "Design Plan", keys: ["design-plan"] },
   {
     heading: "The strategy behind it",

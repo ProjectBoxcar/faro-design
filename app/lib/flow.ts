@@ -120,46 +120,119 @@ export function currentPhaseId(map: StatusMap): string {
   return methodology.phases[methodology.phases.length - 1].id;
 }
 
-// ---- Grouped review: the owner walks the journey one PILLAR at a time, not one
-// section at a time. The Design phase is the designer's job (not the owner's
-// guided review), so it's excluded here; it stays reachable via the full step list.
+// ---- Grouped review: the owner's whole journey is just FOUR screens. Each bundles
+// the essential, designer-relevant steps; operational facts (pricing, channels,
+// existing assets) are captured by the intake and flow into the hand-off doc, but
+// aren't walked through here. The Design phase is the designer's downstream job.
 
-export type ReviewPillar = { id: string; name: string; phaseId: string; sectionIds: string[] };
+export type ReviewGroup = { id: string; name: string; blurb: string; sectionIds: string[] };
 
-const reviewPillarList: ReviewPillar[] = [];
-for (const phase of methodology.phases) {
-  if (phase.id === "design") continue;
-  for (const pillar of phase.pillars) {
-    const sectionIds = pillar.sections.filter((s) => !s.internal).map((s) => s.id);
-    if (sectionIds.length === 0) continue;
-    reviewPillarList.push({ id: pillar.id, name: pillar.name, phaseId: phase.id, sectionIds });
-  }
+const reviewGroupList: ReviewGroup[] = [
+  {
+    id: "foundation",
+    name: "You & your business",
+    blurb: "What you do, who it's for, and what you stand for — drafted from your answers. Skim and fix anything off.",
+    sectionIds: [
+      "reality.problem",
+      "reality.solution",
+      "reality.value-proposition",
+      "reality.differentiator",
+      "reality.ideal-client",
+      "identity.origin",
+      "identity.self-perception",
+      "identity.beliefs",
+      "identity.principle",
+      "identity.golden-circle",
+    ],
+  },
+  {
+    id: "customers",
+    name: "What your customers think",
+    blurb: "How people actually see you, next to how you see yourself — the gap that makes the brief specific. Run the short survey, or skip for now.",
+    sectionIds: [
+      "image.survey-design",
+      "image.results",
+      "image.pattern-analysis",
+      "image.contrast",
+      "image.key-finding",
+    ],
+  },
+  {
+    id: "voice",
+    name: "Your brand's voice",
+    blurb: "How the brand should sound and behave — purpose, values, personality, tone, promise.",
+    sectionIds: [
+      "communication.purpose",
+      "communication.values",
+      "communication.personality",
+      "communication.tone",
+      "communication.promise",
+    ],
+  },
+  {
+    id: "brief",
+    name: "Your brief & concept",
+    blurb: "The payoff: the one-page strategic brief, the guiding concept, the manifesto, and the design plan your designer builds from.",
+    sectionIds: [
+      "brief.central-pattern",
+      "brief.main-tension",
+      "brief.constraint",
+      "brief.emotional-territory",
+      "brief.must-resolve",
+      "concept",
+      "manifesto",
+      "design-plan",
+    ],
+  },
+];
+
+export function reviewGroups(): ReviewGroup[] {
+  return reviewGroupList;
 }
 
-export function reviewPillars(): ReviewPillar[] {
-  return reviewPillarList;
+export function getReviewGroup(id: string): ReviewGroup | undefined {
+  return reviewGroupList.find((g) => g.id === id);
 }
 
-export function getReviewPillar(id: string): ReviewPillar | undefined {
-  return reviewPillarList.find((p) => p.id === id);
+export function reviewGroupPosition(id: string): { pos: number; total: number } {
+  return { pos: reviewGroupList.findIndex((g) => g.id === id) + 1, total: reviewGroupList.length };
 }
 
-export function reviewPillarPosition(id: string): { pos: number; total: number } {
-  return { pos: reviewPillarList.findIndex((p) => p.id === id) + 1, total: reviewPillarList.length };
+export function nextReviewGroupId(id: string): string | null {
+  const i = reviewGroupList.findIndex((g) => g.id === id);
+  return i >= 0 ? reviewGroupList[i + 1]?.id ?? null : null;
 }
 
-export function nextReviewPillarId(id: string): string | null {
-  const i = reviewPillarList.findIndex((p) => p.id === id);
-  return i >= 0 ? reviewPillarList[i + 1]?.id ?? null : null;
+// A step is "settled" if it's complete, or it's optional and untouched (e.g. a
+// skipped survey). Optional-but-drafted steps still want a glance.
+function sectionSettled(map: StatusMap, id: string): boolean {
+  if (isComplete(map, id)) return true;
+  return !isRequired(id) && (map.get(id) ?? "empty") === "empty";
 }
 
-// The pillar the owner should work next: the first with any incomplete REQUIRED
-// section. Null ⇒ the guided review is finished (ready to hand off).
-export function firstIncompleteReviewPillar(map: StatusMap): string | null {
-  for (const p of reviewPillarList) {
-    if (p.sectionIds.some((id) => isRequired(id) && !isComplete(map, id))) return p.id;
-  }
-  return null;
+export function reviewGroupDone(id: string, map: StatusMap): boolean {
+  const g = getReviewGroup(id);
+  return g ? g.sectionIds.every((sid) => sectionSettled(map, sid)) : false;
+}
+
+export function reviewGroupProgress(id: string, map: StatusMap): { done: number; total: number } {
+  const g = getReviewGroup(id);
+  if (!g) return { done: 0, total: 0 };
+  return { done: g.sectionIds.filter((sid) => sectionSettled(map, sid)).length, total: g.sectionIds.length };
+}
+
+// The group to work next (first not-done), or null when the whole review is done.
+export function firstIncompleteReviewGroup(map: StatusMap): string | null {
+  return reviewGroupList.find((g) => !reviewGroupDone(g.id, map))?.id ?? null;
+}
+
+export function currentReviewGroupId(map: StatusMap): string {
+  return firstIncompleteReviewGroup(map) ?? reviewGroupList[reviewGroupList.length - 1].id;
+}
+
+export function reviewProgress(map: StatusMap): { done: number; total: number } {
+  const all = reviewGroupList.flatMap((g) => g.sectionIds);
+  return { done: all.filter((sid) => sectionSettled(map, sid)).length, total: all.length };
 }
 
 export type { Phase, Pillar, Section };

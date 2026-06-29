@@ -40,9 +40,9 @@ const QUESTIONS: {
   },
   {
     key: "operations",
-    title: "How does the business run today?",
-    help: "Roughly: what stage you're at, your packages or pricing, how clients find you, and how much you can take on.",
-    placeholder: "We're in growth. We offer 3 packages… Most clients come from referrals… I can handle ~5 projects at once…",
+    title: "How does the business run, and where does it show up?",
+    help: "How many products/services you offer, your price level (premium, mid-range, budget), where the brand appears (website, Instagram, packaging, storefront…), and how customers find you.",
+    placeholder: "Three services, premium-priced. The brand lives on our website, Instagram and packaging. Most clients come from referrals…",
   },
   {
     key: "edge",

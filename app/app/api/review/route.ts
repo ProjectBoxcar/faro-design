@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { completeSectionsWithContent } from "@/lib/queries";
-import { getReviewPillar, nextReviewPillarId } from "@/lib/flow";
+import { getReviewGroup, nextReviewGroupId } from "@/lib/flow";
 
-// Mark a whole reviewed pillar's filled steps complete, and report the next pillar
+// Mark a whole reviewed group's filled steps complete, and report the next group
 // in the owner's guided review (null = review finished).
 const Schema = z.object({
   projectId: z.string().min(1),
-  pillarId: z.string().min(1),
+  groupId: z.string().min(1),
 });
 
 export async function POST(req: Request) {
@@ -16,10 +16,10 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
-  const pillar = getReviewPillar(parsed.data.pillarId);
-  if (!pillar) {
-    return NextResponse.json({ error: `Unknown pillar: ${parsed.data.pillarId}` }, { status: 400 });
+  const group = getReviewGroup(parsed.data.groupId);
+  if (!group) {
+    return NextResponse.json({ error: `Unknown group: ${parsed.data.groupId}` }, { status: 400 });
   }
-  completeSectionsWithContent(parsed.data.projectId, pillar.sectionIds);
-  return NextResponse.json({ next: nextReviewPillarId(parsed.data.pillarId) });
+  completeSectionsWithContent(parsed.data.projectId, group.sectionIds);
+  return NextResponse.json({ next: nextReviewGroupId(parsed.data.groupId) });
 }

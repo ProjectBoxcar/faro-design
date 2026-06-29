@@ -4,15 +4,15 @@ import { notFound } from "next/navigation";
 import { getProject, getSections } from "@/lib/queries";
 import { methodology } from "@/lib/methodology";
 import {
-  overallProgress,
   phaseProgress,
-  phaseDone,
   phaseUnlocked,
   sectionLock,
   currentPhaseId,
-  firstIncompleteReviewPillar,
-  getReviewPillar,
-  reviewPillarPosition,
+  firstIncompleteReviewGroup,
+  getReviewGroup,
+  reviewGroupPosition,
+  reviewGroupDone,
+  reviewProgress,
   type StatusMap,
 } from "@/lib/flow";
 import { phaseIntro, pillarIntro } from "@/lib/guide";
@@ -42,23 +42,23 @@ export default async function ProjectHub({
   const gaveFeedback = rows.some((r) => r.section_key === "image.results" && r.status !== "empty");
 
   const currentPhase = currentPhaseId(statusMap);
-  const overall = overallProgress(statusMap);
-  // The hand-off brief only has anything in it once the strategy is done — don't
-  // surface "publish" on a fresh project where there's nothing to hand off yet.
-  const handoffReady = phaseDone("strategic", statusMap);
+  const overall = reviewProgress(statusMap);
+  // The hand-off is meaningful once the brief & concept are reviewed — not on a
+  // fresh project where there's nothing to hand off yet.
+  const handoffReady = reviewGroupDone("brief", statusMap);
 
-  // Up-next card — points at the next PILLAR to review, not a single section.
-  const reviewPillarId = firstIncompleteReviewPillar(statusMap);
+  // Up-next card — points at the next review GROUP (one of four screens).
+  const reviewGroupId = firstIncompleteReviewGroup(statusMap);
   let next: UpNext | null = null;
-  if (reviewPillarId) {
-    const rp = getReviewPillar(reviewPillarId)!;
-    const { pos, total } = reviewPillarPosition(reviewPillarId);
+  if (reviewGroupId) {
+    const g = getReviewGroup(reviewGroupId)!;
+    const { pos, total } = reviewGroupPosition(reviewGroupId);
     next = {
       projectId: id,
-      href: `/projects/${id}/review/${reviewPillarId}`,
-      name: rp.name,
+      href: `/projects/${id}/review/${reviewGroupId}`,
+      name: g.name,
       label: `Part ${pos} of ${total}`,
-      whatItIs: pillarIntro(reviewPillarId),
+      whatItIs: g.blurb,
       overall,
     };
   }
@@ -111,9 +111,9 @@ export default async function ProjectHub({
               ? "The feedback you pasted is organized under the Image step, further along."
               : "We also prepared a short customer survey under the Image step, for you to send when you're ready."}
           </p>
-          {reviewPillarId && (
+          {reviewGroupId && (
             <Link
-              href={`/projects/${id}/review/${reviewPillarId}`}
+              href={`/projects/${id}/review/${reviewGroupId}`}
               className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
             >
               Start reviewing <ArrowRight size={16} />

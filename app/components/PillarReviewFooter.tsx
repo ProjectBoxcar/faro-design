@@ -4,15 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check } from "lucide-react";
 
-// Footer for a pillar review screen: marks the whole pillar reviewed (its filled
-// steps complete) and moves to the next pillar, or back to the hub when done.
+// Footer for a review screen: marks the whole group reviewed (its filled steps
+// complete) and moves to the next group, or back to the hub when done.
 export function PillarReviewFooter({
   projectId,
-  pillarId,
+  groupId,
   isLast,
 }: {
   projectId: string;
-  pillarId: string;
+  groupId: string;
   isLast: boolean;
 }) {
   const router = useRouter();
@@ -26,7 +26,7 @@ export function PillarReviewFooter({
       const res = await fetch("/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, pillarId }),
+        body: JSON.stringify({ projectId, groupId }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
