@@ -3,7 +3,13 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getProject, getSectionRow, getSections } from "@/lib/queries";
 import { getSection, readsOf } from "@/lib/methodology";
-import { getReviewGroup, reviewGroupPosition, nextReviewGroupId, type StatusMap } from "@/lib/flow";
+import {
+  getReviewGroup,
+  reviewGroupPosition,
+  nextReviewGroupId,
+  prevReviewGroupId,
+  type StatusMap,
+} from "@/lib/flow";
 import { sectionGuide } from "@/lib/guide";
 import { SectionEditor } from "@/components/SectionEditor";
 import { PillarReviewFooter } from "@/components/PillarReviewFooter";
@@ -93,7 +99,12 @@ export default async function ReviewGroupPage({
         })}
       </div>
 
-      <PillarReviewFooter projectId={id} groupId={groupId} isLast={nextReviewGroupId(groupId) === null} />
+      <PillarReviewFooter
+        projectId={id}
+        groupId={groupId}
+        prevId={prevReviewGroupId(groupId)}
+        isLast={nextReviewGroupId(groupId) === null}
+      />
     </div>
   );
 }

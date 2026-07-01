@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { ArrowLeft, Check, Lock, Settings } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
 
@@ -29,6 +32,11 @@ export function ProjectSidebar({
   overall: { done: number; total: number };
   phases: SidebarPhase[];
 }) {
+  // Highlight the review screen actually being viewed; off review screens
+  // (e.g. the hub) fall back to the computed "work on this next" group.
+  const routeParams = useParams<{ group?: string }>();
+  const viewedGroup = routeParams?.group ? decodeURIComponent(routeParams.group) : null;
+
   return (
     <aside
       className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col border-r border-[var(--border)] lg:flex"
@@ -64,37 +72,40 @@ export function ProjectSidebar({
         <ol className="space-y-0.5">
           {phases.map((p, i) => {
             const complete = p.total > 0 && p.done === p.total;
+            const current = viewedGroup ? p.id === viewedGroup : p.isCurrent;
             return (
-              <li
-                key={p.id}
-                className={`flex items-center gap-3 rounded-xl px-2.5 py-2 ${
-                  p.isCurrent ? "bg-[var(--accent-soft)]" : ""
-                }`}
-              >
-                <span
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-medium ${
-                    complete
-                      ? "bg-[var(--ok)] text-white"
-                      : p.isCurrent
-                      ? "bg-[var(--accent)] text-white"
-                      : "bg-[var(--surface-2)] text-[var(--muted)]"
+              <li key={p.id}>
+                <Link
+                  href={`/projects/${projectId}/review/${p.id}`}
+                  className={`flex items-center gap-3 rounded-xl px-2.5 py-2 transition ${
+                    current ? "bg-[var(--accent-soft)]" : "hover:bg-[var(--surface-2)]"
                   }`}
                 >
-                  {complete ? <Check size={13} /> : !p.unlocked ? <Lock size={11} /> : i + 1}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2">
-                    <span className={`truncate text-sm ${p.isCurrent ? "font-medium" : "text-[var(--muted)]"}`}>
-                      {p.name}
-                    </span>
-                    {p.isCurrent && (
-                      <span className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
-                        Now
-                      </span>
-                    )}
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-medium ${
+                      complete
+                        ? "bg-[var(--ok)] text-white"
+                        : current
+                        ? "bg-[var(--accent)] text-white"
+                        : "bg-[var(--surface-2)] text-[var(--muted)]"
+                    }`}
+                  >
+                    {complete ? <Check size={13} /> : !p.unlocked ? <Lock size={11} /> : i + 1}
                   </span>
-                  <ProgressBar done={p.done} total={p.total} className="mt-1.5" />
-                </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className={`truncate text-sm ${current ? "font-medium" : "text-[var(--muted)]"}`}>
+                        {p.name}
+                      </span>
+                      {current && (
+                        <span className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+                          {viewedGroup ? "Viewing" : "Now"}
+                        </span>
+                      )}
+                    </span>
+                    <ProgressBar done={p.done} total={p.total} className="mt-1.5" />
+                  </span>
+                </Link>
               </li>
             );
           })}

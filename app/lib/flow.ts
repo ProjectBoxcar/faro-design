@@ -203,6 +203,11 @@ export function nextReviewGroupId(id: string): string | null {
   return i >= 0 ? reviewGroupList[i + 1]?.id ?? null : null;
 }
 
+export function prevReviewGroupId(id: string): string | null {
+  const i = reviewGroupList.findIndex((g) => g.id === id);
+  return i > 0 ? reviewGroupList[i - 1].id : null;
+}
+
 // A step is "settled" if it's complete, or it's optional and untouched (e.g. a
 // skipped survey). Optional-but-drafted steps still want a glance.
 function sectionSettled(map: StatusMap, id: string): boolean {

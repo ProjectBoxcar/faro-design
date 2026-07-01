@@ -1,18 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 
 // Footer for a review screen: marks the whole group reviewed (its filled steps
-// complete) and moves to the next group, or back to the hub when done.
+// complete) and moves to the next group, or back to the hub when done. Going
+// back is just navigation — it never un-completes anything.
 export function PillarReviewFooter({
   projectId,
   groupId,
+  prevId,
   isLast,
 }: {
   projectId: string;
   groupId: string;
+  prevId: string | null;
   isLast: boolean;
 }) {
   const router = useRouter();
@@ -35,6 +39,9 @@ export function PillarReviewFooter({
         return;
       }
       router.push(data.next ? `/projects/${projectId}/review/${data.next}` : `/projects/${projectId}`);
+      // The sidebar progress lives in the server layout, which client navigation
+      // reuses from cache — refresh so counts and check icons update immediately.
+      router.refresh();
     } catch {
       setError("Network error. Try again.");
       setBusy(false);
@@ -43,7 +50,17 @@ export function PillarReviewFooter({
 
   return (
     <div className="mt-10 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-6">
-      <span className="text-sm text-[var(--muted)]">Edits save automatically as you go.</span>
+      <div className="flex items-center gap-4">
+        {prevId && (
+          <Link
+            href={`/projects/${projectId}/review/${prevId}`}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] px-5 py-3 text-sm font-medium text-[var(--muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+          >
+            <ArrowLeft size={16} /> Back
+          </Link>
+        )}
+        <span className="hidden text-sm text-[var(--muted)] sm:inline">Edits save automatically as you go.</span>
+      </div>
       <div className="flex items-center gap-3">
         {error && <span className="text-sm text-[var(--danger)]">{error}</span>}
         <button

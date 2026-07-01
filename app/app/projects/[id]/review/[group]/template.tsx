@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { getReviewGroup } from "@/lib/flow";
+import { ScrollProgressBar } from "@/components/ScrollProgressBar";
 
 // Brief "chapter card" on each move between the four review screens, so the owner
 // clearly sees they advanced. Re-mounts per navigation (it's a template).
@@ -19,6 +20,7 @@ export default function ReviewTemplate({ children }: { children: React.ReactNode
 
   return (
     <>
+      <ScrollProgressBar />
       <AnimatePresence>
         {showCard && group && (
           <motion.div
