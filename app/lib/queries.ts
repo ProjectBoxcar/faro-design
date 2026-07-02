@@ -1,12 +1,13 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { projects, sections } from "@/lib/db/schema";
-import { eq, desc, count } from "drizzle-orm";
+import { projects, sections, evaluations } from "@/lib/db/schema";
+import { eq, and, desc, count } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import type { SectionValue } from "@/lib/db/types";
+import type { SectionValue, EvalScore } from "@/lib/db/types";
 
 export type Project = typeof projects.$inferSelect;
 export type SectionRow = typeof sections.$inferSelect;
+export type EvaluationRow = typeof evaluations.$inferSelect;
 
 export function listProjects(): Project[] {
   return db.select().from(projects).orderBy(desc(projects.updated_at)).all();
@@ -147,6 +148,37 @@ export function completeSectionsWithContent(projectId: string, keys: string[]): 
     db.update(sections).set({ status: "complete", updated_at: new Date() }).where(eq(sections.id, row.id)).run();
   }
   db.update(projects).set({ updated_at: new Date() }).where(eq(projects.id, projectId)).run();
+}
+
+// Multi-instance scored frameworks (naming availability checks, logo evals...).
+export function insertEvaluation(input: {
+  projectId: string;
+  type: EvaluationRow["type"];
+  subject: string;
+  scores: EvalScore[];
+  verdict: EvaluationRow["verdict"];
+}): EvaluationRow {
+  const id = nanoid();
+  db.insert(evaluations)
+    .values({
+      id,
+      project_id: input.projectId,
+      type: input.type,
+      subject: input.subject,
+      scores: input.scores,
+      verdict: input.verdict,
+    })
+    .run();
+  return db.select().from(evaluations).where(eq(evaluations.id, id)).get()!;
+}
+
+export function listEvaluations(projectId: string, type: EvaluationRow["type"]): EvaluationRow[] {
+  return db
+    .select()
+    .from(evaluations)
+    .where(and(eq(evaluations.project_id, projectId), eq(evaluations.type, type)))
+    .orderBy(desc(evaluations.created_at))
+    .all();
 }
 
 // Set of section keys that have at least draft content — used for dependency gating.

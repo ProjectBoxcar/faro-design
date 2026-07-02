@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
-import { getProject, getSectionRow, getSections } from "@/lib/queries";
+import { getProject, getSectionRow, getSections, listEvaluations } from "@/lib/queries";
 import { getSection, getPillarOf, getPhaseOf, readsOf, canGenerate } from "@/lib/methodology";
 import { phaseProgress, nextSectionId, prevSectionId, type StatusMap } from "@/lib/flow";
 import { sectionGuide } from "@/lib/guide";
+import { suggestedCandidates } from "@/lib/naming-check";
 import { SectionEditor } from "@/components/SectionEditor";
+import { NameAvailabilityCheck, type NameCheck } from "@/components/NameAvailabilityCheck";
 import { StepKindBadge } from "@/components/StepKindBadge";
 import { ProgressBar } from "@/components/ProgressBar";
 
@@ -47,6 +49,20 @@ export default async function SectionPage({
 
   const phaseProg = phase ? phaseProgress(phase.id, statusMap) : { done: 0, total: 0 };
   const phasePercent = phaseProg.total === 0 ? 0 : Math.round((phaseProg.done / phaseProg.total) * 100);
+
+  // The Technical Verification review gets a live availability panel: real
+  // domain lookups + web research into trademarks and same-sector collisions.
+  const showAvailability = sectionKey === "naming.technical-verification";
+  const namingChecks: NameCheck[] = showAvailability
+    ? listEvaluations(id, "naming").map((e) => ({
+        id: e.id,
+        subject: e.subject,
+        verdict: e.verdict,
+        scores: e.scores,
+        createdAt: e.created_at.toISOString(),
+      }))
+    : [];
+  const candidateNames = showAvailability ? suggestedCandidates(id) : [];
 
   const prevId = prevSectionId(sectionKey);
   const nextId = nextSectionId(sectionKey);
@@ -105,6 +121,14 @@ export default async function SectionPage({
               . Once those are filled in, open this step again and it drafts itself. You can also write it yourself now
               if you&apos;d rather.
             </div>
+          )}
+
+          {showAvailability && (
+            <NameAvailabilityCheck
+              projectId={id}
+              suggestedNames={candidateNames}
+              initialChecks={namingChecks}
+            />
           )}
 
           <SectionEditor
