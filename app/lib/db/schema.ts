@@ -34,6 +34,9 @@ export const projects = sqliteTable("projects", {
     .default("pending"),
   // If true, the Brand Audit is skipped and the Design Plan sources everything as "create".
   greenfield: integer("greenfield", { mode: "boolean" }).notNull().default(false),
+  // Own project (no paying client). The viability gate's commercial non-negotiables
+  // (recurring sales, budget) are answered but don't block a personal project.
+  personal: integer("personal", { mode: "boolean" }).notNull().default(false),
   current_phase: text("current_phase", {
     enum: ["strategic", "planning", "design"],
   })

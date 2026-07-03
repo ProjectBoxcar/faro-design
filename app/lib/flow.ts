@@ -1,4 +1,5 @@
 import { methodology, getSection, type Phase, type Pillar, type Section } from "@/lib/methodology";
+import { pillarIntro } from "@/lib/guide";
 
 // The guided journey is the methodology flattened into a single ordered list of
 // sections (phase order → pillar order → section order). Everything about "where
@@ -120,71 +121,27 @@ export function currentPhaseId(map: StatusMap): string {
   return methodology.phases[methodology.phases.length - 1].id;
 }
 
-// ---- Grouped review: the owner's whole journey is just FOUR screens. Each bundles
-// the essential, designer-relevant steps; operational facts (pricing, channels,
-// existing assets) are captured by the intake and flow into the hand-off doc, but
-// aren't walked through here. The Design phase is the designer's downstream job.
+// ---- Grouped review: one screen per pillar, in phase order, containing EVERY
+// non-internal section — derived straight from methodology.json so the guided
+// review can never silently drop steps again (it used to hand-pick 28 of 70).
+// Optional pillars (Image survey, the whole Design phase) are part of the
+// journey but settle as done when left empty, so they guide without blocking.
 
 export type ReviewGroup = { id: string; name: string; blurb: string; sectionIds: string[] };
 
-const reviewGroupList: ReviewGroup[] = [
-  {
-    id: "foundation",
-    name: "You & your business",
-    blurb: "What you do, who it's for, and what you stand for — drafted from your answers. Skim and fix anything off.",
-    sectionIds: [
-      "reality.problem",
-      "reality.solution",
-      "reality.value-proposition",
-      "reality.differentiator",
-      "reality.ideal-client",
-      "identity.origin",
-      "identity.self-perception",
-      "identity.beliefs",
-      "identity.principle",
-      "identity.golden-circle",
-    ],
-  },
-  {
-    id: "customers",
-    name: "What your customers think",
-    blurb: "How people actually see you, next to how you see yourself — the gap that makes the brief specific. Run the short survey, or skip for now.",
-    sectionIds: [
-      "image.survey-design",
-      "image.results",
-      "image.pattern-analysis",
-      "image.contrast",
-      "image.key-finding",
-    ],
-  },
-  {
-    id: "voice",
-    name: "Your brand's voice",
-    blurb: "How the brand should sound and behave — purpose, values, personality, tone, promise.",
-    sectionIds: [
-      "communication.purpose",
-      "communication.values",
-      "communication.personality",
-      "communication.tone",
-      "communication.promise",
-    ],
-  },
-  {
-    id: "brief",
-    name: "Your brief & concept",
-    blurb: "The payoff: the one-page strategic brief, the guiding concept, the manifesto, and the design plan your designer builds from.",
-    sectionIds: [
-      "brief.central-pattern",
-      "brief.main-tension",
-      "brief.constraint",
-      "brief.emotional-territory",
-      "brief.must-resolve",
-      "concept",
-      "manifesto",
-      "design-plan",
-    ],
-  },
-];
+const reviewGroupList: ReviewGroup[] = [];
+for (const phase of methodology.phases) {
+  for (const pillar of phase.pillars) {
+    const sectionIds = pillar.sections.filter((s) => !s.internal).map((s) => s.id);
+    if (sectionIds.length === 0) continue;
+    reviewGroupList.push({
+      id: pillar.id,
+      name: pillar.name,
+      blurb: pillarIntro(pillar.id) ?? pillar.tagline ?? "",
+      sectionIds,
+    });
+  }
+}
 
 export function reviewGroups(): ReviewGroup[] {
   return reviewGroupList;

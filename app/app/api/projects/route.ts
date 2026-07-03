@@ -10,6 +10,7 @@ const CreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   client_name: z.string().optional().nullable(),
   greenfield: z.boolean().optional(),
+  personal: z.boolean().optional(),
 });
 
 export async function POST(req: Request) {

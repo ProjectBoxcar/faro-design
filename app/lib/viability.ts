@@ -99,9 +99,14 @@ async function runViabilityGate(projectId: string): Promise<void> {
   // blocking non-negotiable fails the gate; a "no" on other non-negotiables or a
   // bad sign on a warning is a caveat; otherwise pass. ("yes" is the bad answer
   // for warning criteria, which are phrased as risk signals.)
-  const failed = scored.some(
-    (s) => s.type === "non-negotiable" && s.answer === "no" && BLOCKING.some((rx) => rx.test(s.criterion))
-  );
+  // Personal projects (the owner's own brand, no paying client) still answer the
+  // commercial non-negotiables — sales and budget — but aren't failed by them:
+  // there is no engagement to walk away from.
+  const failed =
+    !project.personal &&
+    scored.some(
+      (s) => s.type === "non-negotiable" && s.answer === "no" && BLOCKING.some((rx) => rx.test(s.criterion))
+    );
   const caveats = scored.some(
     (s) =>
       (s.type === "non-negotiable" && s.answer === "no") ||
@@ -124,12 +129,16 @@ async function runViabilityGate(projectId: string): Promise<void> {
     projectId,
     key: GATE_KEY,
     value: {
-      criteria: scored.map((s) => ({
-        criterion: s.criterion,
-        type: s.type,
-        answer: s.answer,
-        implication: s.note || s.implication,
-      })),
+      criteria: scored.map((s) => {
+        const waived =
+          project.personal && s.type === "non-negotiable" && s.answer === "no" && BLOCKING.some((rx) => rx.test(s.criterion));
+        return {
+          criterion: s.criterion,
+          type: s.type,
+          answer: s.answer,
+          implication: (waived ? "Not blocking — personal project. " : "") + (s.note || s.implication),
+        };
+      }),
     },
     status: "complete",
     aiGenerated: true,

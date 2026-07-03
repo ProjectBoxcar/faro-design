@@ -25,6 +25,7 @@ export function createProject(input: {
   name: string;
   client_name?: string | null;
   greenfield?: boolean;
+  personal?: boolean;
 }): Project {
   const id = nanoid();
   db.insert(projects)
@@ -33,8 +34,29 @@ export function createProject(input: {
       name: input.name,
       client_name: input.client_name ?? null,
       greenfield: input.greenfield ?? false,
+      personal: input.personal ?? false,
     })
     .run();
+  // Greenfield: the methodology skips the Brand Audit (nothing exists to audit)
+  // and the Design Plan sources everything as "create". Seed the audit with that
+  // conclusion so downstream steps read it and the journey doesn't dead-end.
+  if (input.greenfield) {
+    saveSection({
+      projectId: id,
+      key: "audit",
+      value: {
+        assets: [
+          {
+            asset: "Everything — greenfield brand",
+            currentState: "No existing brand assets",
+            evalVsConcept: "Not applicable — nothing to audit",
+            action: "create",
+          },
+        ],
+      },
+      status: "complete",
+    });
+  }
   return getProject(id)!;
 }
 

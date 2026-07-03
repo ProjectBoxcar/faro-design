@@ -146,6 +146,14 @@ export default async function ProjectHub({
         )}
       </div>
 
+      {/* The finish line, front and center once the brief pillar is reviewed:
+          view the brief, copy the link, download in any format. */}
+      {handoffReady && (
+        <div className="mb-8">
+          <PublishPanel projectId={id} initialToken={project.share_token} prominent />
+        </div>
+      )}
+
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-12 2xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="min-w-0 space-y-5" id="plan">
           <UpNextCard next={next} />
@@ -153,16 +161,20 @@ export default async function ProjectHub({
         </div>
 
         <aside className="mt-10 lg:mt-0 lg:sticky lg:top-8 lg:self-start">
-          <h2 className="mb-3 font-serif text-lg font-semibold tracking-tight">
-            Hand off to your designer
-          </h2>
-          {handoffReady || project.share_token ? (
-            <PublishPanel projectId={id} initialToken={project.share_token} />
-          ) : (
-            <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
-              This is the finish line. Once you&apos;ve worked through your strategy, you&apos;ll create a private,
-              read-only brief to share with your designer right here — there&apos;s nothing to hand off until then.
-            </div>
+          {!handoffReady && (
+            <>
+              <h2 className="mb-3 font-serif text-lg font-semibold tracking-tight">
+                Hand off to your designer
+              </h2>
+              {project.share_token ? (
+                <PublishPanel projectId={id} initialToken={project.share_token} />
+              ) : (
+                <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
+                  This is the finish line. Once you&apos;ve worked through your strategy, you&apos;ll create a private,
+                  read-only brief to share with your designer right here — there&apos;s nothing to hand off until then.
+                </div>
+              )}
+            </>
           )}
         </aside>
       </div>

@@ -60,6 +60,7 @@ export default function StartPage() {
   const [name, setName] = useState("");
   const [client, setClient] = useState("");
   const [greenfield, setGreenfield] = useState(false);
+  const [personal, setPersonal] = useState(false);
   const [answers, setAnswers] = useState<Answers>({
     offering: "",
     story: "",
@@ -104,7 +105,7 @@ export default function StartPage() {
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), client_name: client.trim() || null, greenfield }),
+        body: JSON.stringify({ name: name.trim(), client_name: client.trim() || null, greenfield, personal }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.id) {
@@ -130,6 +131,7 @@ export default function StartPage() {
           name: name.trim(),
           client_name: client.trim() || null,
           greenfield,
+          personal,
           answers: {
             ...answers,
             feedback: hasFeedback ? answers.feedback : "",
@@ -230,6 +232,16 @@ export default function StartPage() {
                 className="mt-0.5"
               />
               This is a brand-new brand with no existing logo or materials yet.
+            </label>
+
+            <label className="mt-3 flex items-start gap-2.5 text-sm text-[var(--muted)]">
+              <input
+                type="checkbox"
+                checked={personal}
+                onChange={(e) => setPersonal(e.target.checked)}
+                className="mt-0.5"
+              />
+              This is my own project — no paying client behind it (yet).
             </label>
 
             <button

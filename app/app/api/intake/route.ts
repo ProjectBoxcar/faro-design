@@ -11,6 +11,7 @@ const Schema = z.object({
   name: z.string().min(1, "Name is required"),
   client_name: z.string().optional().nullable(),
   greenfield: z.boolean().optional(),
+  personal: z.boolean().optional(),
   answers: z.object({
     offering: z.string().default(""),
     story: z.string().default(""),
@@ -27,11 +28,11 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
-  const { name, client_name, greenfield, answers } = parsed.data;
+  const { name, client_name, greenfield, personal, answers } = parsed.data;
 
   // The project is the durable artifact — create it first so a later AI failure
   // still leaves the owner with a usable (if blank) workspace to fill manually.
-  const project = createProject({ name, client_name, greenfield });
+  const project = createProject({ name, client_name, greenfield, personal });
 
   if (!hasApiKey()) {
     return NextResponse.json(
