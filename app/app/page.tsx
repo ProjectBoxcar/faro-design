@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Settings } from "lucide-react";
-import { listProjects, completedCountByProject } from "@/lib/queries";
+import { listProjects, getSections } from "@/lib/queries";
 import { NewProjectButton } from "@/components/NewProjectButton";
 import { ProgressBar } from "@/components/ProgressBar";
 import { overview } from "@/lib/guide";
-import { totalSteps } from "@/lib/flow";
+import { reviewProgress, type StatusMap } from "@/lib/flow";
 
 const STATUS_LABEL: Record<string, string> = {
   active: "Active",
@@ -23,8 +23,15 @@ export const dynamic = "force-dynamic";
 
 export default function Home() {
   const projects = listProjects();
-  const completed = completedCountByProject();
-  const total = totalSteps();
+  // Progress = the owner's guided review journey (the four screens), the same
+  // metric the project hub shows — NOT all 70 methodology steps, most of which
+  // are optional design-phase work. Finishing the review reads as 100%.
+  const progress = new Map(
+    projects.map((p) => {
+      const map: StatusMap = new Map(getSections(p.id).map((r) => [r.section_key, r.status]));
+      return [p.id, reviewProgress(map)];
+    })
+  );
   const ov = overview();
 
   // Plain-language explainer of the four things a brand is built from — the first
@@ -147,7 +154,11 @@ export default function Home() {
                     </span>
                   </div>
                 </div>
-                <ProgressBar done={completed.get(p.id) ?? 0} total={total} showPercent />
+                <ProgressBar
+                  done={progress.get(p.id)?.done ?? 0}
+                  total={progress.get(p.id)?.total ?? 1}
+                  showPercent
+                />
               </Link>
             </li>
           ))}

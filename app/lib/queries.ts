@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { projects, sections, evaluations, ai_generations } from "@/lib/db/schema";
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type { SectionValue, EvalScore } from "@/lib/db/types";
 
@@ -36,17 +36,6 @@ export function createProject(input: {
     })
     .run();
   return getProject(id)!;
-}
-
-// Completed-step count per project, for progress bars on the dashboard.
-export function completedCountByProject(): Map<string, number> {
-  const rows = db
-    .select({ project_id: sections.project_id, n: count() })
-    .from(sections)
-    .where(eq(sections.status, "complete"))
-    .groupBy(sections.project_id)
-    .all();
-  return new Map(rows.map((r) => [r.project_id, r.n]));
 }
 
 // Delete a project and everything in it (sections/evaluations/ai_generations
