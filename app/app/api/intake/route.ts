@@ -3,6 +3,7 @@ import { z } from "zod";
 import { hasApiKey } from "@/lib/anthropic";
 import { createProject } from "@/lib/queries";
 import { expandIntake } from "@/lib/intake";
+import { maybeRunViabilityGate } from "@/lib/viability";
 
 // Quick Start: create the project, then expand the owner's five (+ optional
 // survey) answers into editable drafts across Reality + Identity in one pass.
@@ -41,6 +42,9 @@ export async function POST(req: Request) {
 
   try {
     const result = await expandIntake(project.id, name, answers);
+    // The intake drafts are the viability gate's inputs — evaluate right away,
+    // in the background, so the verdict is on the hub by the time it's read.
+    void maybeRunViabilityGate(project.id).catch((e) => console.error("[viability] failed:", e));
     return NextResponse.json({ projectId: project.id, filled: result.filled.length }, { status: 201 });
   } catch (e) {
     console.error("[intake] expansion failed:", e);

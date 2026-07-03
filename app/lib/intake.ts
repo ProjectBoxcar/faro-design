@@ -1,5 +1,6 @@
 import "server-only";
 import { getClient, MODELS } from "@/lib/anthropic";
+import { extractJson } from "@/lib/json";
 import { getSection, type Section } from "@/lib/methodology";
 import { saveSection } from "@/lib/queries";
 import type { SectionValue } from "@/lib/db/types";
@@ -116,19 +117,6 @@ function buildUserMessage(brandName: string, a: IntakeAnswers): string {
   }
   lines.push("\nReturn the JSON object now.");
   return lines.join("\n");
-}
-
-// Tolerant extraction of the first {...} object from the model's reply.
-function extractJson(text: string): Record<string, unknown> {
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) return {};
-  try {
-    const obj = JSON.parse(text.slice(start, end + 1));
-    return obj && typeof obj === "object" ? (obj as Record<string, unknown>) : {};
-  } catch {
-    return {};
-  }
 }
 
 // Run the Quick Start expansion: one Opus call turns the owner's answers into

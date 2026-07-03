@@ -130,6 +130,20 @@ export default async function ProjectHub({
         <p className="mt-1.5 text-sm text-[var(--muted)]">
           Continue where you left off, or revisit any step anytime.
         </p>
+        {/* The internal viability gate's verdict — computed automatically once the
+            Reality inputs are complete; never shown on the client share link. */}
+        {project.viability !== "pending" && (
+          <Link
+            href={`/projects/${id}/${encodeURIComponent("reality.evaluation-criteria")}`}
+            className={
+              project.viability === "pass"
+                ? "mt-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--ok)]/50 px-3 py-1 text-xs font-medium text-[var(--ok)]"
+                : "mt-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--danger)]/50 px-3 py-1 text-xs font-medium text-[var(--danger)]"
+            }
+          >
+            Viability gate: {project.viability === "pass" ? "pass" : "fail"} · see criteria
+          </Link>
+        )}
       </div>
 
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-12 2xl:grid-cols-[minmax(0,1fr)_400px]">

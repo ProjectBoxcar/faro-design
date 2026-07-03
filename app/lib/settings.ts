@@ -28,6 +28,12 @@ export function setApiKey(key: string | null): void {
   db.update(settings).set({ anthropic_api_key: clean }).where(eq(settings.id, 1)).run();
 }
 
+// The synthesis model: the Settings row decides, falling back to the schema
+// default (Opus). Lets the model be swapped without a code change.
+export function getDefaultModel(): string {
+  return getSettingsRow().default_model;
+}
+
 // Status for the Settings UI — never returns the key itself.
 export function apiKeyStatus(): { configured: boolean; source: "settings" | "env" | null } {
   const fromDb = Boolean((getSettingsRow().anthropic_api_key ?? "").trim());

@@ -139,7 +139,10 @@ export default async function ShareBriefPage({
         const section = getSection(key);
         if (!section || section.internal) return null;
         const row = getSectionRow(project.id, key);
-        const value = (row?.value ?? {}) as Value;
+        // Only reviewed steps reach the designer — a half-finished draft is
+        // worse than an absent section (08-handover-spec).
+        if (!row || row.status !== "complete") return null;
+        const value = (row.value ?? {}) as Value;
         if (!hasContent(section, value)) return null;
         return { section, value };
       })

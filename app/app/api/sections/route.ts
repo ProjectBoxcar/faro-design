@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { saveSection, getSections, deleteSection } from "@/lib/queries";
+import { saveSection, getSections, deleteSection, getProject } from "@/lib/queries";
 import { getSection } from "@/lib/methodology";
-import { upNext, sectionLock, type StatusMap } from "@/lib/flow";
+import { upNext, type StatusMap } from "@/lib/flow";
+import { maybeRunViabilityGate } from "@/lib/viability";
 import { z } from "zod";
 
 const SaveSchema = z.object({
@@ -23,6 +24,9 @@ export async function POST(req: Request) {
   if (!getSection(parsed.data.key)) {
     return NextResponse.json({ error: `Unknown section: ${parsed.data.key}` }, { status: 400 });
   }
+  if (!getProject(parsed.data.projectId)) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
   // Persist the AI-ownership flag the client computed (it flips false on a manual
   // edit), so an untouched AI draft keeps its provenance across reloads.
   const row = saveSection({
@@ -41,8 +45,12 @@ export async function POST(req: Request) {
     const map: StatusMap = new Map(
       getSections(parsed.data.projectId).map((r) => [r.section_key, r.status])
     );
-    const candidate = upNext(map);
-    if (candidate && !sectionLock(candidate, map).locked) next = candidate;
+    next = upNext(map);
+    // A completed step may be the last input the internal viability gate was
+    // waiting on. Fire-and-forget: the response shouldn't wait ~15s on Opus.
+    void maybeRunViabilityGate(parsed.data.projectId).catch((e) =>
+      console.error("[viability] failed:", e)
+    );
   }
 
   return NextResponse.json({ row, next });

@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { projects, sections, evaluations } from "@/lib/db/schema";
+import { projects, sections, evaluations, ai_generations } from "@/lib/db/schema";
 import { eq, and, desc, count } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type { SectionValue, EvalScore } from "@/lib/db/types";
@@ -76,6 +76,9 @@ export function getSectionRow(projectId: string, key: string): SectionRow | unde
 }
 
 // Upsert a section's value + status. Manual edits clear the ai_generated flag.
+// A real upsert (not check-then-insert): concurrent saves — e.g. the debounced
+// autosave racing the unmount keepalive flush — land as updates instead of
+// violating the (project, key) unique index.
 export function saveSection(input: {
   projectId: string;
   key: string;
@@ -85,30 +88,37 @@ export function saveSection(input: {
 }): SectionRow {
   const existing = getSectionRow(input.projectId, input.key);
   const status = input.status ?? (existing?.status === "empty" || !existing ? "draft" : existing.status);
-  if (existing) {
-    db.update(sections)
-      .set({
+  db.insert(sections)
+    .values({
+      id: nanoid(),
+      project_id: input.projectId,
+      section_key: input.key,
+      value: input.value,
+      status,
+      ai_generated: input.aiGenerated ?? false,
+    })
+    .onConflictDoUpdate({
+      target: [sections.project_id, sections.section_key],
+      set: {
         value: input.value,
         status,
         ai_generated: input.aiGenerated ?? false,
         updated_at: new Date(),
-      })
-      .where(eq(sections.id, existing.id))
-      .run();
-  } else {
-    db.insert(sections)
-      .values({
-        id: nanoid(),
-        project_id: input.projectId,
-        section_key: input.key,
-        value: input.value,
-        status,
-        ai_generated: input.aiGenerated ?? false,
-      })
-      .run();
-  }
+      },
+    })
+    .run();
   db.update(projects).set({ updated_at: new Date() }).where(eq(projects.id, input.projectId)).run();
   return getSectionRow(input.projectId, input.key)!;
+}
+
+// Record the owner accepting an AI draft ("Use this"), for provenance/compare.
+export function markGenerationAccepted(id: string): void {
+  db.update(ai_generations).set({ accepted: true }).where(eq(ai_generations.id, id)).run();
+}
+
+// Cache the viability gate's verdict on the project row.
+export function setProjectViability(id: string, viability: "pass" | "fail"): void {
+  db.update(projects).set({ viability, updated_at: new Date() }).where(eq(projects.id, id)).run();
 }
 
 // Publish a project: mint an unguessable share token (reuse if one already exists)

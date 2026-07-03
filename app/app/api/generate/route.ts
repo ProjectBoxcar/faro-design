@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { hasApiKey } from "@/lib/anthropic";
 import { getSection } from "@/lib/methodology";
-import { generateSection } from "@/lib/generate";
+import { generateSection, generationBlockedReason } from "@/lib/generate";
+import { getProject, markGenerationAccepted } from "@/lib/queries";
 import { db } from "@/lib/db";
 import { ai_generations } from "@/lib/db/schema";
 import { nanoid } from "nanoid";
@@ -29,13 +30,24 @@ export async function POST(req: Request) {
   if (!getSection(parsed.data.key)) {
     return NextResponse.json({ error: `Unknown section: ${parsed.data.key}` }, { status: 400 });
   }
+  if (!getProject(parsed.data.projectId)) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+
+  // The dependency pipeline is enforced HERE, not just in the UI: input steps are
+  // never AI-written, and synthesis steps need real upstream content or notes.
+  const blocked = generationBlockedReason(parsed.data.projectId, parsed.data.key, parsed.data.value ?? {});
+  if (blocked) {
+    return NextResponse.json({ error: blocked }, { status: 409 });
+  }
 
   try {
     const result = await generateSection(parsed.data.projectId, parsed.data.key, parsed.data.value ?? {});
     // Record provenance: what was generated, from which model + upstream steps.
+    const generationId = nanoid();
     db.insert(ai_generations)
       .values({
-        id: nanoid(),
+        id: generationId,
         project_id: parsed.data.projectId,
         section_key: parsed.data.key,
         model: result.model,
@@ -44,10 +56,23 @@ export async function POST(req: Request) {
         accepted: false,
       })
       .run();
-    return NextResponse.json({ values: result.values, reads: result.reads });
+    return NextResponse.json({ values: result.values, reads: result.reads, generationId });
   } catch (e) {
     console.error("[generate] failed:", e);
     const message = e instanceof Error ? e.message : "Generation failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+const AcceptSchema = z.object({ generationId: z.string().min(1) });
+
+// The owner clicked "Use this" on a draft — record the acceptance for provenance.
+export async function PATCH(req: Request) {
+  const body = await req.json().catch(() => null);
+  const parsed = AcceptSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
+  markGenerationAccepted(parsed.data.generationId);
+  return NextResponse.json({ ok: true });
 }

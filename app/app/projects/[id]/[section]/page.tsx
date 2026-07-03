@@ -36,14 +36,17 @@ export default async function SectionPage({
 
   // Derived (synthesis/partial) steps shouldn't greet the owner with a blank
   // form after we promised "just review". Auto-draft from upstream when:
-  //  - it's a Reality/Identity foundation step (reads only the owner's answers,
-  //    safe to draft even with partial upstream), or
+  //  - it's a Reality/Identity foundation step with at least one upstream answer
+  //    on file (drafting from literally nothing is banned server-side too), or
   //  - its declared inputs are all filled (e.g. once the customer survey exists).
   // Otherwise it's genuinely waiting on later inputs — say so honestly.
   const isSynthesis = section.kind === "synthesis" || section.kind === "partial";
   const sectionEmpty = !row?.value || Object.keys(row.value as Record<string, unknown>).length === 0;
   const inFoundation = pillar?.id === "reality" || pillar?.id === "identity";
-  const autoDraft = isSynthesis && sectionEmpty && (inFoundation || canGenerate(sectionKey, filled));
+  const autoDraft =
+    isSynthesis &&
+    sectionEmpty &&
+    ((inFoundation && reads.some((r) => filled.has(r.id))) || canGenerate(sectionKey, filled));
   const awaitingInputs = isSynthesis && sectionEmpty && !autoDraft;
   const missingReads = awaitingInputs ? reads.filter((r) => !filled.has(r.id)) : [];
 

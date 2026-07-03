@@ -1,6 +1,7 @@
 import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
 import { getClient, MODELS } from "@/lib/anthropic";
+import { extractJson } from "@/lib/json";
 import { getProject, getSectionRow, getSections, insertEvaluation } from "@/lib/queries";
 import type { EvaluationRow } from "@/lib/queries";
 import type { EvalScore } from "@/lib/db/types";
@@ -171,19 +172,6 @@ function deriveVerdict(checks: { result: string }[]): "pass" | "caveat" | "fail"
   if (checks.some((c) => c.result === "Fail")) return "fail";
   if (checks.some((c) => c.result === "Pass with caveat")) return "caveat";
   return "pass";
-}
-
-// Tolerant extraction: pull the first {...} object out of the model's reply.
-function extractJson(text: string): Record<string, unknown> {
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) return {};
-  try {
-    const obj = JSON.parse(text.slice(start, end + 1));
-    return obj && typeof obj === "object" ? (obj as Record<string, unknown>) : {};
-  } catch {
-    return {};
-  }
 }
 
 // Candidate names already on file, offered as one-click suggestions.

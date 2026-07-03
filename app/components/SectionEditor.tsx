@@ -39,6 +39,9 @@ export function SectionEditor({
   const [genError, setGenError] = useState<string | null>(null);
   // The AI's proposed values — shown for review; never overwrites silently.
   const [proposal, setProposal] = useState<Value | null>(null);
+  // Provenance id of the generation behind the current proposal, so accepting
+  // it can be recorded (ai_generations.accepted).
+  const [generationId, setGenerationId] = useState<string | null>(null);
   // Whether the current content is AI-authored and untouched. Persisted as the
   // `ai_generated` flag; a manual edit flips it false (designer ownership).
   const [aiOwned, setAiOwned] = useState(aiGenerated);
@@ -46,7 +49,6 @@ export function SectionEditor({
 
   const isEmptyInitial = Object.keys(initialValue).length === 0;
   const [autoDrafting, setAutoDrafting] = useState(autoDraft && isEmptyInitial);
-  const [justAutoDrafted, setJustAutoDrafted] = useState(false);
 
   const lastSaved = useRef(JSON.stringify(initialValue));
 
@@ -86,6 +88,7 @@ export function SectionEditor({
 
   // Auto-draft an empty derived step from the answers already on file, so the
   // owner reviews written content instead of facing a blank form. Runs once.
+  // The result arrives as a PROPOSAL — nothing is saved until "Use this".
   useEffect(() => {
     if (!autoDraft || !isEmptyInitial) return;
     let cancelled = false;
@@ -99,9 +102,8 @@ export function SectionEditor({
         if (res.ok) {
           const data = await res.json();
           if (!cancelled && data.values && Object.keys(data.values).length > 0) {
-            setValue((prev) => ({ ...prev, ...data.values }));
-            setAiOwned(true);
-            setJustAutoDrafted(true);
+            setProposal(data.values as Value);
+            setGenerationId(data.generationId ?? null);
           }
         } else if (!cancelled) {
           setGenError("Couldn't draft this automatically — use “Draft with AI” below to try again.");
@@ -137,6 +139,7 @@ export function SectionEditor({
     const data = await res.json();
     if (data.values && Object.keys(data.values).length > 0) {
       setProposal(data.values as Value);
+      setGenerationId(data.generationId ?? null);
     } else {
       setGenError("The AI didn't return anything usable. Add a few notes and try again.");
     }
@@ -148,6 +151,15 @@ export function SectionEditor({
     setValue((prev) => ({ ...prev, ...proposal }));
     setAiOwned(true);
     setProposal(null);
+    if (generationId) {
+      // Best-effort provenance: record that this draft was the one accepted.
+      void fetch("/api/generate", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ generationId }),
+      }).catch(() => {});
+      setGenerationId(null);
+    }
   }
 
   // Debounced autosave: any edit is saved as a draft ~1.2s after you stop typing,
@@ -274,7 +286,7 @@ export function SectionEditor({
 
       {/* Single AI box: review notice with an inline rewrite, or a compact "draft it" prompt. */}
       {!autoDrafting && !generating && !proposal &&
-        ((aiGenerated || justAutoDrafted) && status !== "complete" ? (
+        (aiGenerated && status !== "complete" ? (
           <div className="mb-6 flex items-start justify-between gap-3 rounded-lg border border-[var(--designer)]/40 bg-[var(--accent-soft)] p-4 text-sm">
             <div>
               <span className="font-medium">This is your AI draft.</span>{" "}
