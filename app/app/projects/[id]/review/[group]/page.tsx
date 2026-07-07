@@ -11,7 +11,9 @@ import {
   type StatusMap,
 } from "@/lib/flow";
 import { sectionGuide } from "@/lib/guide";
+import { imageViewState } from "@/lib/image-view";
 import { PillarReview, type ReviewStep } from "@/components/PillarReview";
+import { ImageOutsideView } from "@/components/ImageOutsideView";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +74,8 @@ export default async function ReviewGroupPage({
         <h1 className="mt-2 font-serif text-5xl font-medium leading-[1.05] tracking-tight">{group.name}</h1>
         <p className="mt-3 max-w-2xl text-lg leading-relaxed text-[var(--muted)]">{group.blurb}</p>
       </header>
+
+      {groupId === "image" && <ImageOutsideView projectId={id} initialState={imageViewState(id)} />}
 
       <PillarReview
         projectId={id}
