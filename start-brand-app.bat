@@ -61,8 +61,9 @@ echo.
 echo Press Ctrl+C to stop the server
 echo.
 
-powershell -NoProfile -Command "try { $response = Invoke-WebRequest -Uri 'http://127.0.0.1:3100' -UseBasicParsing -TimeoutSec 3; if ($response.StatusCode -eq 200) { exit 0 } } catch {}; exit 1" >nul 2>&1
-if not errorlevel 1 (
+powershell -NoProfile -Command "try { $response = Invoke-WebRequest -Uri 'http://127.0.0.1:3100' -UseBasicParsing -TimeoutSec 3; if ($response.StatusCode -eq 200) { exit 0 } } catch { if ($_.Exception.Response) { exit 2 } }; if (Get-NetTCPConnection -LocalPort 3100 -State Listen -ErrorAction SilentlyContinue) { exit 2 }; exit 1" >nul 2>&1
+set "SERVER_STATE=%ERRORLEVEL%"
+if "%SERVER_STATE%"=="0" (
     echo Brand App is already running on port 3100.
     echo Opening http://localhost:3100 in your browser...
     start "" "http://localhost:3100"
@@ -71,6 +72,15 @@ if not errorlevel 1 (
     pause >nul
     popd
     exit /b 0
+)
+if "%SERVER_STATE%"=="2" (
+    echo Error: Port 3100 is occupied, but Brand App is not responding correctly.
+    echo Close the old Brand App server terminal or restart Windows, then run this launcher again.
+    echo.
+    echo Press any key to close this window.
+    pause >nul
+    popd
+    exit /b 1
 )
 
 REM Start the dev server

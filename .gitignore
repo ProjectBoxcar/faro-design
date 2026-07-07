@@ -12,6 +12,8 @@ tsconfig.tsbuildinfo
 **/data/*.db-shm
 **/data/*.db-wal
 **/data/backups/
+
+# Generated PoC artifacts (recreate with scripts/poc-asset-studio.ts)
 **/data/poc-output/
 
 # Secrets

@@ -1,13 +1,14 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { projects, sections, evaluations, ai_generations } from "@/lib/db/schema";
+import { projects, sections, evaluations, ai_generations, studio_assets } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import type { SectionValue, EvalScore } from "@/lib/db/types";
+import type { SectionValue, EvalScore, AssetPayload } from "@/lib/db/types";
 
 export type Project = typeof projects.$inferSelect;
 export type SectionRow = typeof sections.$inferSelect;
 export type EvaluationRow = typeof evaluations.$inferSelect;
+export type StudioAssetRow = typeof studio_assets.$inferSelect;
 
 export function listProjects(): Project[] {
   return db.select().from(projects).orderBy(desc(projects.updated_at)).all();
@@ -234,6 +235,84 @@ export function listEvaluations(projectId: string, type: EvaluationRow["type"]):
     .where(and(eq(evaluations.project_id, projectId), eq(evaluations.type, type)))
     .orderBy(desc(evaluations.created_at))
     .all();
+}
+
+// ---- Asset Studio (phase 2) ----
+
+export function listStudioAssets(projectId: string, kind?: StudioAssetRow["kind"]): StudioAssetRow[] {
+  const where = kind
+    ? and(eq(studio_assets.project_id, projectId), eq(studio_assets.kind, kind))
+    : eq(studio_assets.project_id, projectId);
+  return db.select().from(studio_assets).where(where).orderBy(desc(studio_assets.created_at)).all();
+}
+
+export function getStudioAsset(id: string): StudioAssetRow | undefined {
+  return db.select().from(studio_assets).where(eq(studio_assets.id, id)).get();
+}
+
+export function insertStudioAsset(input: {
+  projectId: string;
+  kind: StudioAssetRow["kind"];
+  label: string;
+  direction?: string | null;
+  payload: AssetPayload;
+  evaluationId?: string | null;
+  status?: StudioAssetRow["status"];
+  model?: string | null;
+}): StudioAssetRow {
+  const id = nanoid();
+  db.insert(studio_assets)
+    .values({
+      id,
+      project_id: input.projectId,
+      kind: input.kind,
+      label: input.label,
+      direction: input.direction ?? null,
+      payload: input.payload,
+      evaluation_id: input.evaluationId ?? null,
+      status: input.status ?? "candidate",
+      model: input.model ?? null,
+    })
+    .run();
+  return getStudioAsset(id)!;
+}
+
+export function chooseStudioAsset(projectId: string, id: string): void {
+  const target = getStudioAsset(id);
+  if (!target || target.project_id !== projectId) throw new Error("Unknown asset");
+  if (target.status === "discarded") throw new Error("This candidate was discarded");
+  db.update(studio_assets)
+    .set({ status: "candidate" })
+    .where(and(eq(studio_assets.project_id, projectId), eq(studio_assets.kind, target.kind), eq(studio_assets.status, "chosen")))
+    .run();
+  db.update(studio_assets).set({ status: "chosen", approved_at: null }).where(eq(studio_assets.id, id)).run();
+  db.update(projects).set({ updated_at: new Date() }).where(eq(projects.id, projectId)).run();
+}
+
+export function approveStudioAsset(projectId: string, id: string): void {
+  const target = getStudioAsset(id);
+  if (!target || target.project_id !== projectId) throw new Error("Unknown asset");
+  if (target.status !== "chosen") throw new Error("Choose this direction first, then approve it");
+  db.update(studio_assets)
+    .set({ status: "candidate", approved_at: null })
+    .where(and(eq(studio_assets.project_id, projectId), eq(studio_assets.kind, target.kind), eq(studio_assets.status, "approved")))
+    .run();
+  db.update(studio_assets).set({ status: "approved", approved_at: new Date() }).where(eq(studio_assets.id, id)).run();
+  db.update(projects).set({ updated_at: new Date() }).where(eq(projects.id, projectId)).run();
+}
+
+export function revokeStudioAssetApproval(projectId: string, id: string): void {
+  const target = getStudioAsset(id);
+  if (!target || target.project_id !== projectId) throw new Error("Unknown asset");
+  if (target.status !== "approved") return;
+  db.update(studio_assets).set({ status: "chosen", approved_at: null }).where(eq(studio_assets.id, id)).run();
+  db.update(projects).set({ updated_at: new Date() }).where(eq(projects.id, projectId)).run();
+}
+
+export function discardStudioAsset(projectId: string, id: string): void {
+  const target = getStudioAsset(id);
+  if (!target || target.project_id !== projectId) throw new Error("Unknown asset");
+  db.update(studio_assets).set({ status: "discarded", approved_at: null }).where(eq(studio_assets.id, id)).run();
 }
 
 // Set of section keys that have at least draft content — used for dependency gating.

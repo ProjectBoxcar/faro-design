@@ -45,6 +45,11 @@ export type SidebarStudioStep = {
   proposals: number;
 };
 
+export type SidebarAssetStudio = {
+  locked: boolean;
+  hint: string;
+};
+
 // Per-phase presentation: an icon so the rail is scannable and a short hint
 // that accurately describes the methodology work behind each phase.
 const PHASE_META: Record<string, { icon: LucideIcon; label?: string; hint: string }> = {
@@ -65,6 +70,7 @@ export function ProjectSidebar({
   overall,
   phases,
   studioSteps,
+  assetStudio,
 }: {
   projectId: string;
   projectName: string;
@@ -73,12 +79,14 @@ export function ProjectSidebar({
   overall: { done: number; total: number };
   phases: SidebarPhase[];
   studioSteps: SidebarStudioStep[];
+  assetStudio: SidebarAssetStudio;
 }) {
   // Highlight only the path actually being viewed; the hub falls back to the
   // computed "work on this next" methodology group.
   const pathname = usePathname();
   const routeParams = useParams<{ group?: string }>();
   const studioActive = pathname === `/projects/${projectId}/design`;
+  const assetStudioActive = pathname.startsWith(`/projects/${projectId}/studio`);
   const onHub = pathname === `/projects/${projectId}`;
   const viewedGroup = pathname.startsWith(`/projects/${projectId}/review/`) && routeParams?.group
     ? decodeURIComponent(routeParams.group)
@@ -132,6 +140,33 @@ export function ProjectSidebar({
           className="mt-3 block rounded-xl px-2.5 py-2 text-sm text-[var(--accent)] transition hover:bg-[var(--surface-2)]"
         >
           View all methodology steps →
+        </Link>
+
+        <div className="mx-2.5 my-4 border-t border-[var(--border)]" />
+        <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
+          Asset workshop
+        </div>
+        <Link
+          href={`/projects/${projectId}/studio`}
+          aria-disabled={assetStudio.locked}
+          aria-current={assetStudioActive ? "page" : undefined}
+          className={`flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition ${
+            assetStudio.locked
+              ? "pointer-events-none opacity-50"
+              : assetStudioActive
+              ? "bg-[var(--accent-soft)]"
+              : "hover:bg-[var(--surface-2)]"
+          }`}
+        >
+          <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+            assetStudioActive ? "bg-[var(--accent)] text-white" : "bg-[var(--surface-2)] text-[var(--muted)]"
+          }`}>
+            {assetStudio.locked ? <LockKeyhole size={11} /> : <Palette size={13} />}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium">Logo Workshop</span>
+            <span className="block truncate text-[11px] text-[var(--subtle)]">{assetStudio.hint}</span>
+          </span>
         </Link>
 
         <div className="mx-2.5 my-4 border-t border-[var(--border)]" />

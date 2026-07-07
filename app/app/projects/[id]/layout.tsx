@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { getProject, getSections } from "@/lib/queries";
-import { listAssets } from "@/lib/design";
+import { getProject, getSections, listStudioAssets } from "@/lib/queries";
+import { listAssets as listDesignAssets } from "@/lib/design";
 import { methodology } from "@/lib/methodology";
 import {
   reviewGroups,
@@ -9,8 +9,9 @@ import {
   reviewProgress,
   type StatusMap,
 } from "@/lib/flow";
-import { ProjectSidebar, type SidebarPhase } from "@/components/ProjectSidebar";
+import { ProjectSidebar, type SidebarPhase, type SidebarAssetStudio } from "@/components/ProjectSidebar";
 import { ProjectMobileBar } from "@/components/ProjectMobileBar";
+import { studioBlockedReason } from "@/lib/studio";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function ProjectLayout({
   const statusMap: StatusMap = new Map(getSections(id).map((r) => [r.section_key, r.status]));
   const overall = reviewProgress(statusMap);
   const current = currentReviewGroupId(statusMap);
-  const designAssets = listAssets(id);
+  const designAssets = listDesignAssets(id);
   const identitySelected = designAssets.some((asset) => asset.kind === "design_system" && asset.selected);
   const studioSteps = [
     { id: "identity-system", name: "Brand Identity System", kind: "design_system" as const, unlocked: true },
@@ -79,6 +80,19 @@ export default async function ProjectLayout({
     })
     .filter((p) => p.groups.length > 0);
 
+  // Studio (phase 2): locked until the strategy it builds on is finished.
+  // Strategy-completeness only — the logo's naming gate is shown in the Studio.
+  const studioBlocked = studioBlockedReason(id, "palette");
+  const approvedAssets = listStudioAssets(id).filter((asset) => asset.status === "approved").length;
+  const assetStudio: SidebarAssetStudio = {
+    locked: Boolean(studioBlocked) && approvedAssets === 0,
+    hint: studioBlocked
+      ? "Unlocks when your strategy is done"
+      : approvedAssets > 0
+        ? `${approvedAssets} asset${approvedAssets === 1 ? "" : "s"} approved`
+        : "Turn strategy into your brand",
+  };
+
   return (
     <div className="flex min-h-screen">
       <ProjectSidebar
@@ -89,9 +103,15 @@ export default async function ProjectLayout({
         overall={overall}
         phases={phases}
         studioSteps={studioSteps}
+        assetStudio={assetStudio}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <ProjectMobileBar projectId={id} projectName={project.name} overall={overall} />
+        <ProjectMobileBar
+          projectId={id}
+          projectName={project.name}
+          overall={overall}
+          assetStudioUnlocked={!assetStudio.locked}
+        />
         <main className="flex-1">{children}</main>
       </div>
     </div>

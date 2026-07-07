@@ -25,3 +25,11 @@ export type AssetKind = "design_system" | "landing_page" | "deck" | "brand_guide
 
 // AI provider backend used for synthesis and asset generation.
 export type AiProvider = "anthropic" | "openai-compatible";
+
+// An Asset Studio candidate's content: SVG text for marks (with a dark-ground
+// recolor), JSON tokens for palette/typography/verbal assets.
+export type AssetPayload = {
+  svg?: string;
+  svgOnDark?: string;
+  tokens?: Record<string, unknown>;
+};
