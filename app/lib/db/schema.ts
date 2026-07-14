@@ -28,10 +28,12 @@ export const projects = sqliteTable("projects", {
   })
     .notNull()
     .default("active"),
-  // Cached result of the Reality viability gate.
-  viability: text("viability", { enum: ["pending", "pass", "fail"] })
+  // Cached result of the Reality viability gate (caveat = non-blocking concerns).
+  viability: text("viability", { enum: ["pending", "pass", "fail", "caveat"] })
     .notNull()
     .default("pending"),
+  // Soft-override: owner proceeds past a fail with a logged reason (null = no override).
+  viability_override_note: text("viability_override_note"),
   // If true, the Brand Audit is skipped and the Design Plan sources everything as "create".
   greenfield: integer("greenfield", { mode: "boolean" }).notNull().default(false),
   // Own project (no paying client). The viability gate's commercial non-negotiables

@@ -1,6 +1,23 @@
 import "server-only";
 import { getSectionRow, listEvaluations, type Project } from "@/lib/queries";
 import { getSection, type Section, type Field } from "@/lib/methodology";
+import {
+  isNonEmptyValue,
+  trimForBrief,
+  wouldIncludeInBrief,
+  BRIEF_OMIT_FIELDS,
+  BRIEF_OMIT_COLUMNS,
+  stripHint,
+} from "@/lib/brief-rules";
+
+export {
+  isNonEmptyValue,
+  trimForBrief,
+  wouldIncludeInBrief,
+  BRIEF_OMIT_FIELDS,
+  BRIEF_OMIT_COLUMNS,
+  stripHint,
+};
 
 // The handover brief compiled for a project: grouped, complete-only, no internal
 // sections. Single source for the share page and every download format.
@@ -52,61 +69,6 @@ export type Value = Record<string, unknown>;
 export type CompiledSection = { section: Section; value: Value };
 export type CompiledGroup = { heading: string; sections: CompiledSection[] };
 
-export function isNonEmptyValue(v: unknown): boolean {
-  if (v == null) return false;
-  if (typeof v === "string") return v.trim().length > 0;
-  if (Array.isArray(v)) {
-    if (v.length === 0) return false;
-    return v.some((item) => {
-      if (typeof item === "string") return item.trim().length > 0;
-      if (item && typeof item === "object") {
-        return Object.values(item as Record<string, unknown>).some(
-          (cell) => typeof cell === "string" && cell.trim().length > 0
-        );
-      }
-      return false;
-    });
-  }
-  return false;
-}
-
-// A section is part of the brief only if visible, has fields, and at least one is non-empty.
-function hasContent(section: Section, value: Value): boolean {
-  return (section.fields ?? []).some((f) => isNonEmptyValue(value[f.id]));
-}
-
-// The brief is the deliverable, not the working file. Methodology process —
-// self-evaluations, construction rationale, survey evidence columns, authoring
-// hints in labels like "(3-5, ordered by survey)" — stays in the app.
-const BRIEF_OMIT_FIELDS: Record<string, string[]> = {
-  concept: ["distillation", "eval-against-brief", "filter-test", "recognition-test"],
-  manifesto: ["construction", "evaluation"],
-  "brief.main-tension": ["classification"],
-};
-const BRIEF_OMIT_COLUMNS: Record<string, Record<string, string[]>> = {
-  "communication.values": { values: ["confirmed-by"] },
-};
-
-// "Concept statement (the phrase)" → "Concept statement": trailing parentheses
-// are authoring instructions, not content.
-const stripHint = (label: string) => label.replace(/\s*\([^)]*\)\s*$/, "");
-
-function trimForBrief(section: Section): Section {
-  const omit = new Set(BRIEF_OMIT_FIELDS[section.id] ?? []);
-  const colOmit = BRIEF_OMIT_COLUMNS[section.id] ?? {};
-  return {
-    ...section,
-    name: stripHint(section.name),
-    fields: (section.fields ?? [])
-      .filter((f) => !omit.has(f.id))
-      .map((f) => ({
-        ...f,
-        label: stripHint(f.label),
-        columns: f.columns?.filter((c) => !(colOmit[f.id] ?? []).includes(c.id)),
-      })),
-  };
-}
-
 // Only reviewed steps reach the designer — a half-finished draft is worse than
 // an absent section (08-handover-spec).
 export function compileBrief(project: Project): CompiledGroup[] {
@@ -114,13 +76,10 @@ export function compileBrief(project: Project): CompiledGroup[] {
     keys
       .map((key) => {
         const section = getSection(key);
-        if (!section || section.internal) return null;
         const row = getSectionRow(project.id, key);
-        if (!row || row.status !== "complete") return null;
-        const value = (row.value ?? {}) as Value;
-        const trimmed = trimForBrief(section);
-        if (!hasContent(trimmed, value)) return null;
-        return { section: trimmed, value };
+        const value = (row?.value ?? {}) as Value;
+        if (!wouldIncludeInBrief(section, row?.status, value) || !section) return null;
+        return { section: trimForBrief(section), value };
       })
       .filter((x): x is CompiledSection => x !== null);
 

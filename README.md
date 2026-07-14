@@ -5,9 +5,9 @@ A project-based web app that encodes the **Finisterra brand-design methodology**
 1. Guide creation of brand concepts (Strategy → Planning → Design), and
 2. Produce **handover briefs** for a professional graphic designer via a shareable read-only link.
 
-It is a **designer's cockpit**: you (the designer) run it and own the synthesis; clients can fill the
-intake-only sections. The app does the structured capture, runs the methodology's evaluation
-frameworks, and uses Claude to draft the synthesis sections (which you review and edit).
+**Primary user of the journey:** the brand owner (plain questions → AI drafts → review → brief).
+**Operator:** Leonardo (or any strategist) on a local machine — same seat. The app captures structure,
+runs methodology evaluations (e.g. viability), and uses Claude to draft synthesis for human review.
 
 ## Status
 
@@ -19,7 +19,7 @@ Early build. Design docs in this folder (`01`–`09`) are the source of truth fo
 cd "F:\Brand App\app"
 npm install
 npm run db:migrate     # create the SQLite schema
-npm run dev            # http://localhost:3000
+npm run dev            # http://localhost:3100
 ```
 
 `ANTHROPIC_API_KEY` goes in `F:\Brand App\app\.env.local` (gitignored). Without it, capture and

@@ -1,41 +1,36 @@
 # 07 — Roadmap (build order)
 
-## Step 1 — Foundations (this pass)
-- Design docs (`01`–`09`, `CLAUDE.md`, `README.md`). ✅
-- Scaffold Next.js app mirroring Gut config (package.json, tsconfig, tailwind, next.config, eslint).
-- Drizzle schema + `db:migrate` working; `settings` + `projects` + `sections` + `evaluations` +
-  `ai_generations` tables.
-- `methodology.json` seed (English taxonomy from `02`) + `lib/methodology.ts` loader/typing.
-- Project list + create + open. Workspace shell with phase/pillar/section nav rendering from
-  methodology.json (sections show as stubs). App boots on `npm run dev`.
+Status as of 2026-07-14 (Tier A gap close): Steps 1–5 largely **done**; design-phase (6) and polish (7) still open.
 
-## Step 2 — Strategic capture
-- `SectionForm` driven by `fields` + trigger questions; save to `sections`; status dots.
-- Viability Gate evaluator (12 criteria, go/no-go rule, project status update).
-- All Reality / Identity input sections fillable.
+## Step 1 — Foundations — ✅
+- Design docs (`01`–`09`, `CLAUDE.md`, `README.md`).
+- Scaffold Next.js app; Drizzle schema + migrations; `methodology.json` + loader.
+- Project list / create / open; boots on `npm run dev` → **http://localhost:3100**.
 
-## Step 3 — AI synthesis (hybrid)
-- `lib/anthropic.ts` + `lib/prompts/*`; `/api/generate` with dependency gating + provenance.
-- `SynthesisPanel` (Generate → edit → accept; "drafted from" line).
-- Cover: Strategic Brief, Strategic Document, Communication block, Image pattern-analysis + contrast,
-  survey-question derivation (Haiku).
+## Step 2 — Strategic capture — ✅ (viability upgraded)
+- Field-driven forms + status; Reality / Identity fillable; Quick Start intake.
+- Viability Gate: auto-eval, hub panel (pass / caveat / fail), re-check, soft override with note.
+- Re-runs when Reality gate inputs change.
 
-## Step 4 — Planning
-- Brand Concept (one-shot first; conversational distillation later).
-- Reusable Insights, Manifesto.
-- Brand Audit (per-asset table) + Design Plan (priorities auto-derived from audit).
+## Step 3 — AI synthesis (hybrid) — ✅ core / prompts specialized for flagship
+- `lib/anthropic.ts` + `lib/prompts` quality bars; `/api/generate` with dependency gating + provenance.
+- Generate → edit → accept; **“Drafted from: …”** UI line.
+- Flagship sections: Brief, Concept, Manifesto, Communication block; survey design on **Haiku**.
+- Unit tests: gates, brief omit rules, viability scoring (`npm test`).
 
-## Step 5 — Handover link
-- Compiled read-only `share/[token]` page: Concept + Brief + Manifesto + Design Plan + strategy
-  context. `/api/publish` mints token. Copy-as-Markdown. Internal sections excluded.
+## Step 4 — Planning — ✅ functional
+- Brand Concept (one-shot); Insights, Manifesto; Audit + Design Plan (AI draft; auto-seed from audit still optional).
+- Conversational concept distillation → step 7.
 
-## Step 6 — Design-phase evaluators (secondary)
-- Naming (6 tests + availability checklist, multi-candidate).
-- Visual Territory (build 2–3, 4-filter eval, definition).
-- Logo Evaluation (14 parameters, 2 levels, multi-candidate).
+## Step 5 — Handover link — ✅
+- `share/[token]`; publish / unpublish; Markdown download; internal sections + process fields excluded.
+- Snapshot-on-publish still open (live from DB).
+
+## Step 6 — Design-phase evaluators (secondary) — partial
+- Naming technical availability check exists; multi-candidate eval / territory / logo UIs still generic forms.
 
 ## Step 7 — Polish (later)
 - Client intake share link (flow B) with section scoping.
 - Conversational concept distillation.
 - Asset references / images on handover.
-- Backups, Fly.io decision (separate, like Gut).
+- Backups (`npm run backup`) ✅; Fly.io decision (separate, like Gut).

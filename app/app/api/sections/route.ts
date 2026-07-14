@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
-import { saveSection, getSections, deleteSection, getProject } from "@/lib/queries";
+import {
+  saveSection,
+  getSections,
+  deleteSection,
+  getProject,
+  resetViabilityPending,
+} from "@/lib/queries";
 import { getSection } from "@/lib/methodology";
 import { upNext, type StatusMap } from "@/lib/flow";
-import { maybeRunViabilityGate } from "@/lib/viability";
+import { isViabilityInput, maybeRunViabilityGate } from "@/lib/viability";
 import { z } from "zod";
 
 const SaveSchema = z.object({
@@ -46,8 +52,19 @@ export async function POST(req: Request) {
       getSections(parsed.data.projectId).map((r) => [r.section_key, r.status])
     );
     next = upNext(map);
-    // A completed step may be the last input the internal viability gate was
-    // waiting on. Fire-and-forget: the response shouldn't wait ~15s on Opus.
+  }
+
+  // Reality inputs that feed the viability gate: first completion may unlock
+  // the gate; later edits invalidate the previous verdict and re-run.
+  if (isViabilityInput(parsed.data.key)) {
+    const project = getProject(parsed.data.projectId);
+    if (project && project.viability !== "pending") {
+      resetViabilityPending(parsed.data.projectId);
+    }
+    void maybeRunViabilityGate(parsed.data.projectId, { force: true }).catch((e) =>
+      console.error("[viability] failed:", e)
+    );
+  } else if (row.status === "complete") {
     void maybeRunViabilityGate(parsed.data.projectId).catch((e) =>
       console.error("[viability] failed:", e)
     );

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { notFound } from "next/navigation";
-import { getProject, getSections } from "@/lib/queries";
+import { getProject, getSections, listEvaluations } from "@/lib/queries";
 import { methodology } from "@/lib/methodology";
 import {
   phaseProgress,
@@ -21,6 +21,7 @@ import { type PhaseItem } from "@/components/PhaseList";
 import { FullPlan } from "@/components/FullPlan";
 import { DeleteProjectButton } from "@/components/DeleteProjectButton";
 import { PublishPanel } from "@/components/PublishPanel";
+import { ViabilityPanel } from "@/components/ViabilityPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,7 @@ export default async function ProjectHub({
   const statusMap: StatusMap = new Map(rows.map((r) => [r.section_key, r.status]));
   // Did the Quick Start interview structure pasted customer feedback (vs. only prep a survey)?
   const gaveFeedback = rows.some((r) => r.section_key === "image.results" && r.status !== "empty");
+  const latestViabilityEval = listEvaluations(id, "viability")[0] ?? null;
 
   const currentPhase = currentPhaseId(statusMap);
   const overall = reviewProgress(statusMap);
@@ -130,20 +132,14 @@ export default async function ProjectHub({
         <p className="mt-1.5 text-sm text-[var(--muted)]">
           Continue where you left off, or revisit any step anytime.
         </p>
-        {/* The internal viability gate's verdict — computed automatically once the
-            Reality inputs are complete; never shown on the client share link. */}
-        {project.viability !== "pending" && (
-          <Link
-            href={`/projects/${id}/${encodeURIComponent("reality.evaluation-criteria")}`}
-            className={
-              project.viability === "pass"
-                ? "mt-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--ok)]/50 px-3 py-1 text-xs font-medium text-[var(--ok)]"
-                : "mt-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--danger)]/50 px-3 py-1 text-xs font-medium text-[var(--danger)]"
-            }
-          >
-            Viability gate: {project.viability === "pass" ? "pass" : "fail"} · see criteria
-          </Link>
-        )}
+        {/* Internal viability gate — never on the public share link. */}
+        <ViabilityPanel
+          projectId={id}
+          viability={project.viability}
+          overrideNote={project.viability_override_note}
+          scores={latestViabilityEval?.scores ?? null}
+          personal={project.personal}
+        />
       </div>
 
       {/* The finish line, front and center once the brief pillar is reviewed:

@@ -14,8 +14,8 @@ Decisions to revisit; none block step 1.
 ## Methodology
 5. **Greenfield audit skip** — confirm: when `greenfield=true`, hide Brand Audit and source all
    Design Plan items as "create"? (Spec says yes.)
-6. **Viability override** — should a designer be able to proceed past a non-negotiable failure with a
-   logged reason, or hard-block? (Leaning: soft-block + override note.)
+6. **Viability override** — ~~hard-block vs soft?~~ **Decided:** soft-block + override note on the
+   project hub (`viability_override_note`); re-check clears the override.
 7. **Tension classification** — Main Tension enum (ability / visibility / coherence) — fixed list or
    free text? (Leaning: enum with "other".)
 8. **Multi-brand architecture** — how deep to model mother/product/sub-brand relationships in v1?

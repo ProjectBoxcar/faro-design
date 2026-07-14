@@ -59,7 +59,7 @@ F:\Brand App\
 cd "F:\Brand App\app"
 npm install
 npm run db:migrate
-npm run dev          # http://localhost:3000
+npm run dev          # http://localhost:3100
 ```
 
 `.env.local`: `ANTHROPIC_API_KEY=...` (and optional `DATABASE_PATH`).
