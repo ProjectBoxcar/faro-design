@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getProject, setViabilityOverride, resetViabilityPending } from "@/lib/queries";
 import { maybeRunViabilityGate } from "@/lib/viability";
-import { hasApiKey } from "@/lib/anthropic";
+import { hasApiKey } from "@/lib/ai";
 
 const Schema = z.object({
   projectId: z.string().min(1),

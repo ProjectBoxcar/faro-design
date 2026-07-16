@@ -1,7 +1,7 @@
 # 02 — Methodology Model (English taxonomy)
 
 The canonical English structure of the Finisterra methodology, as the app models it. This is the
-source of truth for `app/data/methodology.json`. Source: the 18 files in `Finisterra_md_files/`
+source of truth for `app/data/methodology.json`. Source: the 18 files in `reference/finisterra/`
 (note: `0__Metodologi_a.md` and `1___Gui_a_de_Proceso.md` are identical — treated as one).
 
 **Resolver legend:** `client` · `designer` · `collab` · `designer→client` (designer proposes, client validates).

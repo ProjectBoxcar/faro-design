@@ -19,8 +19,11 @@ better-sqlite3 12.x, @anthropic-ai/sdk 0.97.x, tailwindcss v4, tsx for scripts).
 
 ```
 F:\Brand App\
-├── 01..09-*.md, README.md, CLAUDE.md   # design docs (this folder)
-├── Finisterra_md_files\                # Spanish source — read-only reference
+├── docs\                               # design docs (01–09 + notes)
+├── reference\finisterra\               # Spanish source — read-only reference
+├── external\                           # third-party reference clones (gitignored)
+├── .devin\                             # Devin agents/skills
+├── README.md, CLAUDE.md
 └── app\                                # Next.js app
     ├── app\
     │   ├── page.tsx                      # project list / dashboard

@@ -1,5 +1,5 @@
 import "server-only";
-import { getClient, MODELS } from "@/lib/anthropic";
+import { generateText, MODELS } from "@/lib/ai";
 import { getSection } from "@/lib/methodology";
 import { extractJson } from "@/lib/json";
 import {
@@ -88,13 +88,11 @@ async function runViabilityGate(projectId: string): Promise<void> {
     `Respond with ONLY a JSON object: {"answers": [{"n": <criterion number>, "answer": "yes"|"no", "note": "<one sentence of evidence>"}]} — one entry per criterion, in order.`,
   ].join("\n\n");
 
-  const resp = await getClient().messages.create({
+  const { text } = await generateText({
     model: MODELS.reasoning,
-    max_tokens: 4096,
+    maxTokens: 4096,
     messages: [{ role: "user", content: prompt }],
   });
-
-  const text = resp.content.map((b) => (b.type === "text" ? b.text : "")).join("");
   const parsed = extractJson(text);
   const answers = Array.isArray(parsed.answers)
     ? (parsed.answers as { n?: number; answer?: string; note?: string }[])

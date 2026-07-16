@@ -22,6 +22,7 @@ import { FullPlan } from "@/components/FullPlan";
 import { DeleteProjectButton } from "@/components/DeleteProjectButton";
 import { PublishPanel } from "@/components/PublishPanel";
 import { ViabilityPanel } from "@/components/ViabilityPanel";
+import { Sparkles } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -156,7 +157,7 @@ export default async function ProjectHub({
           <FullPlan projectId={id} phases={phaseItems} defaultOpen={plan === "open"} />
         </div>
 
-        <aside className="mt-10 lg:mt-0 lg:sticky lg:top-8 lg:self-start">
+        <aside className="mt-10 space-y-6 lg:mt-0 lg:sticky lg:top-8 lg:self-start">
           {!handoffReady && (
             <>
               <h2 className="mb-3 font-serif text-lg font-semibold tracking-tight">
@@ -172,6 +173,19 @@ export default async function ProjectHub({
               )}
             </>
           )}
+
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
+            <h2 className="mb-2 font-serif text-lg font-semibold tracking-tight">Design Studio</h2>
+            <p className="mb-4 text-sm text-[var(--muted)]">
+              Turn the finished brief into real brand assets: identity system, landing page, and deck.
+            </p>
+            <Link
+              href={`/projects/${id}/design`}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+            >
+              <Sparkles size={16} /> Open Design Studio
+            </Link>
+          </div>
         </aside>
       </div>
 

@@ -1,9 +1,9 @@
 import "server-only";
-import { getClient, MODELS } from "@/lib/anthropic";
+import { generateText, MODELS } from "@/lib/ai";
+import { getDefaultModel } from "@/lib/settings";
 import { methodology, getSection, getPillarOf, readsOf, canGenerate } from "@/lib/methodology";
 import { sectionGuide } from "@/lib/guide";
 import { getProject, getSectionRow, filledKeys } from "@/lib/queries";
-import { getDefaultModel } from "@/lib/settings";
 import { extractJson } from "@/lib/json";
 import { getSectionPrompt } from "@/lib/prompts";
 
@@ -133,17 +133,13 @@ export async function generateSection(
 
   // Mechanical derivation (e.g. survey questions) uses Haiku; flagship synthesis uses the default (Opus).
   const model = specialist?.useParsingModel ? MODELS.parsing : getDefaultModel();
-  const resp = await getClient().messages.create({
+  const { text, model: usedModel } = await generateText({
     model,
-    max_tokens: 8192,
-    system: [{ type: "text", text: STATIC_SYSTEM, cache_control: { type: "ephemeral" } }],
+    maxTokens: 8192,
+    system: STATIC_SYSTEM,
     messages: [{ role: "user", content: parts.join("\n\n") }],
+    cacheSystem: true,
   });
-
-  const text = resp.content
-    .map((b) => (b.type === "text" ? b.text : ""))
-    .join("")
-    .trim();
 
   // Keep only the section's own fields, and only non-empty values — the model's
   // stray keys or empty strings must not overwrite anything downstream.
@@ -156,5 +152,5 @@ export async function generateSection(
     throw new Error("The AI didn't return usable content for this section. Try again, or add a few notes first.");
   }
 
-  return { values, reads: usedReads, model };
+  return { values, reads: usedReads, model: usedModel };
 }

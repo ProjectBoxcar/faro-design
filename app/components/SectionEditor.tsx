@@ -56,11 +56,13 @@ export function SectionEditor({
 
   // Live mirrors so the unmount flush below reads current values, not a stale closure.
   const valueRef = useRef(value);
-  valueRef.current = value;
   const statusRef = useRef(status);
-  statusRef.current = status;
   const aiOwnedRef = useRef(aiOwned);
-  aiOwnedRef.current = aiOwned;
+  useEffect(() => {
+    valueRef.current = value;
+    statusRef.current = status;
+    aiOwnedRef.current = aiOwned;
+  });
 
   // Flush any unsaved edit when navigating away (e.g. "Looks good — continue"
   // before the debounce fired). `keepalive` lets the request finish post-unmount.
@@ -166,18 +168,6 @@ export function SectionEditor({
     }
   }
 
-  // Debounced autosave: any edit is saved as a draft ~1.2s after you stop typing,
-  // so navigating away never loses work. Completion is still explicit.
-  useEffect(() => {
-    const serialized = JSON.stringify(value);
-    if (serialized === lastSaved.current || saving) return;
-    const t = setTimeout(() => {
-      void autosave(serialized);
-    }, 1200);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
-
   async function autosave(serialized: string) {
     try {
       const res = await fetch("/api/sections", {
@@ -205,6 +195,18 @@ export function SectionEditor({
       setSaveError("Couldn't save your changes — check your connection.");
     }
   }
+
+  // Debounced autosave: any edit is saved as a draft ~1.2s after you stop typing,
+  // so navigating away never loses work. Completion is still explicit.
+  useEffect(() => {
+    const serialized = JSON.stringify(value);
+    if (serialized === lastSaved.current || saving) return;
+    const t = setTimeout(() => {
+      void autosave(serialized);
+    }, 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   async function clearStep() {
     setSaving(true);

@@ -2,12 +2,23 @@
 
 import { useState } from "react";
 import { Check, KeyRound, Trash2 } from "lucide-react";
+import type { AiProvider } from "@/lib/db/types";
 
-type Status = { configured: boolean; source: "settings" | "env" | null };
+type Status = {
+  configured: boolean;
+  source: "settings" | "env" | null;
+  provider: AiProvider;
+  baseUrl: string | null;
+  model: string | null;
+  apiKey: string | null;
+};
 
 export function SettingsForm({ initial }: { initial: Status }) {
   const [status, setStatus] = useState<Status>(initial);
   const [key, setKey] = useState("");
+  const [provider, setProvider] = useState<AiProvider>(initial.provider);
+  const [baseUrl, setBaseUrl] = useState(initial.baseUrl ?? "");
+  const [model, setModel] = useState(initial.model ?? "");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -19,17 +30,22 @@ export function SettingsForm({ initial }: { initial: Status }) {
     const res = await fetch("/api/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ apiKey: key }),
+      body: JSON.stringify({
+        apiKey: key,
+        provider,
+        baseUrl: baseUrl || null,
+        model: model || null,
+      }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError(data.error ?? "Couldn't save the key.");
+      setError(data.error ?? "Couldn't save settings.");
       setBusy(false);
       return;
     }
     setStatus(data);
     setKey("");
-    setMsg("Saved — AI is ready to use. No restart needed.");
+    setMsg("Saved — AI settings updated. No restart needed.");
     setBusy(false);
   }
 
@@ -40,6 +56,7 @@ export function SettingsForm({ initial }: { initial: Status }) {
     const res = await fetch("/api/settings", { method: "DELETE" });
     const data = await res.json().catch(() => ({}));
     setStatus(data);
+    setKey("");
     setMsg("Key removed.");
     setBusy(false);
   }
@@ -62,36 +79,97 @@ export function SettingsForm({ initial }: { initial: Status }) {
             </span>
           </span>
         ) : (
-          <span className="text-[var(--muted)]">No API key yet — add one below to turn on “Improve with AI”.</span>
+          <span className="text-[var(--muted)]">No API key yet — add one below to turn on AI generation.</span>
         )}
       </div>
 
-      <label className="block text-sm font-medium">Anthropic API key</label>
-      <p className="mt-0.5 text-xs text-[var(--subtle)]">
-        Get one at console.anthropic.com → API keys. It starts with “sk-”.
-      </p>
-      <div className="mt-2 flex gap-2">
-        <div className="relative flex-1">
-          <KeyRound
-            size={15}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--subtle)]"
-          />
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium">AI provider</label>
+          <p className="mt-0.5 text-xs text-[var(--subtle)]">
+            Anthropic uses native API. OpenAI-compatible supports OpenAI, OpenRouter, Groq, Ollama, etc.
+          </p>
+          <select
+            value={provider}
+            onChange={(e) => setProvider(e.target.value as AiProvider)}
+            className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3 py-2.5 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+          >
+            <option value="anthropic">Anthropic</option>
+            <option value="openai-compatible">OpenAI-compatible</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium">API key</label>
+          <p className="mt-0.5 text-xs text-[var(--subtle)]">
+            Anthropic keys start with “sk-ant-”. OpenAI-compatible keys usually start with “sk-”.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <div className="relative flex-1">
+              <KeyRound
+                size={15}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--subtle)]"
+              />
+              <input
+                type="password"
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                placeholder={status.configured ? "Paste a new key to replace it" : "sk-…"}
+                autoComplete="off"
+                className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] py-2.5 pl-9 pr-3 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+              />
+            </div>
+          </div>
+        </div>
+
+        {provider === "openai-compatible" && (
+          <div>
+            <label className="block text-sm font-medium">Base URL (optional)</label>
+            <p className="mt-0.5 text-xs text-[var(--subtle)]">
+              Leave blank for OpenAI. Use your OpenRouter/Ollama base URL for other providers.
+            </p>
+            <input
+              type="url"
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+              placeholder="https://api.openai.com/v1"
+              className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3 py-2.5 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+            />
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium">Model override (optional)</label>
+          <p className="mt-0.5 text-xs text-[var(--subtle)]">
+            Leave blank to use the default. For Anthropic: claude-opus-4-8. For OpenAI: gpt-4o-mini.
+          </p>
           <input
-            type="password"
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            placeholder={status.configured ? "Paste a new key to replace it" : "sk-ant-…"}
-            autoComplete="off"
-            className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] py-2.5 pl-9 pr-3 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+            type="text"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            placeholder={provider === "anthropic" ? "claude-opus-4-8" : "gpt-4o-mini"}
+            className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3 py-2.5 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
           />
         </div>
+      </div>
+
+      <div className="mt-5 flex items-center gap-3">
         <button
           onClick={save}
-          disabled={busy || !key.trim()}
+          disabled={busy}
           className="shrink-0 rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
-          {busy ? "Saving…" : "Save key"}
+          {busy ? "Saving…" : "Save settings"}
         </button>
+        {status.configured && status.source === "settings" && (
+          <button
+            onClick={remove}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-strong)] px-3 py-1.5 text-xs text-[var(--muted)] transition hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:opacity-50"
+          >
+            <Trash2 size={13} /> Remove saved key
+          </button>
+        )}
       </div>
 
       {(msg || error) && (
@@ -101,19 +179,9 @@ export function SettingsForm({ initial }: { initial: Status }) {
         </div>
       )}
 
-      {status.configured && status.source === "settings" && (
-        <button
-          onClick={remove}
-          disabled={busy}
-          className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-[var(--border-strong)] px-3 py-1.5 text-xs text-[var(--muted)] transition hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:opacity-50"
-        >
-          <Trash2 size={13} /> Remove saved key
-        </button>
-      )}
-
       <p className="mt-5 border-t border-[var(--border)] pt-4 text-xs text-[var(--subtle)]">
         The key is stored locally in this app&apos;s database on your machine (never committed to
-        git, never sent anywhere except Anthropic). Usage is a few cents per project.
+        git). It is only sent to the provider you select above.
       </p>
     </div>
   );

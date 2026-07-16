@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { hasApiKey } from "@/lib/anthropic";
+import { hasApiKey } from "@/lib/ai";
 import { getSection } from "@/lib/methodology";
 import { generateSection, generationBlockedReason } from "@/lib/generate";
 import { getProject, markGenerationAccepted } from "@/lib/queries";

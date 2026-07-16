@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { hasApiKey } from "@/lib/anthropic";
+import { hasApiKey } from "@/lib/ai";
 import { createProject } from "@/lib/queries";
 import { expandIntake } from "@/lib/intake";
 import { maybeRunViabilityGate } from "@/lib/viability";
