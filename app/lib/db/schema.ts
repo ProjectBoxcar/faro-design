@@ -145,6 +145,12 @@ export const assets = sqliteTable(
     kind: text("kind", {
       enum: ["design_system", "landing_page", "deck", "brand_guidelines", "logo_concept"],
     }).notNull(),
+    // Proposal variant label: A, B, C. Null for legacy single assets.
+    variant: text("variant"),
+    // Whether this proposal is the chosen one for its kind.
+    selected: integer("selected", { mode: "boolean" }).notNull().default(false),
+    // For landing_page/deck: the design_system asset they follow.
+    design_system_id: text("design_system_id"),
     name: text("name").notNull(),
     // The generated artifact (HTML, markdown, or raw design file content).
     html: text("html"),

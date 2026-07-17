@@ -27,7 +27,9 @@ export function hasApiKey(): boolean {
 }
 
 // Generate text using the configured AI provider.
-// - Anthropic: uses the Anthropic SDK with optional prompt caching.
+// - Anthropic: uses the Anthropic SDK with optional prompt caching and streaming.
+//   Streaming lets us request large design artifact outputs (up to the model ceiling)
+//   without hitting the non-streaming 10-minute SDK guard.
 // - OpenAI-compatible: uses a fetch to the provider's /chat/completions endpoint.
 //   Supports OpenAI, OpenRouter, Groq, Together, Ollama, etc.
 export async function generateText(params: {
@@ -48,14 +50,19 @@ export async function generateText(params: {
         ? [{ type: "text" as const, text: params.system, cache_control: { type: "ephemeral" as const } }]
         : params.system
       : undefined;
-    const resp = await client.messages.create({
+
+    // Anthropic recommends (and the SDK enforces for large max_tokens) streaming for
+    // long-running generation. Stream and collect the text for a single return value.
+    const stream = client.messages.stream({
       model,
       max_tokens: params.maxTokens,
       system,
       messages: params.messages,
     });
-    const text = resp.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
-    return { text, model: resp.model };
+
+    const text = await stream.finalText();
+    const message = await stream.finalMessage();
+    return { text: text.trim(), model: message.model };
   }
 
   // OpenAI-compatible provider.

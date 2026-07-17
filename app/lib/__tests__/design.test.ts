@@ -39,39 +39,37 @@ describe("designSystemBlockedReason", () => {
 });
 
 describe("designSystemPrompt", () => {
-  it("includes the 9 required DESIGN.md sections", () => {
-    const prompt = designSystemPrompt("brief text");
-    expect(prompt).toContain("Visual Theme & Atmosphere");
-    expect(prompt).toContain("Color Palette & Roles");
-    expect(prompt).toContain("Typography Rules");
-    expect(prompt).toContain("Component Stylings");
-    expect(prompt).toContain("Layout Principles");
-    expect(prompt).toContain("Depth & Elevation");
-    expect(prompt).toContain("Do's and Don'ts");
-    expect(prompt).toContain("Responsive Behavior");
-    expect(prompt).toContain("Agent Prompt Guide");
-  });
-
-  it("includes the brand brief", () => {
-    const prompt = designSystemPrompt("unique brief content");
-    expect(prompt).toContain("unique brief content");
+  it("produces a visual developer handover HTML prompt", () => {
+    const prompt = designSystemPrompt("A", "brief text");
+    expect(prompt).toContain("proposal \"A\"");
+    expect(prompt).toContain("<!DOCTYPE html>");
+    expect(prompt).toContain("embedded SVG logo");
+    expect(prompt).toContain("color palette");
+    expect(prompt).toContain("typography");
+    expect(prompt).toContain("components");
+    expect(prompt).toContain("Do & Don't");
+    expect(prompt).toContain("brief text");
   });
 });
 
 describe("landingPagePrompt", () => {
-  it("requires a self-contained HTML file with inlined CSS", () => {
-    const prompt = landingPagePrompt("brief", "design system");
+  it("requires a self-contained interactive HTML file", () => {
+    const prompt = landingPagePrompt("B", "brief", "design system");
+    expect(prompt).toContain("proposal \"B\"");
     expect(prompt).toContain("<!DOCTYPE html>");
-    expect(prompt).toContain("<style>");
+    expect(prompt).toContain("Intersection Observer");
     expect(prompt).toContain("DESIGN SYSTEM:");
     expect(prompt).toContain("BRAND STRATEGY:");
+    expect(prompt).toContain("design system");
   });
 });
 
 describe("brandDeckPrompt", () => {
-  it("requires a keyboard-navigable HTML deck", () => {
-    const prompt = brandDeckPrompt("brief", "design system");
+  it("requires a multi-slide keyboard-navigable HTML deck", () => {
+    const prompt = brandDeckPrompt("C", "brief", "design system");
+    expect(prompt).toContain("proposal \"C\"");
     expect(prompt).toContain("<!DOCTYPE html>");
+    expect(prompt).toContain("12 slides");
     expect(prompt).toContain("arrow keys");
     expect(prompt).toContain("DESIGN SYSTEM:");
     expect(prompt).toContain("BRAND STRATEGY:");

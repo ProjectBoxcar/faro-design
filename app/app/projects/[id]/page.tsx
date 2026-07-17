@@ -158,6 +158,22 @@ export default async function ProjectHub({
         </div>
 
         <aside className="mt-10 space-y-6 lg:mt-0 lg:sticky lg:top-8 lg:self-start">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
+            <div className="mb-3 flex items-center gap-2">
+              <Sparkles size={18} className="text-[var(--accent)]" />
+              <h2 className="font-serif text-lg font-semibold tracking-tight">Design Studio</h2>
+            </div>
+            <p className="mb-4 text-sm text-[var(--muted)]">
+              Start designing anytime — generate identity proposals, pick a direction, then build the landing page and deck.
+            </p>
+            <Link
+              href={`/projects/${id}/design`}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+            >
+              Open Design Studio <ArrowRight size={16} />
+            </Link>
+          </div>
+
           {!handoffReady && (
             <>
               <h2 className="mb-3 font-serif text-lg font-semibold tracking-tight">
@@ -173,19 +189,6 @@ export default async function ProjectHub({
               )}
             </>
           )}
-
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
-            <h2 className="mb-2 font-serif text-lg font-semibold tracking-tight">Design Studio</h2>
-            <p className="mb-4 text-sm text-[var(--muted)]">
-              Turn the finished brief into real brand assets: identity system, landing page, and deck.
-            </p>
-            <Link
-              href={`/projects/${id}/design`}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
-            >
-              <Sparkles size={16} /> Open Design Studio
-            </Link>
-          </div>
         </aside>
       </div>
 

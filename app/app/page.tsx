@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Settings } from "lucide-react";
+import { Settings, Sparkles } from "lucide-react";
 import { listProjects, getSections } from "@/lib/queries";
 import { NewProjectButton } from "@/components/NewProjectButton";
 import { ProgressBar } from "@/components/ProgressBar";
@@ -125,11 +125,8 @@ export default function Home() {
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {projects.map((p) => (
-            <li key={p.id}>
-              <Link
-                href={`/projects/${p.id}`}
-                className="card-shadow flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 transition hover:bg-[var(--surface-2)]"
-              >
+            <li key={p.id} className="card-shadow flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 transition hover:bg-[var(--surface-2)]">
+              <Link href={`/projects/${p.id}`} className="block">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="truncate font-medium">{p.name}</div>
@@ -154,12 +151,28 @@ export default function Home() {
                     </span>
                   </div>
                 </div>
+              </Link>
+              <Link href={`/projects/${p.id}`} className="block">
                 <ProgressBar
                   done={progress.get(p.id)?.done ?? 0}
                   total={progress.get(p.id)?.total ?? 1}
                   showPercent
                 />
               </Link>
+              <div className="mt-auto flex items-center justify-between gap-2 border-t border-[var(--border)] pt-3">
+                <Link
+                  href={`/projects/${p.id}`}
+                  className="text-xs text-[var(--subtle)] transition hover:text-[var(--foreground)]"
+                >
+                  {progress.get(p.id)?.done === progress.get(p.id)?.total ? "Strategy ready" : "In progress"}
+                </Link>
+                <Link
+                  href={`/projects/${p.id}/design`}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)]"
+                >
+                  <Sparkles size={12} /> Design Studio
+                </Link>
+              </div>
             </li>
           ))}
         </ul>
