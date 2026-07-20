@@ -44,8 +44,8 @@ export function designSystemBlockedReason(_ctx: BriefContext): string | null {
 }
 
 // Landing page and deck are downstream artifacts: they read the generated DESIGN.md
-// so a design system is still required. The UI disables these buttons until one exists.
-export function artifactBlockedReason(hasDesignSystem: boolean, kind: AssetKind): string | null {
-  if (!hasDesignSystem) return `Generate a brand identity system before creating a ${kind.replace(/_/g, " ")}.`;
+// so a selected design system is required. The UI disables these buttons until one is selected.
+export function artifactBlockedReason(hasSelectedDesignSystem: boolean, kind: AssetKind): string | null {
+  if (!hasSelectedDesignSystem) return `Select a brand identity system before creating a ${kind.replace(/_/g, " ")}.`;
   return null;
 }

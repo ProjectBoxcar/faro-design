@@ -164,7 +164,7 @@ export default async function ProjectHub({
               <h2 className="font-serif text-lg font-semibold tracking-tight">Design Studio</h2>
             </div>
             <p className="mb-4 text-sm text-[var(--muted)]">
-              Start designing anytime — generate identity proposals, pick a direction, then build the landing page and deck.
+              Once the brief is ready, generate identity proposals, pick a direction, then build the landing page and deck.
             </p>
             <Link
               href={`/projects/${id}/design`}

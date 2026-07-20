@@ -9,9 +9,11 @@ import {
   generateBrandDeck,
   generateBrandDeckProposals,
   listAssets,
+  deleteProposals,
 } from "@/lib/design";
 import { getProject } from "@/lib/queries";
 import type { AssetKind } from "@/lib/db/types";
+import { buildFaroDeliverable, sanitizeDownloadName } from "@/lib/design-deliverable";
 
 const GenerateSchema = z.object({
   projectId: z.string().min(1),
@@ -118,6 +120,7 @@ export async function POST(req: Request) {
 const ListSchema = z.object({
   projectId: z.string().min(1),
   kind: z.enum(["design_system", "landing_page", "deck", "brand_guidelines", "logo_concept"]).optional(),
+  format: z.enum(["json", "deliverable"]).optional(),
 });
 
 export async function GET(req: Request) {
@@ -125,6 +128,52 @@ export async function GET(req: Request) {
   const parsed = ListSchema.safeParse({
     projectId: searchParams.get("projectId"),
     kind: searchParams.get("kind") || undefined,
+    format: searchParams.get("format") || undefined,
+  });
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
+
+  const { projectId, kind, format = "json" } = parsed.data;
+  const project = getProject(projectId);
+  if (!project) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+
+  const assets = format === "deliverable"
+    ? listAssets(projectId)
+    : kind
+    ? listAssets(projectId, kind as AssetKind)
+    : listAssets(projectId);
+  if (format === "deliverable") {
+    try {
+      const html = buildFaroDeliverable(project.name, assets);
+      const filename = `${sanitizeDownloadName(project.name)}-faro-brand-deliverable.html`;
+      return new NextResponse(html, {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${filename}"`,
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Final deliverable could not be created";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+  }
+  return NextResponse.json({ assets });
+}
+
+const DiscardSchema = z.object({
+  projectId: z.string().min(1),
+  kind: z.enum(["design_system", "landing_page", "deck"]),
+});
+
+export async function DELETE(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const parsed = DiscardSchema.safeParse({
+    projectId: searchParams.get("projectId"),
+    kind: searchParams.get("kind"),
   });
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
@@ -135,6 +184,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  const assets = kind ? listAssets(projectId, kind as AssetKind) : listAssets(projectId);
-  return NextResponse.json({ assets });
+  const discarded = listAssets(projectId, kind).filter((asset) => !asset.selected).length;
+  deleteProposals(projectId, kind, true);
+  return NextResponse.json({ discarded });
 }

@@ -1,12 +1,13 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { assets } from "@/lib/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { generateText } from "@/lib/ai";
 import { getSectionRow, getProject } from "@/lib/queries";
 import { designSystemPrompt, landingPagePrompt, brandDeckPrompt } from "@/lib/design-prompts";
 import { designSystemBlockedReason, artifactBlockedReason } from "@/lib/design-gates";
+import { isNearDuplicateProposal, proposalSimilarity } from "@/lib/design-similarity";
 import type { BriefContext } from "@/lib/design-gates";
 import type { AssetKind } from "@/lib/db/types";
 
@@ -149,20 +150,6 @@ function variantLabel(index: number): string {
   return String.fromCharCode(65 + index); // A, B, C...
 }
 
-function variantMood(label: string): string {
-  // Give each proposal a distinct creative direction so the user sees real options.
-  switch (label) {
-    case "A":
-      return "premium, restrained, editorial, confident; generous whitespace, refined typography, calm authority";
-    case "B":
-      return "warm, human, approachable, tactile; rounded forms, friendly color, organic rhythm";
-    case "C":
-      return "bold, high-contrast, contemporary, category-challenging; sharp forms, confident scale, editorial drama";
-    default:
-      return "premium and contemporary";
-  }
-}
-
 async function generateSingleAsset(
   projectId: string,
   kind: AssetKind,
@@ -170,7 +157,8 @@ async function generateSingleAsset(
   brief: string,
   projectName: string,
   designSystemHtml?: string,
-  designSystemId?: string
+  designSystemId?: string,
+  priorHtml: string[] = []
 ): Promise<AssetRow> {
   let prompt: string;
   let name: string;
@@ -186,7 +174,23 @@ async function generateSingleAsset(
     name = `${projectName} — Brand Deck ${variant}`;
   }
 
-  const html = await callAi(prompt + `\n\nAdditional direction for proposal ${variant}: ${variantMood(variant)}.`);
+  let html = "";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const retryDirection = attempt === 0
+      ? ""
+      : "\n\nRETRY REQUIRED: The previous result was too similar to another proposal. Rebuild from a blank composition. Change the layout grammar, type behavior, shape language, hierarchy, and interaction pattern while preserving the strategy and this proposal's creative thesis.";
+    html = await callAi(prompt + retryDirection);
+    const closest = priorHtml.reduce(
+      (highest, existing) => Math.max(highest, proposalSimilarity(html, existing)),
+      0
+    );
+    if (!priorHtml.some((existing) => isNearDuplicateProposal(html, existing))) break;
+    console.warn(`[design] Proposal ${kind}/${variant} was too similar (${closest.toFixed(3)}); retrying.`);
+    html = "";
+  }
+  if (!html) {
+    throw new Error(`Faro could not create a distinct proposal ${variant}. Generate the set again.`);
+  }
 
   const id = nanoid();
   db.insert(assets)
@@ -207,19 +211,76 @@ async function generateSingleAsset(
   return db.select().from(assets).where(eq(assets.id, id)).get()!;
 }
 
+function removeAssetRows(projectId: string, assetIds: string[]): void {
+  for (const assetId of assetIds) {
+    db.delete(assets)
+      .where(and(eq(assets.project_id, projectId), eq(assets.id, assetId)))
+      .run();
+  }
+}
+
+async function generateProposalSet({
+  projectId,
+  kind,
+  count,
+  brief,
+  projectName,
+  designSystemHtml,
+  designSystemId,
+}: {
+  projectId: string;
+  kind: "design_system" | "landing_page" | "deck";
+  count: number;
+  brief: string;
+  projectName: string;
+  designSystemHtml?: string;
+  designSystemId?: string;
+}): Promise<AssetRow[]> {
+  const existing = listProposals(projectId, kind);
+  const previousIds = existing.filter((asset) => !asset.selected).map((asset) => asset.id);
+  const protectedHtml = existing.flatMap((asset) => asset.selected && asset.html ? [asset.html] : []);
+  const results: AssetRow[] = [];
+  try {
+    for (let index = 0; index < count; index++) {
+      const variant = variantLabel(index);
+      const priorHtml = [
+        ...protectedHtml,
+        ...results.flatMap((asset) => asset.html ? [asset.html] : []),
+      ];
+      results.push(
+        await generateSingleAsset(
+          projectId,
+          kind,
+          variant,
+          brief,
+          projectName,
+          designSystemHtml,
+          designSystemId,
+          priorHtml
+        )
+      );
+    }
+    removeAssetRows(projectId, previousIds);
+    return results;
+  } catch (error) {
+    removeAssetRows(projectId, results.map((asset) => asset.id));
+    throw error;
+  }
+}
+
 export async function generateDesignSystemProposals(projectId: string, count = 3): Promise<AssetRow[]> {
   const ctx = buildBriefContext(projectId);
   const blocked = designSystemBlockedReason(ctx);
   if (blocked) throw new Error(blocked);
 
   const brief = stringifyContext(ctx);
-  deleteProposals(projectId, "design_system", false);
-  const results: AssetRow[] = [];
-  for (let i = 0; i < count; i++) {
-    const variant = variantLabel(i);
-    results.push(await generateSingleAsset(projectId, "design_system", variant, brief, ctx.name));
-  }
-  return results;
+  return generateProposalSet({
+    projectId,
+    kind: "design_system",
+    count,
+    brief,
+    projectName: ctx.name,
+  });
 }
 
 
@@ -229,22 +290,23 @@ export async function generateLandingPageProposals(
   count = 3
 ): Promise<AssetRow[]> {
   const ctx = buildBriefContext(projectId);
-  const blocked = artifactBlockedReason(true, "landing_page");
-  if (blocked) throw new Error(blocked);
-
   const designSystem = getAsset(projectId, designSystemId);
-  if (!designSystem || designSystem.kind !== "design_system") {
-    throw new Error("Selected design system not found");
-  }
+  const blocked = artifactBlockedReason(
+    Boolean(designSystem?.kind === "design_system" && designSystem.selected),
+    "landing_page"
+  );
+  if (blocked || !designSystem) throw new Error(blocked ?? "Selected design system not found");
 
   const brief = stringifyContext(ctx);
-  deleteProposals(projectId, "landing_page", false);
-  const results: AssetRow[] = [];
-  for (let i = 0; i < count; i++) {
-    const variant = variantLabel(i);
-    results.push(await generateSingleAsset(projectId, "landing_page", variant, brief, ctx.name, designSystem.html ?? "", designSystem.id));
-  }
-  return results;
+  return generateProposalSet({
+    projectId,
+    kind: "landing_page",
+    count,
+    brief,
+    projectName: ctx.name,
+    designSystemHtml: designSystem.html ?? "",
+    designSystemId: designSystem.id,
+  });
 }
 
 export async function generateBrandDeckProposals(
@@ -253,22 +315,23 @@ export async function generateBrandDeckProposals(
   count = 3
 ): Promise<AssetRow[]> {
   const ctx = buildBriefContext(projectId);
-  const blocked = artifactBlockedReason(true, "deck");
-  if (blocked) throw new Error(blocked);
-
   const designSystem = getAsset(projectId, designSystemId);
-  if (!designSystem || designSystem.kind !== "design_system") {
-    throw new Error("Selected design system not found");
-  }
+  const blocked = artifactBlockedReason(
+    Boolean(designSystem?.kind === "design_system" && designSystem.selected),
+    "deck"
+  );
+  if (blocked || !designSystem) throw new Error(blocked ?? "Selected design system not found");
 
   const brief = stringifyContext(ctx);
-  deleteProposals(projectId, "deck", false);
-  const results: AssetRow[] = [];
-  for (let i = 0; i < count; i++) {
-    const variant = variantLabel(i);
-    results.push(await generateSingleAsset(projectId, "deck", variant, brief, ctx.name, designSystem.html ?? "", designSystem.id));
-  }
-  return results;
+  return generateProposalSet({
+    projectId,
+    kind: "deck",
+    count,
+    brief,
+    projectName: ctx.name,
+    designSystemHtml: designSystem.html ?? "",
+    designSystemId: designSystem.id,
+  });
 }
 
 // Keep single-generation helpers for callers that expect one asset; they create a single variant "A".
@@ -348,11 +411,24 @@ export function getSelectedAsset(projectId: string, kind: AssetKind): AssetRow |
 export function selectAsset(projectId: string, assetId: string): AssetRow {
   const asset = getAsset(projectId, assetId);
   if (!asset) throw new Error("Asset not found");
+  const previousSelected = getSelectedAsset(projectId, asset.kind);
 
   db.update(assets)
     .set({ selected: false })
     .where(and(eq(assets.project_id, projectId), eq(assets.kind, asset.kind)))
     .run();
+
+  if (asset.kind === "design_system" && previousSelected?.id !== asset.id) {
+    db.update(assets)
+      .set({ selected: false, updated_at: new Date() })
+      .where(
+        and(
+          eq(assets.project_id, projectId),
+          or(eq(assets.kind, "landing_page"), eq(assets.kind, "deck"))
+        )
+      )
+      .run();
+  }
 
   db.update(assets)
     .set({ selected: true, updated_at: new Date() })
@@ -367,6 +443,13 @@ export function updateAssetStatus(assetId: string, status: AssetRow["status"]): 
 }
 
 export function deleteAsset(projectId: string, assetId: string): void {
+  const asset = getAsset(projectId, assetId);
+  if (asset?.kind === "design_system") {
+    db.update(assets)
+      .set({ selected: false, updated_at: new Date() })
+      .where(and(eq(assets.project_id, projectId), eq(assets.design_system_id, assetId)))
+      .run();
+  }
   db.delete(assets)
     .where(and(eq(assets.project_id, projectId), eq(assets.id, assetId)))
     .run();

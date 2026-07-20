@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   Sparkles,
   Download,
@@ -11,8 +12,19 @@ import {
   Palette,
   Check,
   AlertCircle,
+  PackageCheck,
+  ExternalLink,
 } from "lucide-react";
 import type { AssetRow } from "@/lib/design";
+import {
+  buildArtifactPreviewHtml,
+  IDENTITY_PREVIEW_SECTIONS,
+  type IdentityPreviewSection,
+} from "@/lib/design-preview";
+import {
+  DesignGenerationWindow,
+  type DesignGenerationKind,
+} from "@/components/DesignGenerationWindow";
 
 const KIND_META: Record<
   AssetRow["kind"],
@@ -60,6 +72,20 @@ type GenerationState = {
   stage: "generating" | "selecting";
 } | null;
 
+function safeDownloadName(name: string): string {
+  const cleaned = name
+    .normalize("NFKD")
+    .replace(/[\u0000-\u001f\u007f\u0300-\u036f]/g, "")
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9._-]/g, "-")
+    .replace(/^[.\s-]+|[.\s-]+$/g, "")
+    .slice(0, 120);
+  return /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(cleaned)
+    ? `brand-${cleaned}`
+    : cleaned || "brand-asset";
+}
+
 export function DesignStudio({
   projectId,
   projectName,
@@ -71,10 +97,21 @@ export function DesignStudio({
   initialAssets: AssetRow[];
   apiKeyConfigured: boolean;
 }) {
+  const router = useRouter();
+  const previewFrameRef = useRef<HTMLIFrameElement>(null);
   const [assets, setAssets] = useState<AssetRow[]>(initialAssets);
   const [loading, setLoading] = useState<GenerationState>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [discardingKind, setDiscardingKind] = useState<AssetRow["kind"] | null>(null);
+  const [creatingDeliverable, setCreatingDeliverable] = useState(false);
+  const [previewSection, setPreviewSection] = useState<IdentityPreviewSection>("overview");
   const [error, setError] = useState<string | null>(null);
-  const [previewAssetId, setPreviewAssetId] = useState<string | null>(null);
+  const [previewAssetId, setPreviewAssetId] = useState<string | null>(() =>
+    initialAssets.find((asset) => asset.kind === "design_system" && asset.selected)?.id
+      ?? initialAssets.find((asset) => asset.selected)?.id
+      ?? initialAssets[0]?.id
+      ?? null
+  );
 
   const byKind = useMemo(() => {
     const map: Record<AssetRow["kind"], AssetRow[]> = {
@@ -98,8 +135,8 @@ export function DesignStudio({
     return map;
   }, [assets]);
 
-  const selected = useCallback(
-    (kind: AssetRow["kind"]) => byKind[kind].find((a) => a.selected) ?? byKind[kind][0] ?? null,
+  const selectedAsset = useCallback(
+    (kind: AssetRow["kind"]) => byKind[kind].find((asset) => asset.selected) ?? null,
     [byKind]
   );
 
@@ -107,6 +144,32 @@ export function DesignStudio({
     () => assets.find((a) => a.id === previewAssetId) ?? null,
     [assets, previewAssetId]
   );
+  const previewHtml = useMemo(
+    () => buildArtifactPreviewHtml(previewAsset?.html ?? null, previewAsset?.kind ?? "design_system"),
+    [previewAsset]
+  );
+
+  function previewProposal(assetId: string) {
+    setPreviewAssetId(assetId);
+    setPreviewSection("overview");
+  }
+
+  function focusPreviewSection(section: IdentityPreviewSection) {
+    setPreviewSection(section);
+    previewFrameRef.current?.contentWindow?.postMessage(
+      { source: "faro-preview", action: "focus", section },
+      "*"
+    );
+  }
+
+  async function openFullPreview() {
+    if (!previewFrameRef.current) return;
+    try {
+      await previewFrameRef.current.requestFullscreen();
+    } catch {
+      setError("Full-screen preview is unavailable in this browser.");
+    }
+  }
 
   async function generateProposals(kind: AssetRow["kind"]) {
     if (!apiKeyConfigured) {
@@ -118,7 +181,7 @@ export function DesignStudio({
 
     let designSystemId: string | undefined;
     if (kind !== "design_system") {
-      const ds = selected("design_system");
+      const ds = selectedAsset("design_system");
       if (!ds) {
         setError("Choose a Brand Identity System proposal first.");
         setLoading(null);
@@ -142,6 +205,8 @@ export function DesignStudio({
         return [...kept, ...newAssets];
       });
       setPreviewAssetId(newAssets[0]?.id ?? null);
+      setPreviewSection("overview");
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generation failed");
     } finally {
@@ -150,6 +215,16 @@ export function DesignStudio({
   }
 
   async function selectProposal(assetId: string, kind: AssetRow["kind"]) {
+    const currentFinal = selectedAsset(kind);
+    const nextFinal = byKind[kind].find((asset) => asset.id === assetId);
+    if (currentFinal && currentFinal.id !== assetId) {
+      const currentLabel = currentFinal.variant ? `proposal ${currentFinal.variant}` : "the current proposal";
+      const nextLabel = nextFinal?.variant ? `proposal ${nextFinal.variant}` : "this proposal";
+      const dependencyWarning = kind === "design_system" && (selectedAsset("landing_page") || selectedAsset("deck"))
+        ? " Landing Page and Brand Deck finals will need to be chosen again so the package stays aligned."
+        : "";
+      if (!confirm(`Replace ${currentLabel} with ${nextLabel} as the final direction?${dependencyWarning}`)) return;
+    }
     setLoading({ kind, stage: "selecting" });
     setError(null);
     try {
@@ -162,13 +237,20 @@ export function DesignStudio({
       if (!res.ok) throw new Error(data.error ?? "Selection failed");
       const updated: AssetRow = data.asset;
       setAssets((prev) =>
-        prev.map((a) =>
-          a.kind === updated.kind
-            ? { ...a, selected: a.id === updated.id }
-            : a
-        )
+        prev.map((asset) => {
+          if (asset.kind === updated.kind) return { ...asset, selected: asset.id === updated.id };
+          if (
+            updated.kind === "design_system"
+            && (asset.kind === "landing_page" || asset.kind === "deck")
+          ) {
+            return { ...asset, selected: false };
+          }
+          return asset;
+        })
       );
       setPreviewAssetId(updated.id);
+      setPreviewSection("overview");
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Selection failed");
     } finally {
@@ -176,17 +258,65 @@ export function DesignStudio({
     }
   }
 
-  async function remove(assetId: string) {
-    if (!confirm("Delete this proposal?")) return;
-    await fetch(`/api/design/${assetId}?projectId=${projectId}`, { method: "DELETE" });
-    setAssets((prev) => {
-      const next = prev.filter((a) => a.id !== assetId);
-      if (previewAssetId === assetId) {
-        const firstKind = next[0];
-        setPreviewAssetId(firstKind?.id ?? null);
+  async function discardProposal(assetId: string) {
+    const asset = assets.find((candidate) => candidate.id === assetId);
+    const label = asset?.variant ? `proposal ${asset.variant}` : "this proposal";
+    if (!confirm(`Discard ${label}? This cannot be undone.`)) return;
+    setDeletingId(assetId);
+    setError(null);
+    try {
+      const res = await fetch(`/api/design/${assetId}?projectId=${projectId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Discard failed");
+      setAssets((prev) => {
+        const removed = prev.find((candidate) => candidate.id === assetId);
+        const next = prev
+          .filter((candidate) => candidate.id !== assetId)
+          .map((candidate) =>
+            removed?.kind === "design_system" && candidate.design_system_id === removed.id
+              ? { ...candidate, selected: false }
+              : candidate
+          );
+        if (previewAssetId === assetId) {
+          setPreviewAssetId(next.find((candidate) => candidate.selected)?.id ?? next[0]?.id ?? null);
+          setPreviewSection("overview");
+        }
+        return next;
+      });
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Discard failed");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  async function discardUnselected(kind: AssetRow["kind"]) {
+    const unselected = byKind[kind].filter((asset) => !asset.selected);
+    if (unselected.length === 0) return;
+    const proposalLabel = `${unselected.length} unselected proposal${unselected.length === 1 ? "" : "s"}`;
+    const outcome = byKind[kind].some((asset) => asset.selected)
+      ? "The final direction will be kept."
+      : "All current proposals will be removed.";
+    if (!confirm(`Discard ${proposalLabel}? ${outcome} This cannot be undone.`)) return;
+    setDiscardingKind(kind);
+    setError(null);
+    try {
+      const res = await fetch(`/api/design?projectId=${projectId}&kind=${kind}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Discard failed");
+      const discardedIds = new Set(unselected.map((asset) => asset.id));
+      setAssets((prev) => prev.filter((asset) => !discardedIds.has(asset.id)));
+      if (previewAssetId && discardedIds.has(previewAssetId)) {
+        setPreviewAssetId(byKind[kind].find((asset) => asset.selected)?.id ?? null);
+        setPreviewSection("overview");
       }
-      return next;
-    });
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Discard failed");
+    } finally {
+      setDiscardingKind(null);
+    }
   }
 
   function download(asset: AssetRow) {
@@ -195,14 +325,71 @@ export function DesignStudio({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${asset.name.replace(/\s+/g, "_")}.${ext}`;
+    a.download = `${safeDownloadName(asset.name)}.${ext}`;
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
   }
 
-  const identitySelected = selected("design_system");
+  async function downloadFinalDeliverable() {
+    setCreatingDeliverable(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({ projectId, format: "deliverable" });
+      const res = await fetch(`/api/design?${params}`);
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Final deliverable could not be created");
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get("Content-Disposition");
+      const filename = disposition?.match(/filename="([^"]+)"/)?.[1]
+        ?? `${projectName.replace(/\s+/g, "-").toLowerCase()}-faro-brand-deliverable.html`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Final deliverable could not be created");
+    } finally {
+      setCreatingDeliverable(false);
+    }
+  }
+
+  const identitySelected = selectedAsset("design_system");
+  const landingSelected = selectedAsset("landing_page");
+  const deckSelected = selectedAsset("deck");
+  const finalOutputs = [
+    {
+      kind: "design_system" as const,
+      label: "Brand Identity System",
+      asset: identitySelected,
+      ready: Boolean(identitySelected),
+    },
+    {
+      kind: "landing_page" as const,
+      label: "Landing Page",
+      asset: landingSelected,
+      ready: Boolean(identitySelected && landingSelected?.design_system_id === identitySelected.id),
+    },
+    {
+      kind: "deck" as const,
+      label: "Brand Deck",
+      asset: deckSelected,
+      ready: Boolean(identitySelected && deckSelected?.design_system_id === identitySelected.id),
+    },
+  ];
+  const finalCount = finalOutputs.filter((output) => output.ready).length;
+  const deliverableReady = finalCount === finalOutputs.length;
+  const generationKind: DesignGenerationKind | null = loading?.stage === "generating"
+    && (loading.kind === "design_system" || loading.kind === "landing_page" || loading.kind === "deck")
+    ? loading.kind
+    : null;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-12 lg:py-12 2xl:max-w-[104rem]">
@@ -221,52 +408,121 @@ export function DesignStudio({
       )}
 
       {error && (
-        <div className="mb-6 rounded-2xl border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
+        <div role="alert" className="mb-6 rounded-2xl border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
           {error}
         </div>
       )}
+
+      <section aria-labelledby="deliverable-title" className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow lg:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <PackageCheck size={18} className="text-[var(--accent)]" />
+              <h2 id="deliverable-title" className="font-serif text-xl font-medium tracking-tight">Faro final deliverable</h2>
+            </div>
+            <p className="max-w-xl text-sm text-[var(--muted)]">
+              Choose one final direction for every output, then download the complete brand package as one file.
+            </p>
+            <ul className="mt-4 flex flex-wrap gap-2" aria-live="polite">
+              {finalOutputs.map((output) => (
+                <li
+                  key={output.kind}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
+                    output.ready
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
+                      : "bg-[var(--surface-2)] text-[var(--muted)]"
+                  }`}
+                >
+                  {output.ready ? <Check size={13} /> : <span className="h-2 w-2 rounded-full bg-[var(--border-strong)]" />}
+                  {output.label}{
+                    output.ready && output.asset?.variant
+                      ? ` · Final ${output.asset.variant}`
+                      : output.asset
+                      ? " · Choose aligned final"
+                      : " · Choose final"
+                  }
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="shrink-0 lg:text-right">
+            <p className="mb-2 text-xs font-medium text-[var(--muted)]">
+              {deliverableReady ? "All 3 outputs are ready" : `${finalCount} of 3 outputs ready`}
+            </p>
+            <button
+              type="button"
+              onClick={downloadFinalDeliverable}
+              disabled={!deliverableReady || creatingDeliverable || Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind)}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
+            >
+              {creatingDeliverable ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+              {creatingDeliverable ? "Creating package..." : "Download Faro package"}
+            </button>
+          </div>
+        </div>
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         {/* Pipeline sidebar */}
         <div className="space-y-5">
           <PipelineStep
             kind="design_system"
+            step={1}
+            anchor="identity-system"
             meta={KIND_META.design_system}
             proposals={byKind.design_system}
             loading={loading}
+            deletingId={deletingId}
+            discardingKind={discardingKind}
+            previewAssetId={previewAssetId}
             onGenerate={() => generateProposals("design_system")}
             onSelect={selectProposal}
-            onPreview={setPreviewAssetId}
-            onDelete={remove}
+            onPreview={previewProposal}
+            onDiscard={discardProposal}
+            onDiscardUnselected={() => discardUnselected("design_system")}
             unlocked
           />
           <PipelineStep
             kind="landing_page"
+            step={2}
+            anchor="landing-page"
             meta={KIND_META.landing_page}
             proposals={byKind.landing_page}
             loading={loading}
+            deletingId={deletingId}
+            discardingKind={discardingKind}
+            previewAssetId={previewAssetId}
             onGenerate={() => generateProposals("landing_page")}
             onSelect={selectProposal}
-            onPreview={setPreviewAssetId}
-            onDelete={remove}
+            onPreview={previewProposal}
+            onDiscard={discardProposal}
+            onDiscardUnselected={() => discardUnselected("landing_page")}
             unlocked={Boolean(identitySelected)}
           />
           <PipelineStep
             kind="deck"
+            step={3}
+            anchor="brand-deck"
             meta={KIND_META.deck}
             proposals={byKind.deck}
             loading={loading}
+            deletingId={deletingId}
+            discardingKind={discardingKind}
+            previewAssetId={previewAssetId}
             onGenerate={() => generateProposals("deck")}
             onSelect={selectProposal}
-            onPreview={setPreviewAssetId}
-            onDelete={remove}
+            onPreview={previewProposal}
+            onDiscard={discardProposal}
+            onDiscardUnselected={() => discardUnselected("deck")}
             unlocked={Boolean(identitySelected)}
           />
         </div>
 
         {/* Preview */}
         <div className="flex min-h-[60vh] flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow">
-          {previewAsset ? (
+          {generationKind ? (
+            <DesignGenerationWindow kind={generationKind} projectName={projectName} />
+          ) : previewAsset ? (
             <>
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -280,7 +536,7 @@ export function DesignStudio({
                     )}
                     {previewAsset.selected && (
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
-                        Selected
+                        Final
                       </span>
                     )}
                   </h2>
@@ -290,35 +546,87 @@ export function DesignStudio({
                 </div>
                 <div className="flex items-center gap-2">
                   {!previewAsset.selected && (
-                    <button
-                      onClick={() => selectProposal(previewAsset.id, previewAsset.kind)}
-                      disabled={loading?.kind === previewAsset.kind}
-                      className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
-                    >
-                      <Check size={16} /> Select
-                    </button>
+                    <>
+                      <button
+                        onClick={() => selectProposal(previewAsset.id, previewAsset.kind)}
+                        disabled={Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind)}
+                        className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                      >
+                        <Check size={16} /> Choose as final
+                      </button>
+                      <button
+                        onClick={() => discardProposal(previewAsset.id)}
+                        disabled={Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind)}
+                        className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--muted)] transition hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {deletingId === previewAsset.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                        Discard
+                      </button>
+                    </>
                   )}
+                  <button
+                    type="button"
+                    onClick={openFullPreview}
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--surface-2)]"
+                  >
+                    <ExternalLink size={16} /> Full preview
+                  </button>
                   <button
                     onClick={() => download(previewAsset)}
                     className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--surface-2)]"
                   >
                     <Download size={16} /> Download
                   </button>
-                  <button
-                    onClick={() => remove(previewAsset.id)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] text-[var(--muted)] transition hover:border-[var(--danger)] hover:text-[var(--danger)]"
-                    aria-label="Delete proposal"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {previewAsset.selected && (
+                    <button
+                      onClick={() => discardProposal(previewAsset.id)}
+                      disabled={Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind)}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] text-[var(--muted)] transition hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
+                      aria-label="Delete selected proposal"
+                    >
+                      {deletingId === previewAsset.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="flex-1 overflow-hidden rounded-xl border border-[var(--border)] bg-white">
+                {previewAsset.kind === "design_system" && (
+                  <div
+                    role="group"
+                    aria-label="Identity preview sections"
+                    className="flex items-center gap-1 overflow-x-auto border-b border-[var(--border)] bg-[var(--surface)] p-2"
+                  >
+                    <span className="sr-only" aria-live="polite">
+                      Showing {IDENTITY_PREVIEW_SECTIONS.find((section) => section.id === previewSection)?.label} section
+                    </span>
+                    {IDENTITY_PREVIEW_SECTIONS.map((section) => (
+                      <button
+                        key={section.id}
+                        type="button"
+                        onClick={() => focusPreviewSection(section.id)}
+                        aria-pressed={previewSection === section.id}
+                        className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                          previewSection === section.id
+                            ? "bg-[var(--accent)] text-white"
+                            : "text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+                        }`}
+                      >
+                        {section.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <iframe
+                  ref={previewFrameRef}
+                  key={previewAsset.id}
                   title={`${KIND_META[previewAsset.kind].label} preview`}
-                  srcDoc={previewAsset.html ?? "<p>No preview available.</p>"}
-                  className="h-[60vh] w-full lg:h-[70vh]"
-                  sandbox="allow-scripts allow-same-origin"
+                  srcDoc={previewHtml}
+                  className={`design-preview-frame w-full ${
+                    previewAsset.kind === "design_system"
+                      ? "h-[calc(60vh-49px)] lg:h-[calc(70vh-49px)]"
+                      : "h-[60vh] lg:h-[70vh]"
+                  }`}
+                  sandbox="allow-scripts"
                 />
               </div>
             </>
@@ -339,45 +647,81 @@ export function DesignStudio({
 
 function PipelineStep({
   kind,
+  step,
+  anchor,
   meta,
   proposals,
   loading,
+  deletingId,
+  discardingKind,
+  previewAssetId,
   onGenerate,
   onSelect,
   onPreview,
-  onDelete,
+  onDiscard,
+  onDiscardUnselected,
   unlocked,
 }: {
   kind: AssetRow["kind"];
+  step: number;
+  anchor: string;
   meta: (typeof KIND_META)[AssetRow["kind"]];
   proposals: AssetRow[];
   loading: GenerationState;
+  deletingId: string | null;
+  discardingKind: AssetRow["kind"] | null;
+  previewAssetId: string | null;
   onGenerate: () => void;
   onSelect: (id: string, kind: AssetRow["kind"]) => void;
   onPreview: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDiscard: (id: string) => void;
+  onDiscardUnselected: () => void;
   unlocked: boolean;
 }) {
   const isGenerating = loading?.kind === kind && loading.stage === "generating";
+  const isDiscarding = discardingKind === kind;
+  const isBusy = Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind);
+  const unselectedCount = proposals.filter((asset) => !asset.selected).length;
 
   return (
-    <div className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow ${!unlocked ? "opacity-60" : ""}`}>
+    <section
+      id={anchor}
+      aria-labelledby={`${anchor}-title`}
+      className={`scroll-mt-24 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow ${!unlocked ? "opacity-60" : ""}`}
+    >
       <div className="mb-3 flex items-center gap-2">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent)]">
+          {step}
+        </span>
         <span className="text-[var(--accent)]">{meta.icon}</span>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--subtle)]">
+        <h2 id={`${anchor}-title`} className="text-sm font-semibold uppercase tracking-wider text-[var(--subtle)]">
           {meta.label}
         </h2>
       </div>
       <p className="mb-4 text-xs text-[var(--muted)]">{meta.description}</p>
 
-      <button
-        onClick={onGenerate}
-        disabled={!unlocked || isGenerating}
-        className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {isGenerating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-        {isGenerating ? "Generating..." : proposals.length > 0 ? "Regenerate proposals" : meta.cta}
-      </button>
+      <div className="mb-4 space-y-2">
+        <button
+          onClick={onGenerate}
+          disabled={!unlocked || isBusy}
+          aria-busy={isGenerating}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isGenerating ? <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Sparkles size={16} />}
+          {isGenerating ? "Generating 3 proposals..." : proposals.length > 0 ? "Regenerate proposals" : meta.cta}
+        </button>
+        {unselectedCount > 0 && (
+          <button
+            type="button"
+            onClick={onDiscardUnselected}
+            disabled={isBusy}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[var(--border)] px-4 py-2 text-xs font-medium text-[var(--muted)] transition hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isDiscarding ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            Discard unselected ({unselectedCount})
+          </button>
+        )}
+      </div>
 
       {!unlocked && kind !== "design_system" && (
         <p className="mb-3 rounded-xl bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--muted)]">
@@ -389,15 +733,20 @@ function PipelineStep({
         <ul className="space-y-2">
           {proposals.map((asset) => {
             const isSelected = asset.selected;
+            const isPreviewed = asset.id === previewAssetId;
             return (
-              <li key={asset.id}>
+              <li
+                key={asset.id}
+                className={`group flex items-center gap-1 rounded-xl border px-1 py-1 transition ${
+                  isPreviewed
+                    ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                    : "border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]"
+                }`}
+              >
                 <button
                   onClick={() => onPreview(asset.id)}
-                  className={`group flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left transition ${
-                    isSelected
-                      ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-                      : "border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]"
-                  }`}
+                  aria-pressed={isPreviewed}
+                  className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left"
                 >
                   <span
                     className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
@@ -413,31 +762,31 @@ function PipelineStep({
                       Proposal {asset.variant ?? ""}
                     </span>
                     <span className="block truncate text-xs text-[var(--subtle)]">
-                      {isSelected ? "Selected" : "Click to preview"}
+                      {isSelected ? "Final direction" : isPreviewed ? "Previewing" : "Preview proposal"}
                     </span>
                   </span>
-                  {!isSelected && (
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelect(asset.id, kind);
-                      }}
-                      className="rounded-full p-1.5 text-[var(--muted)] opacity-0 transition hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] group-hover:opacity-100"
-                      title="Select this proposal"
-                    >
-                      <Check size={14} />
-                    </span>
-                  )}
-                  <span
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(asset.id);
-                    }}
-                    className="rounded-full p-1.5 text-[var(--muted)] opacity-0 transition hover:text-[var(--danger)] group-hover:opacity-100"
-                    title="Delete proposal"
+                </button>
+                {!isSelected && (
+                  <button
+                    type="button"
+                    onClick={() => onSelect(asset.id, kind)}
+                    disabled={isBusy}
+                    className="rounded-full p-1.5 text-[var(--muted)] transition hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label={`Choose proposal ${asset.variant ?? ""} as final`}
+                    title="Choose as final"
                   >
-                    <Trash2 size={14} />
-                  </span>
+                    <Check size={14} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onDiscard(asset.id)}
+                  disabled={isBusy}
+                  className="rounded-full p-1.5 text-[var(--muted)] transition hover:text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label={`Discard proposal ${asset.variant ?? ""}`}
+                  title="Discard proposal"
+                >
+                  {deletingId === asset.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                 </button>
               </li>
             );
@@ -446,6 +795,6 @@ function PipelineStep({
       ) : (
         <p className="text-xs text-[var(--muted)]">No proposals yet.</p>
       )}
-    </div>
+    </section>
   );
 }

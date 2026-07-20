@@ -37,6 +37,9 @@ export async function POST(
   if (!getProject(projectId)) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
+  if (!getAsset(projectId, assetId)) {
+    return NextResponse.json({ error: "Asset not found" }, { status: 404 });
+  }
 
   const body = await req.json().catch(() => null);
   const action = body?.action;
@@ -61,6 +64,9 @@ export async function DELETE(
   }
   if (!getProject(projectId)) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+  if (!getAsset(projectId, assetId)) {
+    return NextResponse.json({ error: "Asset not found" }, { status: 404 });
   }
 
   deleteAsset(projectId, assetId);

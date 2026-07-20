@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, Settings } from "lucide-react";
+import { ArrowLeft, Settings, Sparkles } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
 
 // Mobile-only sticky top bar: frosted, with a context-aware back button (out to
@@ -38,6 +38,18 @@ export function ProjectMobileBar({
           <ArrowLeft size={18} />
         </Link>
         <span className="flex-1 truncate text-sm font-medium">{projectName}</span>
+        <Link
+          href={`/projects/${projectId}/design`}
+          aria-label="Design Studio"
+          aria-current={path === `/projects/${projectId}/design` ? "page" : undefined}
+          className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition active:bg-[var(--surface-2)] ${
+            path === `/projects/${projectId}/design`
+              ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+              : "text-[var(--muted)]"
+          }`}
+        >
+          <Sparkles size={17} />
+        </Link>
         <Link
           href="/settings"
           aria-label="Settings"

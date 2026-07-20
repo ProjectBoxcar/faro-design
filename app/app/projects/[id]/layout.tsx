@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getProject, getSections } from "@/lib/queries";
+import { listAssets } from "@/lib/design";
 import { methodology } from "@/lib/methodology";
 import {
   reviewGroups,
@@ -27,9 +28,29 @@ export default async function ProjectLayout({
   const statusMap: StatusMap = new Map(getSections(id).map((r) => [r.section_key, r.status]));
   const overall = reviewProgress(statusMap);
   const current = currentReviewGroupId(statusMap);
-  // The sidebar reflects the owner's real journey: every review screen, grouped
-  // under its methodology phase so each phase (including the Design studio) is a
-  // discoverable section instead of a numbered row buried in one long list.
+  const designAssets = listAssets(id);
+  const identitySelected = designAssets.some((asset) => asset.kind === "design_system" && asset.selected);
+  const studioSteps = [
+    { id: "identity-system", name: "Brand Identity System", kind: "design_system" as const, unlocked: true },
+    { id: "landing-page", name: "Landing Page", kind: "landing_page" as const, unlocked: identitySelected },
+    { id: "brand-deck", name: "Brand Deck", kind: "deck" as const, unlocked: identitySelected },
+  ].map((step) => {
+    const proposals = designAssets.filter((asset) => asset.kind === step.kind);
+    return {
+      id: step.id,
+      name: step.name,
+      proposals: proposals.length,
+      status: proposals.some((asset) => asset.selected)
+        ? "selected" as const
+        : proposals.length > 0
+        ? "review" as const
+        : step.unlocked
+        ? "not-started" as const
+        : "locked" as const,
+    };
+  });
+  // The sidebar follows one journey: methodology review and brief first, then
+  // the generated artifact studio as the final stage.
   const groupById = new Map(reviewGroups().map((g) => [g.id, g]));
   const phases: SidebarPhase[] = methodology.phases
     .map((phase) => {
@@ -67,6 +88,7 @@ export default async function ProjectLayout({
         greenfield={project.greenfield}
         overall={overall}
         phases={phases}
+        studioSteps={studioSteps}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <ProjectMobileBar projectId={id} projectName={project.name} overall={overall} />
