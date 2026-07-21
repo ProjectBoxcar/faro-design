@@ -10,6 +10,7 @@ import { getSection } from "@/lib/methodology";
 import { upNext, type StatusMap } from "@/lib/flow";
 import { isViabilityInput, maybeRunViabilityGate } from "@/lib/viability";
 import { z } from "zod";
+import { centralPatternError } from "@/lib/brief-rules";
 
 const SaveSchema = z.object({
   projectId: z.string().min(1),
@@ -32,6 +33,10 @@ export async function POST(req: Request) {
   }
   if (!getProject(parsed.data.projectId)) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+  if (parsed.data.key === "brief.central-pattern" && parsed.data.status === "complete") {
+    const error = centralPatternError(parsed.data.value.pattern);
+    if (error) return NextResponse.json({ error }, { status: 400 });
   }
   // Persist the AI-ownership flag the client computed (it flips false on a manual
   // edit), so an untouched AI draft keeps its provenance across reloads.

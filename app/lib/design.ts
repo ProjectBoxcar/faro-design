@@ -8,6 +8,7 @@ import { getSectionRow, getProject } from "@/lib/queries";
 import { designSystemPrompt, landingPagePrompt, brandDeckPrompt } from "@/lib/design-prompts";
 import { designSystemBlockedReason, artifactBlockedReason } from "@/lib/design-gates";
 import { isNearDuplicateProposal, proposalSimilarity } from "@/lib/design-similarity";
+import { generatedArtifactIssues } from "@/lib/design-validation";
 import type { BriefContext } from "@/lib/design-gates";
 import type { AssetKind } from "@/lib/db/types";
 
@@ -178,14 +179,21 @@ async function generateSingleAsset(
   for (let attempt = 0; attempt < 2; attempt++) {
     const retryDirection = attempt === 0
       ? ""
-      : "\n\nRETRY REQUIRED: The previous result was too similar to another proposal. Rebuild from a blank composition. Change the layout grammar, type behavior, shape language, hierarchy, and interaction pattern while preserving the strategy and this proposal's creative thesis.";
+      : "\n\nRETRY REQUIRED: The previous result failed the distinctness or technical delivery contract. Rebuild from a blank composition, follow every required hook and offline constraint exactly, and preserve this proposal's strategy and creative thesis.";
     html = await callAi(prompt + retryDirection);
     const closest = priorHtml.reduce(
       (highest, existing) => Math.max(highest, proposalSimilarity(html, existing)),
       0
     );
-    if (!priorHtml.some((existing) => isNearDuplicateProposal(html, existing))) break;
-    console.warn(`[design] Proposal ${kind}/${variant} was too similar (${closest.toFixed(3)}); retrying.`);
+    const duplicate = priorHtml.some((existing) => isNearDuplicateProposal(html, existing));
+    const validationIssues = generatedArtifactIssues(kind, html);
+    if (!duplicate && validationIssues.length === 0) break;
+    console.warn(
+      `[design] Proposal ${kind}/${variant} rejected: ${[
+        duplicate ? `similarity ${closest.toFixed(3)}` : "",
+        ...validationIssues,
+      ].filter(Boolean).join("; ")}`
+    );
     html = "";
   }
   if (!html) {
@@ -227,6 +235,7 @@ async function generateProposalSet({
   projectName,
   designSystemHtml,
   designSystemId,
+  onAsset,
 }: {
   projectId: string;
   kind: "design_system" | "landing_page" | "deck";
@@ -235,6 +244,7 @@ async function generateProposalSet({
   projectName: string;
   designSystemHtml?: string;
   designSystemId?: string;
+  onAsset?: (asset: AssetRow) => void;
 }): Promise<AssetRow[]> {
   const existing = listProposals(projectId, kind);
   const previousIds = existing.filter((asset) => !asset.selected).map((asset) => asset.id);
@@ -247,18 +257,18 @@ async function generateProposalSet({
         ...protectedHtml,
         ...results.flatMap((asset) => asset.html ? [asset.html] : []),
       ];
-      results.push(
-        await generateSingleAsset(
-          projectId,
-          kind,
-          variant,
-          brief,
-          projectName,
-          designSystemHtml,
-          designSystemId,
-          priorHtml
-        )
+      const asset = await generateSingleAsset(
+        projectId,
+        kind,
+        variant,
+        brief,
+        projectName,
+        designSystemHtml,
+        designSystemId,
+        priorHtml
       );
+      results.push(asset);
+      onAsset?.(asset);
     }
     removeAssetRows(projectId, previousIds);
     return results;
@@ -268,7 +278,11 @@ async function generateProposalSet({
   }
 }
 
-export async function generateDesignSystemProposals(projectId: string, count = 3): Promise<AssetRow[]> {
+export async function generateDesignSystemProposals(
+  projectId: string,
+  count = 3,
+  onAsset?: (asset: AssetRow) => void
+): Promise<AssetRow[]> {
   const ctx = buildBriefContext(projectId);
   const blocked = designSystemBlockedReason(ctx);
   if (blocked) throw new Error(blocked);
@@ -280,6 +294,7 @@ export async function generateDesignSystemProposals(projectId: string, count = 3
     count,
     brief,
     projectName: ctx.name,
+    onAsset,
   });
 }
 
@@ -287,7 +302,8 @@ export async function generateDesignSystemProposals(projectId: string, count = 3
 export async function generateLandingPageProposals(
   projectId: string,
   designSystemId: string,
-  count = 3
+  count = 3,
+  onAsset?: (asset: AssetRow) => void
 ): Promise<AssetRow[]> {
   const ctx = buildBriefContext(projectId);
   const designSystem = getAsset(projectId, designSystemId);
@@ -306,13 +322,15 @@ export async function generateLandingPageProposals(
     projectName: ctx.name,
     designSystemHtml: designSystem.html ?? "",
     designSystemId: designSystem.id,
+    onAsset,
   });
 }
 
 export async function generateBrandDeckProposals(
   projectId: string,
   designSystemId: string,
-  count = 3
+  count = 3,
+  onAsset?: (asset: AssetRow) => void
 ): Promise<AssetRow[]> {
   const ctx = buildBriefContext(projectId);
   const designSystem = getAsset(projectId, designSystemId);
@@ -331,6 +349,7 @@ export async function generateBrandDeckProposals(
     projectName: ctx.name,
     designSystemHtml: designSystem.html ?? "",
     designSystemId: designSystem.id,
+    onAsset,
   });
 }
 

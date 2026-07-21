@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProject, publishProject, unpublishProject } from "@/lib/queries";
 import { z } from "zod";
+import { viabilityActionBlockedReason } from "@/lib/project-gates";
 
 const PublishSchema = z.object({
   projectId: z.string().min(1),
@@ -17,7 +18,8 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!getProject(parsed.data.projectId)) {
+  const project = getProject(parsed.data.projectId);
+  if (!project) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
@@ -26,6 +28,8 @@ export async function POST(req: Request) {
     unpublishProject(parsed.data.projectId);
     return NextResponse.json({ ok: true });
   }
+  const blocked = viabilityActionBlockedReason(project, "publish");
+  if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
 
   const token = publishProject(parsed.data.projectId);
   return NextResponse.json({ token });

@@ -18,32 +18,36 @@ export function PublishPanel({
   const [token, setToken] = useState<string | null>(initialToken);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [origin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
 
   const url = token ? `${origin}/share/${token}` : "";
 
   async function publish() {
     setBusy(true);
+    setError(null);
     const res = await fetch("/api/publish", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ projectId, action: "publish" }),
     });
-    if (res.ok) {
-      const data = (await res.json()) as { token: string };
-      setToken(data.token);
-    }
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) setToken((data as { token: string }).token);
+    else setError((data as { error?: string }).error ?? "Could not publish the handover.");
     setBusy(false);
   }
 
   async function unpublish() {
     setBusy(true);
+    setError(null);
     const res = await fetch("/api/publish", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ projectId, action: "unpublish" }),
     });
+    const data = await res.json().catch(() => ({}));
     if (res.ok) setToken(null);
+    else setError((data as { error?: string }).error ?? "Could not unpublish the handover.");
     setBusy(false);
   }
 
@@ -72,6 +76,8 @@ export function PublishPanel({
             ? "Read it over, send your designer the link, or download it in the format they prefer."
             : "Your strategy is reviewed. Publish it as a clean, read-only brief your designer can open in any browser."}
         </p>
+
+        {error && <p role="alert" className="mt-4 text-sm text-[var(--danger)]">{error}</p>}
 
         {!token ? (
           <button
@@ -138,6 +144,7 @@ export function PublishPanel({
 
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
+      {error && <p role="alert" className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
       {!token ? (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-[var(--muted)]">

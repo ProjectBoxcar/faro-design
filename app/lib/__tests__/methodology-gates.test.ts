@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canGenerate, getSection } from "@/lib/methodology";
+import { canGenerate, getSection, methodologyDependencyCycles } from "@/lib/methodology";
 import { getSectionPrompt } from "@/lib/prompts";
 
 describe("canGenerate", () => {
@@ -19,6 +19,10 @@ describe("canGenerate", () => {
 
   it("does not treat pure input steps as generatable via canGenerate", () => {
     expect(canGenerate("reality.problem", new Set(["reality.problem"]))).toBe(false);
+  });
+
+  it("keeps the methodology dependency graph acyclic", () => {
+    expect(methodologyDependencyCycles()).toEqual([]);
   });
 
   it("never waives Image pillar reads", () => {

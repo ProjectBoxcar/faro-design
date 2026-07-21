@@ -10,7 +10,6 @@ type Status = {
   provider: AiProvider;
   baseUrl: string | null;
   model: string | null;
-  apiKey: string | null;
 };
 
 export function SettingsForm({ initial }: { initial: Status }) {

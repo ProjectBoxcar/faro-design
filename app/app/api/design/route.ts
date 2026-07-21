@@ -3,17 +3,22 @@ import { z } from "zod";
 import { hasApiKey } from "@/lib/ai";
 import {
   generateDesignSystem,
-  generateDesignSystemProposals,
   generateLandingPage,
-  generateLandingPageProposals,
   generateBrandDeck,
-  generateBrandDeckProposals,
   listAssets,
   deleteProposals,
 } from "@/lib/design";
 import { getProject } from "@/lib/queries";
 import type { AssetKind } from "@/lib/db/types";
 import { buildFaroDeliverable, sanitizeDownloadName } from "@/lib/design-deliverable";
+import { viabilityActionBlockedReason } from "@/lib/project-gates";
+import {
+  createDesignJob,
+  designJobAssets,
+  getDesignJob,
+  serializeDesignJob,
+  startDesignJob,
+} from "@/lib/design-jobs";
 
 const GenerateSchema = z.object({
   projectId: z.string().min(1),
@@ -39,38 +44,27 @@ export async function POST(req: Request) {
 
   const { projectId, kind, count = 1, designSystemId, variant } = parsed.data;
 
-  if (!getProject(projectId)) {
+  const project = getProject(projectId);
+  if (!project) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+  const blocked = viabilityActionBlockedReason(project, "design");
+  if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
+
+  if (count > 1) {
+    if (kind !== "design_system" && !designSystemId) {
+      return NextResponse.json(
+        { error: `designSystemId is required to generate ${kind.replace(/_/g, " ")} proposals` },
+        { status: 400 }
+      );
+    }
+    const job = createDesignJob({ projectId, kind, count, designSystemId });
+    return NextResponse.json({ job: serializeDesignJob(job) }, { status: 202 });
   }
 
   try {
     let result;
-    if (count > 1) {
-      // Proposals workflow: generate multiple variants.
-      switch (kind) {
-        case "design_system":
-          result = { assets: await generateDesignSystemProposals(projectId, count) };
-          break;
-        case "landing_page":
-          if (!designSystemId) {
-            return NextResponse.json(
-              { error: "designSystemId is required to generate landing page proposals" },
-              { status: 400 }
-            );
-          }
-          result = { assets: await generateLandingPageProposals(projectId, designSystemId, count) };
-          break;
-        case "deck":
-          if (!designSystemId) {
-            return NextResponse.json(
-              { error: "designSystemId is required to generate deck proposals" },
-              { status: 400 }
-            );
-          }
-          result = { assets: await generateBrandDeckProposals(projectId, designSystemId, count) };
-          break;
-      }
-    } else if (variant) {
+    if (variant) {
       // Single named proposal.
       switch (kind) {
         case "design_system":
@@ -121,6 +115,7 @@ const ListSchema = z.object({
   projectId: z.string().min(1),
   kind: z.enum(["design_system", "landing_page", "deck", "brand_guidelines", "logo_concept"]).optional(),
   format: z.enum(["json", "deliverable"]).optional(),
+  jobId: z.string().min(1).optional(),
 });
 
 export async function GET(req: Request) {
@@ -129,15 +124,27 @@ export async function GET(req: Request) {
     projectId: searchParams.get("projectId"),
     kind: searchParams.get("kind") || undefined,
     format: searchParams.get("format") || undefined,
+    jobId: searchParams.get("jobId") || undefined,
   });
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const { projectId, kind, format = "json" } = parsed.data;
+  const { projectId, kind, format = "json", jobId } = parsed.data;
   const project = getProject(projectId);
   if (!project) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+
+  if (jobId) {
+    const job = getDesignJob(projectId, jobId);
+    if (!job) return NextResponse.json({ error: "Design job not found" }, { status: 404 });
+    if (job.status === "queued" || job.status === "running") void startDesignJob(job.id);
+    const refreshed = getDesignJob(projectId, jobId)!;
+    return NextResponse.json({
+      job: serializeDesignJob(refreshed),
+      assets: refreshed.status === "complete" ? designJobAssets(refreshed) : [],
+    });
   }
 
   const assets = format === "deliverable"
@@ -146,6 +153,8 @@ export async function GET(req: Request) {
     ? listAssets(projectId, kind as AssetKind)
     : listAssets(projectId);
   if (format === "deliverable") {
+    const blocked = viabilityActionBlockedReason(project, "deliverable");
+    if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
     try {
       const html = buildFaroDeliverable(project.name, assets);
       const filename = `${sanitizeDownloadName(project.name)}-faro-brand-deliverable.html`;

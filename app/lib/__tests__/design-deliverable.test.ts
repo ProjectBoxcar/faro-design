@@ -42,6 +42,15 @@ describe("final deliverable readiness", () => {
     expect(missingFinalKinds(assets)).toEqual([]);
   });
 
+  it("rejects final assets that depend on external resources", () => {
+    const external = assets.map((asset) =>
+      asset.kind === "design_system"
+        ? { ...asset, html: '<!DOCTYPE html><html><head><link href="https://fonts.example/test.css"></head><body></body></html>' }
+        : asset
+    );
+    expect(finalDeliverableIssue(external)).toMatch(/external resources/);
+  });
+
   it("rejects downstream finals created from another identity system", () => {
     const misaligned = assets.map((asset) =>
       asset.kind === "landing_page" ? { ...asset, design_system_id: "identity-old" } : asset
@@ -74,7 +83,7 @@ describe("buildFaroDeliverable", () => {
 
 describe("sanitizeDownloadName", () => {
   it("produces Windows-safe download names", () => {
-    expect(sanitizeDownloadName("../../Fáro: Brand?" )).toBe("Faro--Brand");
+    expect(sanitizeDownloadName("../../Fáro: Brand?" )).toBe("Faro-Brand");
     expect(sanitizeDownloadName("CON")).toBe("brand-CON");
     expect(sanitizeDownloadName("   ")).toBe("brand");
   });

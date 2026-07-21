@@ -5,6 +5,7 @@ import {
   trimForBrief,
   wouldIncludeInBrief,
   BRIEF_OMIT_FIELDS,
+  centralPatternError,
 } from "@/lib/brief-rules";
 
 function section(partial: Partial<Section> & Pick<Section, "id" | "name">): Section {
@@ -15,6 +16,13 @@ function section(partial: Partial<Section> & Pick<Section, "id" | "name">): Sect
     ...partial,
   };
 }
+
+describe("centralPatternError", () => {
+  it("accepts a concise pattern and rejects embedded rationale", () => {
+    expect(centralPatternError("Verified presence")).toBeNull();
+    expect(centralPatternError("The pattern is verified because someone personally visited every workshop and documented the proof.")).toMatch(/short phrase/);
+  });
+});
 
 describe("stripHint", () => {
   it("removes trailing parenthetical authoring hints", () => {
@@ -66,6 +74,16 @@ describe("wouldIncludeInBrief", () => {
       { id: "statement", label: "Statement", type: "text" },
       { id: "distillation", label: "Distillation", type: "textarea" },
     ],
+  });
+
+  it("excludes evaluation sections even if later added to a brief group", () => {
+    const evaluation = section({
+      id: "system.logo-evaluation",
+      name: "Logo Evaluation",
+      kind: "eval",
+      fields: [{ id: "scores", label: "Scores", type: "table" }],
+    });
+    expect(wouldIncludeInBrief(evaluation, "complete", { scores: [{ result: "pass" }] })).toBe(false);
   });
 
   it("excludes internal sections", () => {

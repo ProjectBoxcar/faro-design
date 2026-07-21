@@ -135,6 +135,31 @@ export const ai_generations = sqliteTable(
 
 // Generated brand design artifacts: DESIGN.md, landing page, deck, brand guidelines, etc.
 // Produced by the Open Design skill pipeline absorbed into Brand App.
+export const design_jobs = sqliteTable(
+  "design_jobs",
+  {
+    id: text("id").primaryKey(),
+    project_id: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: ["design_system", "landing_page", "deck"] }).notNull(),
+    count: integer("count").notNull().default(3),
+    design_system_id: text("design_system_id"),
+    status: text("status", { enum: ["queued", "running", "complete", "failed"] })
+      .notNull()
+      .default("queued"),
+    asset_ids: text("asset_ids", { mode: "json" }).$type<string[]>().default([]),
+    error: text("error"),
+    created_at: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updated_at: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("design_jobs_project_kind_idx").on(t.project_id, t.kind)]
+);
+
 export const assets = sqliteTable(
   "assets",
   {

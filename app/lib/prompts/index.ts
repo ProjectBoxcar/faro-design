@@ -8,6 +8,13 @@ export type SectionPromptAddon = {
   useParsingModel?: boolean;
 };
 
+const CENTRAL_PATTERN = `
+CENTRAL PATTERN OUTPUT CONTRACT:
+- Return the "pattern" field as one concrete word, or at most a four-word phrase.
+- Return only the pattern itself in that field. No rationale, evidence, preamble, colon, or "in one word" explanation.
+- It must name the recurring truth across Reality, Identity, and Image, not a generic value such as quality or innovation.
+`.trim();
+
 const BRIEF_FIELDS = `
 STRATEGIC BRIEF QUALITY BAR:
 - Each field is a design compass entry, not a marketing slogan.
@@ -70,7 +77,7 @@ SURVEY DESIGN (mechanical derivation):
 `.trim();
 
 const BY_KEY: Record<string, SectionPromptAddon> = {
-  "brief.central-pattern": { systemAddon: BRIEF_FIELDS },
+  "brief.central-pattern": { systemAddon: `${BRIEF_FIELDS}\n\n${CENTRAL_PATTERN}` },
   "brief.main-tension": { systemAddon: BRIEF_FIELDS },
   "brief.constraint": { systemAddon: BRIEF_FIELDS },
   "brief.emotional-territory": { systemAddon: BRIEF_FIELDS },

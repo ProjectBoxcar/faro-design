@@ -201,7 +201,7 @@
               "kind": "partial",
               "internal": false,
               "reads": [
-                "reality.differentiator"
+                "reality.solution"
               ],
               "helpText": "A practical understanding of who the institution competes against and how it differentiates in practice. Describes the terrain objectively; do not confuse with Position Toward the Industry (a subjective stance).",
               "triggerQuestions": [

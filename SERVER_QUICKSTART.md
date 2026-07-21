@@ -5,11 +5,11 @@ Start the Brand App development server with access from localhost, local network
 ## Quick Start (Recommended)
 
 ### Option 1: Batch File (.bat) - Easiest
-Double-click `start-server.bat` from the Brand App root directory, or run:
+Double-click `start-brand-app.bat` from the Brand App root directory, or run:
 
 ```cmd
 cd "F:\Brand App"
-start-server.bat
+start-brand-app.bat
 ```
 
 ### Option 2: PowerShell Script (.ps1) - More Features
@@ -84,7 +84,7 @@ No configuration changes needed for standard setups.
 If `.bat` or `.ps1` files open in Typora instead of running:
 
 ### For .bat files:
-1. Right-click `start-server.bat`
+1. Right-click `start-brand-app.bat`
 2. Select "Open with" → "Choose another app"
 3. Select "Command Prompt" or "Windows Terminal"
 4. Check "Always use this app to open .bat files"
@@ -100,7 +100,7 @@ If `.bat` or `.ps1` files open in Typora instead of running:
 ### Alternative: Run from Command Prompt
 ```cmd
 cd "F:\Brand App"
-start-server.bat
+start-brand-app.bat
 ```
 
 Or for PowerShell:

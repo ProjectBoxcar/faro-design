@@ -39,6 +39,16 @@ function hasContent(section: Section, value: BriefValue): boolean {
 /** Strip trailing parenthetical authoring hints from field labels. */
 export const stripHint = (label: string) => label.replace(/\s*\([^)]*\)\s*$/, "");
 
+export function centralPatternError(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return "Central Pattern is required.";
+  const trimmed = value.trim();
+  const words = trimmed.split(/\s+/);
+  if (words.length > 4 || trimmed.length > 80) {
+    return "Central Pattern must be one word or a short phrase, without the rationale.";
+  }
+  return null;
+}
+
 /** Section shape as it appears on the handover brief (process fields removed). */
 export function trimForBrief(section: Section): Section {
   const omit = new Set(BRIEF_OMIT_FIELDS[section.id] ?? []);
@@ -62,7 +72,7 @@ export function wouldIncludeInBrief(
   status: string | undefined,
   value: BriefValue
 ): boolean {
-  if (!section || section.internal) return false;
+  if (!section || section.internal || section.kind === "eval") return false;
   if (status !== "complete") return false;
   const trimmed = trimForBrief(section);
   return hasContent(trimmed, value);

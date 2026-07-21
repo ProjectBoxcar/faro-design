@@ -60,6 +60,11 @@ Project data is the user's real client work and is irreplaceable. It lives in `a
 - UX should be **guided**: structured forms with clear options and the methodology's trigger
   questions inline. Freeform text is secondary; don't bury structure behind chat.
 
+## Intervention workflow
+
+- For every non-trivial change, bug, audit, or feature, follow `.devin/skills/evidence-led-intervention/SKILL.md`: combine source-of-truth docs, memories, code evidence, parallel subagent audits, authoritative research, layered verification, and a synthetic end-to-end journey check when relevant.
+- Subagents provide evidence; reconcile their advice against this file and the current code before acting.
+
 ## When in doubt
 
 - Read the design docs in `docs/` first, then `docs/02-methodology-model.md` for the taxonomy.
