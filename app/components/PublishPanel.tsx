@@ -19,9 +19,7 @@ export function PublishPanel({
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [origin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
-
-  const url = token ? `${origin}/share/${token}` : "";
+  const url = token ? `/share/${token}` : "";
 
   async function publish() {
     setBusy(true);
@@ -53,7 +51,7 @@ export function PublishPanel({
 
   async function copyUrl() {
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(new URL(url, window.location.origin).href);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
