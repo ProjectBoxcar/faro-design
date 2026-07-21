@@ -6,8 +6,10 @@ import { getSection, getPillarOf, getPhaseOf, readsOf, canGenerate } from "@/lib
 import { phaseProgress, nextSectionId, prevSectionId, type StatusMap } from "@/lib/flow";
 import { sectionGuide } from "@/lib/guide";
 import { suggestedCandidates } from "@/lib/naming-check";
+import { imageViewState } from "@/lib/image-view";
 import { SectionEditor } from "@/components/SectionEditor";
 import { NameAvailabilityCheck, type NameCheck } from "@/components/NameAvailabilityCheck";
+import { ImageOutsideView } from "@/components/ImageOutsideView";
 import { StepKindBadge } from "@/components/StepKindBadge";
 import { ProgressBar } from "@/components/ProgressBar";
 
@@ -67,6 +69,10 @@ export default async function SectionPage({
     : [];
   const candidateNames = showAvailability ? suggestedCandidates(id) : [];
 
+  // Image steps offer the fork: real survey (best) or AI outside view (fast).
+  const showImageChoice = pillar?.id === "image";
+  const imageState = showImageChoice ? imageViewState(id) : "empty";
+
   const prevId = prevSectionId(sectionKey);
   const nextId = nextSectionId(sectionKey);
   const prev = prevId ? getSection(prevId) : null;
@@ -125,6 +131,8 @@ export default async function SectionPage({
               if you&apos;d rather.
             </div>
           )}
+
+          {showImageChoice && <ImageOutsideView projectId={id} initialState={imageState} />}
 
           {showAvailability && (
             <NameAvailabilityCheck

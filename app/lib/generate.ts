@@ -3,7 +3,7 @@ import { generateText, MODELS } from "@/lib/ai";
 import { getDefaultModel } from "@/lib/settings";
 import { methodology, getSection, getPillarOf, readsOf, canGenerate } from "@/lib/methodology";
 import { sectionGuide } from "@/lib/guide";
-import { getProject, getSectionRow, filledKeys } from "@/lib/queries";
+import { getProject, getSectionRow, getSections, filledKeys } from "@/lib/queries";
 import { extractJson } from "@/lib/json";
 import { getSectionPrompt } from "@/lib/prompts";
 
@@ -20,10 +20,37 @@ function isNonEmpty(v: unknown): boolean {
   return true;
 }
 
+// Input-kind steps the AI may PROPOSE like a synthesis step: they're marked
+// "input" because the owner decides, but their content is legitimately
+// derivable from the strategy (brainstorms and preferences, not facts).
+const PROPOSABLE_INPUTS = new Set([
+  "naming.constraints",
+  "naming.phonetic-profile",
+  "naming.exploration",
+  "communication.deferred",
+]);
+
+// Reality/Identity inputs hold facts only the owner knows. The AI never invents
+// those — but it may STRUCTURE the owner's own words already on file (Quick
+// Start drafts, rough notes, neighboring answers) into the step's format.
+function isOwnWordsInput(sectionKey: string): boolean {
+  const pillar = getPillarOf(sectionKey);
+  return pillar?.id === "reality" || pillar?.id === "identity";
+}
+
+// The owner's words on file: any filled Reality/Identity section besides this one.
+function ownWordsOnFile(projectId: string, sectionKey: string): boolean {
+  return [...filledKeys(projectId)].some(
+    (k) => k !== sectionKey && (k.startsWith("reality.") || k.startsWith("identity."))
+  );
+}
+
 // Server-side generation gate — the client UI mirrors this, but the API is the
 // authority. Returns a user-facing reason when generation must not run:
-//  - input/eval steps capture real-world facts; the AI must never invent them
-//    (especially image.results — fabricated survey answers poison the Image pillar);
+//  - steps that record real-world RESULTS or ACTIONS (customer survey answers,
+//    domain registrations) are never AI-written — fabricated survey answers
+//    poison the Image pillar; those steps have dedicated tools instead;
+//  - Reality/Identity inputs draft only from the owner's own words on file;
 //  - synthesis steps need something real to build on: all declared reads (the
 //    dependency pipeline), the owner's own notes, or — for Reality/Identity
 //    foundation steps — at least one filled upstream answer.
@@ -34,8 +61,18 @@ export function generationBlockedReason(
 ): string | null {
   const section = getSection(sectionKey);
   if (!section) return `Unknown section: ${sectionKey}`;
-  if (section.kind !== "synthesis" && section.kind !== "partial") {
-    return "This step records real answers — yours or your customers' — so the AI can't write it for you.";
+  const isDerived =
+    section.kind === "synthesis" || section.kind === "partial" || PROPOSABLE_INPUTS.has(sectionKey);
+  if (!isDerived) {
+    if (isOwnWordsInput(sectionKey)) {
+      if (Object.values(rough ?? {}).some(isNonEmpty)) return null;
+      if (ownWordsOnFile(projectId, sectionKey)) return null;
+      return "This step records facts about your business, so the AI needs your words to work from — jot a few rough notes below, or run the Quick Start first.";
+    }
+    if (sectionKey.startsWith("image.")) {
+      return "This step records what customers actually said or who they are — the AI never invents that. Use the survey, or the AI outside view offered on this pillar.";
+    }
+    return "This step records a real-world action or result, so it can't be AI-written — it's yours to log.";
   }
   const filled = filledKeys(projectId);
   if (canGenerate(sectionKey, filled)) return null;
@@ -43,6 +80,7 @@ export function generationBlockedReason(
   const pillar = getPillarOf(sectionKey);
   if ((pillar?.id === "reality" || pillar?.id === "identity") && (section.reads ?? []).some((r) => filled.has(r)))
     return null;
+  if (PROPOSABLE_INPUTS.has(sectionKey) && filled.size > 0) return null;
   const missing = (section.reads ?? [])
     .filter((r) => !filled.has(r))
     .map((r) => getSection(r)?.name ?? r);
@@ -90,15 +128,44 @@ export async function generateSection(
   // Pull the saved content of every upstream step this section builds on,
   // tracking which ones actually had content — that list is the provenance.
   const usedReads: string[] = [];
-  const upstream = reads
+  const upstreamParts = reads
     .map((r) => {
       const row = getSectionRow(projectId, r.id);
       if (!row?.value || Object.keys(row.value).length === 0) return null;
       usedReads.push(r.id);
       return `### ${r.name}\n${JSON.stringify(row.value, null, 2)}`;
     })
-    .filter(Boolean)
-    .join("\n\n");
+    .filter((x): x is string => Boolean(x));
+
+  // Own-words inputs (Reality/Identity facts) declare no reads — their context
+  // is the owner's words everywhere else in those pillars (Quick Start drafts
+  // included). The strictness line keeps the model from filling factual gaps.
+  let strictness = "";
+  if (section.kind === "input") {
+    if (isOwnWordsInput(sectionKey)) {
+      for (const row of getSections(projectId)) {
+        const k = row.section_key;
+        if (k === sectionKey || usedReads.includes(k)) continue;
+        if (!k.startsWith("reality.") && !k.startsWith("identity.")) continue;
+        if (!row.value || Object.keys(row.value).length === 0) continue;
+        usedReads.push(k);
+        upstreamParts.push(`### ${getSection(k)?.name ?? k}\n${JSON.stringify(row.value, null, 2)}`);
+      }
+      strictness =
+        "THIS STEP RECORDS THE OWNER'S OWN FACTS. Structure and articulate only what their notes and the context above actually support. Where a specific fact (numbers, capacity, prices, channel names) is stated nowhere, return an empty string for that field rather than inventing it.";
+    } else if (PROPOSABLE_INPUTS.has(sectionKey)) {
+      for (const k of ["concept", "brief.central-pattern", "reality.differentiator", "communication.personality"]) {
+        if (usedReads.includes(k)) continue;
+        const row = getSectionRow(projectId, k);
+        if (!row?.value || Object.keys(row.value).length === 0) continue;
+        usedReads.push(k);
+        upstreamParts.push(`### ${getSection(k)?.name ?? k}\n${JSON.stringify(row.value, null, 2)}`);
+      }
+      strictness =
+        "This step is ultimately the owner's call — propose a strong starting point derived from the strategy; they will review and edit it.";
+    }
+  }
+  const upstream = upstreamParts.join("\n\n");
 
   const fields = section.fields ?? [];
   const fieldSpec = fields
@@ -125,6 +192,7 @@ export async function generateSection(
   if (section.triggerQuestions?.length)
     parts.push(`IT SHOULD ANSWER:\n${section.triggerQuestions.map((q) => `- ${q}`).join("\n")}`);
   if (upstream) parts.push(`CONTEXT FROM EARLIER STEPS (build on this, stay consistent):\n${upstream}`);
+  if (strictness) parts.push(strictness);
   parts.push(`FIELDS TO FILL (your JSON keys are these ids):\n${fieldSpec || "(none)"}`);
   parts.push(
     `THE OWNER'S ROUGH NOTES (improve these into finished content; if a field is empty, draft it from the context above):\n${JSON.stringify(rough ?? {}, null, 2)}`
