@@ -8,7 +8,7 @@ Start the Brand App development server with access from localhost, local network
 Double-click `start-brand-app.bat` from the Brand App root directory, or run:
 
 ```cmd
-cd "F:\Brand App"
+cd "F:\Faro Design"
 start-brand-app.bat
 ```
 
@@ -16,7 +16,7 @@ start-brand-app.bat
 Run the PowerShell quickstart script from the Brand App root directory:
 
 ```powershell
-cd "F:\Brand App"
+cd "F:\Faro Design"
 .\start-server.ps1
 ```
 
@@ -33,7 +33,7 @@ Both scripts will:
 If you prefer manual control:
 
 ```powershell
-cd "F:\Brand App\app"
+cd "F:\Faro Design\app"
 npm install              # First time only
 npm run db:migrate       # First time only
 npm run dev              # Start server
@@ -99,13 +99,13 @@ If `.bat` or `.ps1` files open in Typora instead of running:
 
 ### Alternative: Run from Command Prompt
 ```cmd
-cd "F:\Brand App"
+cd "F:\Faro Design"
 start-brand-app.bat
 ```
 
 Or for PowerShell:
 ```powershell
-cd "F:\Brand App"
+cd "F:\Faro Design"
 powershell -ExecutionPolicy Bypass -File start-server.ps1
 ```
 
@@ -152,7 +152,7 @@ Without this key, the app will work for capture and evaluation, but AI draft fea
 For better performance when sharing with others:
 
 ```powershell
-cd "F:\Brand App\app"
+cd "F:\Faro Design\app"
 npm run build
 npm run start
 ```

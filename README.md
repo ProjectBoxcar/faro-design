@@ -16,13 +16,13 @@ Early build. Design docs in `docs/` (`01`–`09`) are the source of truth for sc
 ## Quick start
 
 ```powershell
-cd "F:\Brand App\app"
+cd "F:\Faro Design\app"
 npm install
 npm run db:migrate     # create the SQLite schema
 npm run dev            # http://localhost:3100
 ```
 
-`ANTHROPIC_API_KEY` goes in `F:\Brand App\app\.env.local` (gitignored). Without it, capture and
+`ANTHROPIC_API_KEY` goes in `F:\Faro Design\app\.env.local` (gitignored). Without it, capture and
 evaluation work; AI-draft buttons are disabled.
 
 ## Layout

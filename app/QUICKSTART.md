@@ -5,7 +5,7 @@ Run the app locally and access it from your own devices (or a client preview) vi
 ## Run locally
 
 ```bash
-cd "F:\Brand App\app"
+cd "F:\Faro Design\app"
 npm install
 npm run db:migrate
 npm run dev
@@ -56,7 +56,7 @@ npm start
 The Next.js dev server can keep a stale route map if it was running while new pages were added (for example, the `/projects/[id]/review/[group]` review screens). The fix is to restart the dev server:
 
 ```bash
-cd "F:\Brand App\app"
+cd "F:\Faro Design\app"
 npm run dev
 ```
 

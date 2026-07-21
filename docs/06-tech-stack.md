@@ -18,7 +18,7 @@ better-sqlite3 12.x, @anthropic-ai/sdk 0.97.x, tailwindcss v4, tsx for scripts).
 ## Project structure
 
 ```
-F:\Brand App\
+F:\Faro Design\
 ├── docs\                               # design docs (01–09 + notes)
 ├── reference\finisterra\               # Spanish source — read-only reference
 ├── external\                           # third-party reference clones (gitignored)
@@ -59,7 +59,7 @@ F:\Brand App\
 ## Running
 
 ```powershell
-cd "F:\Brand App\app"
+cd "F:\Faro Design\app"
 npm install
 npm run db:migrate
 npm run dev          # http://localhost:3100
