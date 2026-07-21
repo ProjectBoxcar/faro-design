@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { notFound } from "next/navigation";
-import { getProject, getSections, listEvaluations } from "@/lib/queries";
+import { getProject, getSections, listEvaluations, listStudioAssets } from "@/lib/queries";
+import { studioBlockedReason } from "@/lib/studio";
 import { methodology } from "@/lib/methodology";
 import {
   phaseProgress,
@@ -22,7 +23,6 @@ import { FullPlan } from "@/components/FullPlan";
 import { DeleteProjectButton } from "@/components/DeleteProjectButton";
 import { PublishPanel } from "@/components/PublishPanel";
 import { ViabilityPanel } from "@/components/ViabilityPanel";
-import { Sparkles } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +49,12 @@ export default async function ProjectHub({
   // The hand-off is meaningful once the brief & concept are reviewed — not on a
   // fresh project where there's nothing to hand off yet.
   const handoffReady = reviewGroupDone("brief", statusMap);
+  // Strategy-completeness only ("palette" has no naming prerequisite) — the
+  // logo's extra naming gate is explained inside the Studio itself.
+  const studioUnlocked = !studioBlockedReason(id, "palette");
+  const allAssets = listStudioAssets(id);
+  const approvedAssets = allAssets.filter((a) => a.status === "approved").length;
+  const approvedLogoSvg = allAssets.find((a) => a.kind === "logo" && a.status === "approved")?.payload?.svg;
 
   // Up-next card — points at the next review GROUP (one of four screens).
   const reviewGroupId = firstIncompleteReviewGroup(statusMap);
@@ -142,6 +148,39 @@ export default async function ProjectHub({
           personal={project.personal}
         />
       </div>
+
+      {/* Phase 2's payoff, starring once the strategy it needs is complete:
+          the Studio turns the finished strategy into the actual brand. */}
+      {studioUnlocked && (
+        <div className="mb-8 rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-6 py-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <h2 className="flex items-center gap-2 font-serif text-2xl font-medium tracking-tight">
+              <Sparkles size={20} className="text-[var(--accent)]" /> Your strategy is ready — now make the brand
+            </h2>
+            {approvedLogoSvg && (
+              <div
+                className="flex h-14 w-40 items-center justify-center rounded-xl border border-[var(--border)] px-4 py-2.5 [&_svg]:max-h-full [&_svg]:max-w-full"
+                style={{ background: "#F5F1E8" }}
+                dangerouslySetInnerHTML={{ __html: approvedLogoSvg }}
+              />
+            )}
+          </div>
+          <p className="mt-2 max-w-2xl text-[var(--muted)]">
+            The Studio turns everything you decided into the actual assets — starting with your logo.
+            The AI designs and critiques candidates from your strategy;{" "}
+            <strong className="text-[var(--foreground)]">nothing becomes real until you approve it</strong>.
+          </p>
+          <Link
+            href={`/projects/${id}/studio`}
+            className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+          >
+            {approvedAssets > 0
+              ? `Open the Studio · ${approvedAssets} asset${approvedAssets === 1 ? "" : "s"} approved`
+              : "Open the Studio"}{" "}
+            <ArrowRight size={16} />
+          </Link>
+        </div>
+      )}
 
       {/* The finish line, front and center once the brief pillar is reviewed:
           view the brief, copy the link, download in any format. */}

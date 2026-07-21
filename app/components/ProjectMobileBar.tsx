@@ -11,10 +11,12 @@ export function ProjectMobileBar({
   projectId,
   projectName,
   overall,
+  assetStudioUnlocked,
 }: {
   projectId: string;
   projectName: string;
   overall: { done: number; total: number };
+  assetStudioUnlocked?: boolean;
 }) {
   const path = usePathname();
   const onHub = path === `/projects/${projectId}`;
@@ -38,6 +40,14 @@ export function ProjectMobileBar({
           <ArrowLeft size={18} />
         </Link>
         <span className="flex-1 truncate text-sm font-medium">{projectName}</span>
+        {assetStudioUnlocked && (
+          <Link
+            href={`/projects/${projectId}/studio`}
+            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition active:bg-[var(--accent-hover)]"
+          >
+            <Sparkles size={13} /> Studio
+          </Link>
+        )}
         <Link
           href={`/projects/${projectId}/design`}
           aria-label="Design Studio"

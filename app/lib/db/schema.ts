@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { sqliteTable, text, integer, uniqueIndex, index } from "drizzle-orm/sqlite-core";
-import type { SectionValue, EvalScore, AiReads } from "./types";
+import type { SectionValue, EvalScore, AiReads, AssetPayload } from "./types";
 
 // Single-row app config (id always 1). Mirrors the Gut app's settings pattern.
 export const settings = sqliteTable("settings", {
@@ -110,6 +110,46 @@ export const evaluations = sqliteTable(
       .default(sql`(unixepoch())`),
   },
   (t) => [index("evaluations_project_idx").on(t.project_id)]
+);
+
+// Asset Studio (phase 2, see 10-asset-studio.md): AI-generated brand assets.
+// The AI proposes, scores and discards candidates — approval is exclusively
+// human. Only rows with status "approved" (and a real approved_at) exist as far
+// as the Brand Package, export, or any sync is concerned.
+export const studio_assets = sqliteTable(
+  "studio_assets",
+  {
+    id: text("id").primaryKey(),
+    project_id: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    kind: text("kind", {
+      enum: ["logo", "palette", "typography", "visual-element", "verbal", "photo-spec"],
+    }).notNull(),
+    // Candidate label from the generator, e.g. "Coordinate Mono".
+    label: text("label").notNull(),
+    // The generator's one-paragraph rationale, shown on the candidate card.
+    direction: text("direction"),
+    payload: text("payload", { mode: "json" }).$type<AssetPayload>(),
+    status: text("status", {
+      enum: ["candidate", "chosen", "approved", "discarded"],
+    })
+      .notNull()
+      .default("candidate"),
+    // Set only by the owner pressing Approve — never by generation or scoring.
+    approved_at: integer("approved_at", { mode: "timestamp" }),
+    // Optional second signature from a designer reviewing via the share link.
+    // Never blocks the owner; flagged assets still ship if the owner says so.
+    audit_status: text("audit_status", { enum: ["audited", "flagged"] }),
+    audit_note: text("audit_note"),
+    // The skeptical-judge evaluation this candidate was scored by.
+    evaluation_id: text("evaluation_id").references(() => evaluations.id),
+    model: text("model"),
+    created_at: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("studio_assets_project_kind_idx").on(t.project_id, t.kind)]
 );
 
 // Audit log of Claude drafts, for provenance ("drafted from …"), regenerate, and compare.
