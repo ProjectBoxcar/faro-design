@@ -37,14 +37,14 @@ if (-not (Test-Path "data\brand.db")) {
 
 # Get network information for display
 $localhostIP = "127.0.0.1"
-$localIPs = Get-NetIPAddress -AddressFamily IPv4 | 
+$localIPs = Get-NetIPAddress -AddressFamily IPv4 |
     Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*" } |
     Select-Object -ExpandProperty IPAddress
 
 # Check for Tailscale
 $tailscaleIP = $null
 try {
-    $tailscaleInfo = Get-NetIPAddress -AddressFamily IPv4 | 
+    $tailscaleInfo = Get-NetIPAddress -AddressFamily IPv4 |
         Where-Object { $_.IPAddress -like "100.*" -or $_.InterfaceAlias -like "*Tailscale*" }
     if ($tailscaleInfo) {
         $tailscaleIP = $tailscaleInfo.IPAddress

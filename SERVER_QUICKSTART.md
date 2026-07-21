@@ -118,7 +118,7 @@ powershell -ExecutionPolicy Bypass -File start-server.ps1
    New-NetFirewallRule -DisplayName "Node.js Server" -Direction Inbound -LocalPort 3100 -Protocol TCP -Action Allow
    ```
 
-2. **Verify Tailscale is running**: 
+2. **Verify Tailscale is running**:
    ```powershell
    tailscale status
    ```

@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
     "localhost",
     "127.0.0.1",
     "192.168.0.0/16",    // Common local network ranges
-    "10.0.0.0/8",        // Common local network ranges  
+    "10.0.0.0/8",        // Common local network ranges
     "172.16.0.0/12",     // Common local network ranges
     "100.0.0.0/8",       // Tailscale and other VPN ranges
   ],
