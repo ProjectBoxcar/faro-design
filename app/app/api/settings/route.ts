@@ -9,6 +9,7 @@ import {
   getProviderConfig,
 } from "@/lib/settings";
 import type { AiProvider } from "@/lib/db/types";
+import { publicProviderConfig } from "@/lib/settings-public";
 
 const SaveSchema = z.object({
   apiKey: z.string().optional(), // empty/omitted clears it
@@ -20,7 +21,7 @@ const SaveSchema = z.object({
 export async function GET() {
   return NextResponse.json({
     ...apiKeyStatus(),
-    ...getProviderConfig(),
+    ...publicProviderConfig(getProviderConfig()),
   });
 }
 
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
   if (model !== undefined) setAiModel(model.trim() || null);
   return NextResponse.json({
     ...apiKeyStatus(),
-    ...getProviderConfig(),
+    ...publicProviderConfig(getProviderConfig()),
   });
 }
 
@@ -55,6 +56,6 @@ export async function DELETE() {
   setApiKey(null);
   return NextResponse.json({
     ...apiKeyStatus(),
-    ...getProviderConfig(),
+    ...publicProviderConfig(getProviderConfig()),
   });
 }

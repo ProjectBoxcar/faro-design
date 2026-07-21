@@ -25,6 +25,28 @@ import {
 export { GATE_KEY, scoreViabilityVerdict };
 export type { CriterionScore, ViabilityVerdict };
 
+const inFlightChecks = new Map<string, Promise<void>>();
+
+function isTransientProviderError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /overloaded|api_error|internal server error|rate.?limit|timeout|529|503/i.test(message);
+}
+
+async function runViabilityWithRetry(projectId: string): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await runViabilityGate(projectId);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (!isTransientProviderError(error) || attempt === 2) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt));
+    }
+  }
+  throw lastError;
+}
+
 // Run the internal viability gate once its upstream Reality steps are complete.
 // The methodology decides — the owner is never asked to adjudicate. Fire-and-forget
 // from the sections/review routes; failures leave viability "pending" for retry.
@@ -49,7 +71,11 @@ export async function maybeRunViabilityGate(
   const ready = (gate.reads ?? []).every((r) => (statusOf.get(r) ?? "empty") !== "empty");
   if (!ready) return;
 
-  await runViabilityGate(projectId);
+  const existing = inFlightChecks.get(projectId);
+  if (existing) return existing;
+  const run = runViabilityWithRetry(projectId).finally(() => inFlightChecks.delete(projectId));
+  inFlightChecks.set(projectId, run);
+  return run;
 }
 
 // True when this section key is an upstream input of the viability gate.

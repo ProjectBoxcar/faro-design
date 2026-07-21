@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { apiKeyStatus, getProviderConfig } from "@/lib/settings";
+import { publicProviderConfig } from "@/lib/settings-public";
 import { SettingsForm } from "@/components/SettingsForm";
 
 export const dynamic = "force-dynamic";
 
 export default function SettingsPage() {
   const status = apiKeyStatus();
-  const cfg = getProviderConfig();
+  const cfg = publicProviderConfig(getProviderConfig());
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-10 lg:px-10 lg:py-14 2xl:max-w-3xl">

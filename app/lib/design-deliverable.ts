@@ -1,4 +1,7 @@
 import type { AssetKind } from "@/lib/db/types";
+import { externalResourceUrls } from "@/lib/design-validation";
+
+export { sanitizeDownloadName } from "@/lib/download-name";
 
 export const FINAL_DESIGN_KINDS = ["design_system", "landing_page", "deck"] as const;
 export type FinalDesignKind = (typeof FINAL_DESIGN_KINDS)[number];
@@ -33,6 +36,11 @@ export function finalDeliverableIssue(assets: DeliverableAsset[]): string | null
   }
   const identity = assets.find((asset) => asset.kind === "design_system" && asset.selected);
   if (!identity) return "Choose a final proposal for: Brand Identity System.";
+  for (const asset of assets.filter((candidate) => candidate.selected)) {
+    if (externalResourceUrls(asset.html ?? "").length > 0) {
+      return `The final ${FINAL_META[asset.kind as FinalDesignKind]?.label ?? "asset"} uses external resources. Regenerate it before creating an offline deliverable.`;
+    }
+  }
   for (const kind of ["landing_page", "deck"] as const) {
     const asset = assets.find((candidate) => candidate.kind === kind && candidate.selected);
     if (!asset) return `Choose a final proposal for: ${FINAL_META[kind].label}.`;
@@ -41,21 +49,6 @@ export function finalDeliverableIssue(assets: DeliverableAsset[]): string | null
     }
   }
   return null;
-}
-
-export function sanitizeDownloadName(name: string): string {
-  const cleaned = name
-    .normalize("NFKD")
-    .replace(/[\u0000-\u001f\u007f\u0300-\u036f]/g, "")
-    .replace(/[\\/:*?"<>|]/g, "-")
-    .replace(/\s+/g, "-")
-    .replace(/[^a-zA-Z0-9._-]/g, "-")
-    .replace(/\.{2,}/g, ".")
-    .replace(/^[.\s-]+|[.\s-]+$/g, "")
-    .slice(0, 120);
-  const reserved = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i;
-  if (!cleaned) return "brand";
-  return reserved.test(cleaned) ? `brand-${cleaned}` : cleaned;
 }
 
 function escapeHtml(value: string): string {

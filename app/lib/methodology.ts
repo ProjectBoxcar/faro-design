@@ -88,6 +88,27 @@ export function allSections(): Section[] {
   return [...sectionIndex.values()];
 }
 
+export function methodologyDependencyCycles(): string[][] {
+  const visited = new Set<string>();
+  const active = new Set<string>();
+  const cycles: string[][] = [];
+  const visit = (sectionId: string, path: string[]) => {
+    if (active.has(sectionId)) {
+      const start = path.indexOf(sectionId);
+      cycles.push([...path.slice(start), sectionId]);
+      return;
+    }
+    if (visited.has(sectionId)) return;
+    active.add(sectionId);
+    const nextPath = [...path, sectionId];
+    for (const dependency of getSection(sectionId)?.reads ?? []) visit(dependency, nextPath);
+    active.delete(sectionId);
+    visited.add(sectionId);
+  };
+  for (const section of allSections()) visit(section.id, []);
+  return cycles;
+}
+
 // Sections this one depends on (its declared upstream inputs).
 export function readsOf(sectionId: string): Section[] {
   const s = getSection(sectionId);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback, useRef } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
@@ -14,6 +14,7 @@ import {
   AlertCircle,
   PackageCheck,
   ExternalLink,
+  Copy,
 } from "lucide-react";
 import type { AssetRow } from "@/lib/design";
 import {
@@ -25,6 +26,8 @@ import {
   DesignGenerationWindow,
   type DesignGenerationKind,
 } from "@/components/DesignGenerationWindow";
+import type { DesignJobState } from "@/lib/design-job-types";
+import { sanitizeDownloadName } from "@/lib/download-name";
 
 const KIND_META: Record<
   AssetRow["kind"],
@@ -70,40 +73,39 @@ const KIND_META: Record<
 type GenerationState = {
   kind: AssetRow["kind"];
   stage: "generating" | "selecting";
+  jobId?: string;
 } | null;
-
-function safeDownloadName(name: string): string {
-  const cleaned = name
-    .normalize("NFKD")
-    .replace(/[\u0000-\u001f\u007f\u0300-\u036f]/g, "")
-    .replace(/[\\/:*?"<>|]/g, "-")
-    .replace(/\s+/g, "-")
-    .replace(/[^a-zA-Z0-9._-]/g, "-")
-    .replace(/^[.\s-]+|[.\s-]+$/g, "")
-    .slice(0, 120);
-  return /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(cleaned)
-    ? `brand-${cleaned}`
-    : cleaned || "brand-asset";
-}
 
 export function DesignStudio({
   projectId,
   projectName,
   initialAssets,
+  initialJob,
+  initialShareToken,
+  generationBlockedReason,
   apiKeyConfigured,
 }: {
   projectId: string;
   projectName: string;
   initialAssets: AssetRow[];
+  initialJob: DesignJobState | null;
+  initialShareToken: string | null;
+  generationBlockedReason: string | null;
   apiKeyConfigured: boolean;
 }) {
   const router = useRouter();
   const previewFrameRef = useRef<HTMLIFrameElement>(null);
   const [assets, setAssets] = useState<AssetRow[]>(initialAssets);
-  const [loading, setLoading] = useState<GenerationState>(null);
+  const [loading, setLoading] = useState<GenerationState>(() =>
+    initialJob ? { kind: initialJob.kind, stage: "generating", jobId: initialJob.id } : null
+  );
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [discardingKind, setDiscardingKind] = useState<AssetRow["kind"] | null>(null);
   const [creatingDeliverable, setCreatingDeliverable] = useState(false);
+  const [shareToken, setShareToken] = useState(initialShareToken);
+  const [publishingPackage, setPublishingPackage] = useState(false);
+  const [packageLinkCopied, setPackageLinkCopied] = useState(false);
+  const [origin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
   const [previewSection, setPreviewSection] = useState<IdentityPreviewSection>("overview");
   const [error, setError] = useState<string | null>(null);
   const [previewAssetId, setPreviewAssetId] = useState<string | null>(() =>
@@ -171,9 +173,55 @@ export function DesignStudio({
     }
   }
 
+  useEffect(() => {
+    if (loading?.stage !== "generating" || !loading.jobId) return;
+    let cancelled = false;
+    let timer: number | undefined;
+    const poll = async () => {
+      try {
+        const params = new URLSearchParams({ projectId, jobId: loading.jobId! });
+        const res = await fetch(`/api/design?${params}`, { cache: "no-store" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Could not check design generation");
+        const job: DesignJobState = data.job;
+        if (cancelled) return;
+        if (job.status === "complete") {
+          const generated: AssetRow[] = data.assets;
+          setAssets((previous) => [
+            ...previous.filter((asset) => asset.kind !== job.kind || asset.selected),
+            ...generated,
+          ]);
+          setPreviewAssetId(generated[0]?.id ?? null);
+          setPreviewSection("overview");
+          setLoading(null);
+          router.refresh();
+          return;
+        }
+        if (job.status === "failed") {
+          setError(job.error ?? "Design generation failed");
+          setLoading(null);
+          router.refresh();
+          return;
+        }
+      } catch (pollError) {
+        if (!cancelled) setError(pollError instanceof Error ? pollError.message : "Could not check design generation");
+      }
+      if (!cancelled) timer = window.setTimeout(poll, 2000);
+    };
+    void poll();
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [loading?.jobId, loading?.stage, projectId, router]);
+
   async function generateProposals(kind: AssetRow["kind"]) {
     if (!apiKeyConfigured) {
       setError("Add your Anthropic API key in Settings first.");
+      return;
+    }
+    if (generationBlockedReason) {
+      setError(generationBlockedReason);
       return;
     }
     setLoading({ kind, stage: "generating" });
@@ -198,18 +246,11 @@ export function DesignStudio({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Generation failed");
-      const newAssets: AssetRow[] = data.assets;
-      setAssets((prev) => {
-        // Drop any older unselected proposals of this kind to keep the UI clean.
-        const kept = prev.filter((a) => a.kind !== kind || a.selected);
-        return [...kept, ...newAssets];
-      });
-      setPreviewAssetId(newAssets[0]?.id ?? null);
-      setPreviewSection("overview");
-      router.refresh();
+      const job: DesignJobState | undefined = data.job;
+      if (!job) throw new Error("Design generation did not start correctly");
+      setLoading({ kind, stage: "generating", jobId: job.id });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generation failed");
-    } finally {
       setLoading(null);
     }
   }
@@ -325,11 +366,42 @@ export function DesignStudio({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${safeDownloadName(asset.name)}.${ext}`;
+    a.download = `${sanitizeDownloadName(asset.name)}.${ext}`;
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+  }
+
+  async function publishFinalPackage() {
+    setPublishingPackage(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, action: "publish" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Final package could not be published");
+      setShareToken(data.token);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Final package could not be published");
+    } finally {
+      setPublishingPackage(false);
+    }
+  }
+
+  async function copyPackageLink() {
+    if (!shareToken) return;
+    try {
+      await navigator.clipboard.writeText(`${origin}/share/${shareToken}/package`);
+      setPackageLinkCopied(true);
+      window.setTimeout(() => setPackageLinkCopied(false), 2000);
+    } catch {
+      setError("Could not copy the package link. Open it and copy the address from your browser.");
+    }
   }
 
   async function downloadFinalDeliverable() {
@@ -407,6 +479,13 @@ export function DesignStudio({
         </div>
       )}
 
+      {generationBlockedReason && (
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
+          <AlertCircle size={18} className="mt-0.5 shrink-0" />
+          {generationBlockedReason}
+        </div>
+      )}
+
       {error && (
         <div role="alert" className="mb-6 rounded-2xl border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
           {error}
@@ -418,10 +497,10 @@ export function DesignStudio({
           <div>
             <div className="mb-2 flex items-center gap-2">
               <PackageCheck size={18} className="text-[var(--accent)]" />
-              <h2 id="deliverable-title" className="font-serif text-xl font-medium tracking-tight">Faro final deliverable</h2>
+              <h2 id="deliverable-title" className="font-serif text-xl font-medium tracking-tight">Final brand package</h2>
             </div>
             <p className="max-w-xl text-sm text-[var(--muted)]">
-              Choose one final direction for every output, then download the complete brand package as one file.
+              Choose one final direction for every output, then share a private browser link anyone can open without technical knowledge.
             </p>
             <ul className="mt-4 flex flex-wrap gap-2" aria-live="polite">
               {finalOutputs.map((output) => (
@@ -449,14 +528,50 @@ export function DesignStudio({
             <p className="mb-2 text-xs font-medium text-[var(--muted)]">
               {deliverableReady ? "All 3 outputs are ready" : `${finalCount} of 3 outputs ready`}
             </p>
+            <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
+              {shareToken ? (
+                <>
+                  <a
+                    href={`/share/${shareToken}/package`}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-disabled={!deliverableReady}
+                    className={`inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition ${
+                      deliverableReady ? "hover:bg-[var(--accent-hover)]" : "pointer-events-none opacity-50"
+                    }`}
+                  >
+                    <ExternalLink size={16} /> View final package
+                  </a>
+                  <button
+                    type="button"
+                    onClick={copyPackageLink}
+                    disabled={!deliverableReady}
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2.5 text-sm font-medium transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {packageLinkCopied ? <Check size={16} /> : <Copy size={16} />}
+                    {packageLinkCopied ? "Copied" : "Copy private link"}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={publishFinalPackage}
+                  disabled={!deliverableReady || publishingPackage || Boolean(loading)}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {publishingPackage ? <Loader2 size={16} className="animate-spin" /> : <ExternalLink size={16} />}
+                  {publishingPackage ? "Publishing..." : "Publish final package"}
+                </button>
+              )}
+            </div>
             <button
               type="button"
               onClick={downloadFinalDeliverable}
               disabled={!deliverableReady || creatingDeliverable || Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind)}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
+              className="mt-2 inline-flex items-center justify-center gap-1.5 text-xs font-medium text-[var(--muted)] transition hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {creatingDeliverable ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-              {creatingDeliverable ? "Creating package..." : "Download Faro package"}
+              {creatingDeliverable ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+              {creatingDeliverable ? "Preparing offline package..." : "Download offline package"}
             </button>
           </div>
         </div>
@@ -480,7 +595,7 @@ export function DesignStudio({
             onPreview={previewProposal}
             onDiscard={discardProposal}
             onDiscardUnselected={() => discardUnselected("design_system")}
-            unlocked
+            unlocked={!generationBlockedReason}
           />
           <PipelineStep
             kind="landing_page"
@@ -497,7 +612,7 @@ export function DesignStudio({
             onPreview={previewProposal}
             onDiscard={discardProposal}
             onDiscardUnselected={() => discardUnselected("landing_page")}
-            unlocked={Boolean(identitySelected)}
+            unlocked={Boolean(identitySelected) && !generationBlockedReason}
           />
           <PipelineStep
             kind="deck"
@@ -514,7 +629,7 @@ export function DesignStudio({
             onPreview={previewProposal}
             onDiscard={discardProposal}
             onDiscardUnselected={() => discardUnselected("deck")}
-            unlocked={Boolean(identitySelected)}
+            unlocked={Boolean(identitySelected) && !generationBlockedReason}
           />
         </div>
 
