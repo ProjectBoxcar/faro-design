@@ -42,6 +42,8 @@ export function SectionEditor({
   // Provenance id of the generation behind the current proposal, so accepting
   // it can be recorded (ai_generations.accepted).
   const [generationId, setGenerationId] = useState<string | null>(null);
+  // Human-readable upstream section names this draft was built from.
+  const [draftedFrom, setDraftedFrom] = useState<string[]>([]);
   // Whether the current content is AI-authored and untouched. Persisted as the
   // `ai_generated` flag; a manual edit flips it false (designer ownership).
   const [aiOwned, setAiOwned] = useState(aiGenerated);
@@ -54,11 +56,13 @@ export function SectionEditor({
 
   // Live mirrors so the unmount flush below reads current values, not a stale closure.
   const valueRef = useRef(value);
-  valueRef.current = value;
   const statusRef = useRef(status);
-  statusRef.current = status;
   const aiOwnedRef = useRef(aiOwned);
-  aiOwnedRef.current = aiOwned;
+  useEffect(() => {
+    valueRef.current = value;
+    statusRef.current = status;
+    aiOwnedRef.current = aiOwned;
+  });
 
   // Flush any unsaved edit when navigating away (e.g. "Looks good — continue"
   // before the debounce fired). `keepalive` lets the request finish post-unmount.
@@ -104,6 +108,7 @@ export function SectionEditor({
           if (!cancelled && data.values && Object.keys(data.values).length > 0) {
             setProposal(data.values as Value);
             setGenerationId(data.generationId ?? null);
+            setDraftedFrom(Array.isArray(data.readNames) ? data.readNames : []);
           }
         } else if (!cancelled) {
           setGenError("Couldn't draft this automatically — use “Draft with AI” below to try again.");
@@ -140,6 +145,7 @@ export function SectionEditor({
     if (data.values && Object.keys(data.values).length > 0) {
       setProposal(data.values as Value);
       setGenerationId(data.generationId ?? null);
+      setDraftedFrom(Array.isArray(data.readNames) ? data.readNames : []);
     } else {
       setGenError("The AI didn't return anything usable. Add a few notes and try again.");
     }
@@ -161,18 +167,6 @@ export function SectionEditor({
       setGenerationId(null);
     }
   }
-
-  // Debounced autosave: any edit is saved as a draft ~1.2s after you stop typing,
-  // so navigating away never loses work. Completion is still explicit.
-  useEffect(() => {
-    const serialized = JSON.stringify(value);
-    if (serialized === lastSaved.current || saving) return;
-    const t = setTimeout(() => {
-      void autosave(serialized);
-    }, 1200);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
 
   async function autosave(serialized: string) {
     try {
@@ -201,6 +195,18 @@ export function SectionEditor({
       setSaveError("Couldn't save your changes — check your connection.");
     }
   }
+
+  // Debounced autosave: any edit is saved as a draft ~1.2s after you stop typing,
+  // so navigating away never loses work. Completion is still explicit.
+  useEffect(() => {
+    const serialized = JSON.stringify(value);
+    if (serialized === lastSaved.current || saving) return;
+    const t = setTimeout(() => {
+      void autosave(serialized);
+    }, 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   async function clearStep() {
     setSaving(true);
@@ -286,11 +292,16 @@ export function SectionEditor({
 
       {/* Single AI box: review notice with an inline rewrite, or a compact "draft it" prompt. */}
       {!autoDrafting && !generating && !proposal &&
-        (aiGenerated && status !== "complete" ? (
+        (aiOwned && status !== "complete" ? (
           <div className="mb-6 flex items-start justify-between gap-3 rounded-lg border border-[var(--designer)]/40 bg-[var(--accent-soft)] p-4 text-sm">
             <div>
               <span className="font-medium">This is your AI draft.</span>{" "}
               <span className="text-[var(--muted)]">Read it over and edit anything that doesn&apos;t sound like you.</span>
+              {draftedFrom.length > 0 && (
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  Drafted from: {draftedFrom.join(", ")}
+                </p>
+              )}
             </div>
             <button
               onClick={improveWithAI}
@@ -330,8 +341,15 @@ export function SectionEditor({
       {proposal && (
         <div className="mb-6 rounded-lg border border-[var(--designer)] bg-[var(--surface)] p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="text-sm font-medium text-[var(--designer)]">
-              AI suggestion — review before applying
+            <div>
+              <div className="text-sm font-medium text-[var(--designer)]">
+                AI suggestion — review before applying
+              </div>
+              {draftedFrom.length > 0 && (
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  Drafted from: {draftedFrom.join(", ")}
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <button

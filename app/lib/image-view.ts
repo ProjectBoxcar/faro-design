@@ -1,9 +1,10 @@
 import "server-only";
-import type Anthropic from "@anthropic-ai/sdk";
+import Anthropic from "@anthropic-ai/sdk";
 import { nanoid } from "nanoid";
 import { db } from "@/lib/db";
 import { ai_generations } from "@/lib/db/schema";
-import { getClient, MODELS } from "@/lib/anthropic";
+import { MODELS } from "@/lib/ai";
+import { getProviderConfig } from "@/lib/settings";
 import { extractJson } from "@/lib/json";
 import { getProject, getSectionRow, saveSection } from "@/lib/queries";
 
@@ -89,7 +90,12 @@ export async function runImageOutsideView(projectId: string): Promise<ImageViewS
     "Search the web before answering. Return the JSON object now.",
   ].join("\n\n");
 
-  const client = getClient();
+  const config = getProviderConfig();
+  if (config.provider !== "anthropic") {
+    throw new Error("The AI outside view requires the Anthropic provider because it uses web search.");
+  }
+  if (!config.apiKey) throw new Error("No API key configured — add it in Settings.");
+  const client = new Anthropic({ apiKey: config.apiKey });
   let messages: Anthropic.MessageParam[] = [{ role: "user", content: user }];
   let resp = await client.messages.create({
     model: MODELS.reasoning,

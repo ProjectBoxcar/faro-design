@@ -128,8 +128,42 @@ export function markGenerationAccepted(id: string): void {
 }
 
 // Cache the viability gate's verdict on the project row.
-export function setProjectViability(id: string, viability: "pass" | "fail"): void {
+export function setProjectViability(
+  id: string,
+  viability: "pending" | "pass" | "fail" | "caveat"
+): void {
   db.update(projects).set({ viability, updated_at: new Date() }).where(eq(projects.id, id)).run();
+}
+
+// Soft-override a fail: keep history in evaluations, allow the journey to continue.
+export function setViabilityOverride(id: string, note: string): void {
+  db.update(projects)
+    .set({
+      viability: "pass",
+      viability_override_note: note.trim(),
+      status: "at_risk",
+      updated_at: new Date(),
+    })
+    .where(eq(projects.id, id))
+    .run();
+}
+
+export function clearViabilityOverride(id: string): void {
+  db.update(projects)
+    .set({ viability_override_note: null, updated_at: new Date() })
+    .where(eq(projects.id, id))
+    .run();
+}
+
+export function resetViabilityPending(id: string): void {
+  db.update(projects)
+    .set({
+      viability: "pending",
+      viability_override_note: null,
+      updated_at: new Date(),
+    })
+    .where(eq(projects.id, id))
+    .run();
 }
 
 // Publish a project: mint an unguessable share token (reuse if one already exists)

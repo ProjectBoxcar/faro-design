@@ -76,3 +76,48 @@ body {
 .card-shadow {
   box-shadow: var(--shadow-card);
 }
+
+.design-preview-frame:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  border: 0;
+  background: #ffffff;
+}
+
+@keyframes faro-generation-progress {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(280%); }
+}
+
+@keyframes faro-generation-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes faro-generation-focus {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.faro-generation-progress {
+  animation: faro-generation-progress 1.8s ease-in-out infinite;
+}
+
+.faro-generation-spark,
+.faro-generation-dot {
+  animation: faro-generation-pulse 1.8s ease-in-out infinite;
+}
+
+.faro-generation-focus {
+  animation: faro-generation-focus 0.35s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faro-generation-progress,
+  .faro-generation-spark,
+  .faro-generation-dot,
+  .faro-generation-focus {
+    animation: none;
+    transform: none;
+  }
+}

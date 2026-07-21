@@ -1,5 +1,5 @@
 import "server-only";
-import { getClient, MODELS } from "@/lib/anthropic";
+import { generateText, MODELS } from "@/lib/ai";
 import { getSection } from "@/lib/methodology";
 import { extractJson } from "@/lib/json";
 import {
@@ -9,25 +9,34 @@ import {
   saveSection,
   insertEvaluation,
   setProjectViability,
+  clearViabilityOverride,
 } from "@/lib/queries";
 import { db } from "@/lib/db";
 import { ai_generations } from "@/lib/db/schema";
 import { nanoid } from "nanoid";
 import type { EvalScore } from "@/lib/db/types";
+import {
+  GATE_KEY,
+  scoreViabilityVerdict,
+  type CriterionScore,
+  type ViabilityVerdict,
+} from "@/lib/viability-score";
 
-const GATE_KEY = "reality.evaluation-criteria";
-
-// Criteria where a "no" means the methodology says do not proceed (recurring
-// sales, budget). Matched against the seeded criterion text.
-const BLOCKING = [/recurring sales/i, /budget/i];
+export { GATE_KEY, scoreViabilityVerdict };
+export type { CriterionScore, ViabilityVerdict };
 
 // Run the internal viability gate once its upstream Reality steps are complete.
 // The methodology decides — the owner is never asked to adjudicate. Fire-and-forget
-// from the sections/review routes; failures just leave viability "pending" for the
-// next completion to retry.
-export async function maybeRunViabilityGate(projectId: string): Promise<void> {
+// from the sections/review routes; failures leave viability "pending" for retry.
+//
+// force=true re-runs after Reality inputs change (or from the hub "Re-check" action).
+export async function maybeRunViabilityGate(
+  projectId: string,
+  opts: { force?: boolean } = {}
+): Promise<void> {
   const project = getProject(projectId);
-  if (!project || project.viability !== "pending") return;
+  if (!project) return;
+  if (!opts.force && project.viability !== "pending") return;
 
   const gate = getSection(GATE_KEY);
   if (!gate) return;
@@ -41,6 +50,12 @@ export async function maybeRunViabilityGate(projectId: string): Promise<void> {
   if (!ready) return;
 
   await runViabilityGate(projectId);
+}
+
+// True when this section key is an upstream input of the viability gate.
+export function isViabilityInput(sectionKey: string): boolean {
+  const gate = getSection(GATE_KEY);
+  return (gate?.reads ?? []).includes(sectionKey);
 }
 
 async function runViabilityGate(projectId: string): Promise<void> {
@@ -73,46 +88,29 @@ async function runViabilityGate(projectId: string): Promise<void> {
     `Respond with ONLY a JSON object: {"answers": [{"n": <criterion number>, "answer": "yes"|"no", "note": "<one sentence of evidence>"}]} — one entry per criterion, in order.`,
   ].join("\n\n");
 
-  const resp = await getClient().messages.create({
+  const { text } = await generateText({
     model: MODELS.reasoning,
-    max_tokens: 4096,
+    maxTokens: 4096,
     messages: [{ role: "user", content: prompt }],
   });
-
-  const text = resp.content.map((b) => (b.type === "text" ? b.text : "")).join("");
   const parsed = extractJson(text);
-  const answers = Array.isArray(parsed.answers) ? (parsed.answers as { n?: number; answer?: string; note?: string }[]) : [];
+  const answers = Array.isArray(parsed.answers)
+    ? (parsed.answers as { n?: number; answer?: string; note?: string }[])
+    : [];
   if (answers.length !== criteria.length) throw new Error("Viability gate: malformed evaluation");
 
-  const scored = criteria.map((c, i) => {
+  const scored: CriterionScore[] = criteria.map((c, i) => {
     const a = answers.find((x) => x.n === i + 1) ?? answers[i];
     return {
-      criterion: c.criterion,
-      type: c.type,
+      criterion: String(c.criterion ?? ""),
+      type: (c.type as CriterionScore["type"]) ?? "warning",
       answer: a?.answer === "no" ? "no" : "yes",
       note: a?.note ?? "",
-      implication: c.implication ?? "",
+      implication: String(c.implication ?? ""),
     };
   });
 
-  // The verdict is deterministic, per the methodology's own rules: a "no" on a
-  // blocking non-negotiable fails the gate; a "no" on other non-negotiables or a
-  // bad sign on a warning is a caveat; otherwise pass. ("yes" is the bad answer
-  // for warning criteria, which are phrased as risk signals.)
-  // Personal projects (the owner's own brand, no paying client) still answer the
-  // commercial non-negotiables — sales and budget — but aren't failed by them:
-  // there is no engagement to walk away from.
-  const failed =
-    !project.personal &&
-    scored.some(
-      (s) => s.type === "non-negotiable" && s.answer === "no" && BLOCKING.some((rx) => rx.test(s.criterion))
-    );
-  const caveats = scored.some(
-    (s) =>
-      (s.type === "non-negotiable" && s.answer === "no") ||
-      (s.type === "warning" && /risk|do not proceed/i.test(s.implication) && s.answer === "yes")
-  );
-  const verdict = failed ? "fail" : caveats ? "caveat" : "pass";
+  const verdict = scoreViabilityVerdict(scored, Boolean(project.personal));
 
   const scores: EvalScore[] = scored.map((s, i) => ({
     key: `criterion-${i + 1}`,
@@ -131,7 +129,10 @@ async function runViabilityGate(projectId: string): Promise<void> {
     value: {
       criteria: scored.map((s) => {
         const waived =
-          project.personal && s.type === "non-negotiable" && s.answer === "no" && BLOCKING.some((rx) => rx.test(s.criterion));
+          project.personal &&
+          s.type === "non-negotiable" &&
+          s.answer === "no" &&
+          /recurring sales|budget/i.test(s.criterion);
         return {
           criterion: s.criterion,
           type: s.type,
@@ -156,6 +157,8 @@ async function runViabilityGate(projectId: string): Promise<void> {
     })
     .run();
 
-  setProjectViability(projectId, verdict === "fail" ? "fail" : "pass");
+  // Fresh run clears any previous soft-override.
+  clearViabilityOverride(projectId);
+  setProjectViability(projectId, verdict);
   console.log(`[viability] ${project.name}: ${verdict}`);
 }

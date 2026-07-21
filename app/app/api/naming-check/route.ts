@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { hasApiKey } from "@/lib/anthropic";
+import { hasApiKey } from "@/lib/ai";
 import { getProject } from "@/lib/queries";
 import { runNameAvailabilityCheck } from "@/lib/naming-check";
 

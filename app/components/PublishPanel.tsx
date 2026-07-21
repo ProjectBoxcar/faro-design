@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Share2, Copy, Check, Link2Off, ExternalLink, FileDown } from "lucide-react";
 
 // Publish/unpublish the read-only handover brief and surface the shareable link.
@@ -18,11 +18,7 @@ export function PublishPanel({
   const [token, setToken] = useState<string | null>(initialToken);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [origin, setOrigin] = useState("");
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
+  const [origin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
 
   const url = token ? `${origin}/share/${token}` : "";
 

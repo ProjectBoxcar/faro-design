@@ -1,10 +1,11 @@
 import "server-only";
-import { getClient } from "@/lib/anthropic";
+import { generateText, MODELS } from "@/lib/ai";
+import { getDefaultModel } from "@/lib/settings";
 import { methodology, getSection, getPillarOf, readsOf, canGenerate } from "@/lib/methodology";
 import { sectionGuide } from "@/lib/guide";
 import { getProject, getSectionRow, getSections, filledKeys } from "@/lib/queries";
-import { getDefaultModel } from "@/lib/settings";
 import { extractJson } from "@/lib/json";
+import { getSectionPrompt } from "@/lib/prompts";
 
 export type GenerateResult = {
   values: Record<string, unknown>;
@@ -179,12 +180,15 @@ export async function generateSection(
     })
     .join("\n");
 
+  const specialist = getSectionPrompt(sectionKey);
+
   const parts: string[] = [];
   if (project)
     parts.push(`BRAND: ${project.name}${project.client_name ? ` (client: ${project.client_name})` : ""}`);
   parts.push(`SECTION: ${section.name}`);
   if (guide.whatItIs) parts.push(`WHAT THIS SECTION IS: ${guide.whatItIs}`);
   if (guide.whyItMatters) parts.push(`WHY IT MATTERS: ${guide.whyItMatters}`);
+  if (specialist?.systemAddon) parts.push(`SECTION QUALITY BAR:\n${specialist.systemAddon}`);
   if (section.triggerQuestions?.length)
     parts.push(`IT SHOULD ANSWER:\n${section.triggerQuestions.map((q) => `- ${q}`).join("\n")}`);
   if (upstream) parts.push(`CONTEXT FROM EARLIER STEPS (build on this, stay consistent):\n${upstream}`);
@@ -195,18 +199,15 @@ export async function generateSection(
   );
   parts.push("Return the JSON object now.");
 
-  const model = getDefaultModel();
-  const resp = await getClient().messages.create({
+  // Mechanical derivation (e.g. survey questions) uses Haiku; flagship synthesis uses the default (Opus).
+  const model = specialist?.useParsingModel ? MODELS.parsing : getDefaultModel();
+  const { text, model: usedModel } = await generateText({
     model,
-    max_tokens: 8192,
-    system: [{ type: "text", text: STATIC_SYSTEM, cache_control: { type: "ephemeral" } }],
+    maxTokens: 8192,
+    system: STATIC_SYSTEM,
     messages: [{ role: "user", content: parts.join("\n\n") }],
+    cacheSystem: true,
   });
-
-  const text = resp.content
-    .map((b) => (b.type === "text" ? b.text : ""))
-    .join("")
-    .trim();
 
   // Keep only the section's own fields, and only non-empty values — the model's
   // stray keys or empty strings must not overwrite anything downstream.
@@ -219,5 +220,5 @@ export async function generateSection(
     throw new Error("The AI didn't return usable content for this section. Try again, or add a few notes first.");
   }
 
-  return { values, reads: usedReads, model };
+  return { values, reads: usedReads, model: usedModel };
 }

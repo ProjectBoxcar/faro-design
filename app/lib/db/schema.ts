@@ -6,11 +6,20 @@ import type { SectionValue, EvalScore, AiReads } from "./types";
 export const settings = sqliteTable("settings", {
   id: integer("id").primaryKey().default(1),
   designer_name: text("designer_name"),
-  // Default reasoning model for synthesis drafts. See lib/anthropic.ts MODELS.
+  // Default reasoning model for synthesis drafts. See lib/ai.ts MODELS.
   default_model: text("default_model").notNull().default("claude-opus-4-8"),
-  // Anthropic API key set from the in-app Settings page (local, single-user).
-  // Falls back to the ANTHROPIC_API_KEY env var when null. Stored plaintext in
-  // the local SQLite file (gitignored) — fine for a personal local tool.
+  // AI provider: anthropic (native) or openai-compatible (OpenAI, OpenRouter, Groq, Ollama, etc.).
+  ai_provider: text("ai_provider", { enum: ["anthropic", "openai-compatible"] })
+    .notNull()
+    .default("anthropic"),
+  // Optional base URL for openai-compatible providers. Null means the provider's default.
+  ai_base_url: text("ai_base_url"),
+  // Optional per-provider model override. Falls back to default_model when null.
+  ai_model: text("ai_model"),
+  // API key set from the in-app Settings page (local, single-user).
+  // Works for Anthropic or any OpenAI-compatible provider. Falls back to the
+  // ANTHROPIC_API_KEY env var when null. Stored plaintext in the local SQLite
+  // file (gitignored) — fine for a personal local tool.
   anthropic_api_key: text("anthropic_api_key"),
   debug_mode: integer("debug_mode", { mode: "boolean" }).notNull().default(false),
   created_at: integer("created_at", { mode: "timestamp" })
@@ -28,10 +37,12 @@ export const projects = sqliteTable("projects", {
   })
     .notNull()
     .default("active"),
-  // Cached result of the Reality viability gate.
-  viability: text("viability", { enum: ["pending", "pass", "fail"] })
+  // Cached result of the Reality viability gate (caveat = non-blocking concerns).
+  viability: text("viability", { enum: ["pending", "pass", "fail", "caveat"] })
     .notNull()
     .default("pending"),
+  // Soft-override: owner proceeds past a fail with a logged reason (null = no override).
+  viability_override_note: text("viability_override_note"),
   // If true, the Brand Audit is skipped and the Design Plan sources everything as "create".
   greenfield: integer("greenfield", { mode: "boolean" }).notNull().default(false),
   // Own project (no paying client). The viability gate's commercial non-negotiables
@@ -120,4 +131,43 @@ export const ai_generations = sqliteTable(
       .default(sql`(unixepoch())`),
   },
   (t) => [index("ai_generations_project_idx").on(t.project_id)]
+);
+
+// Generated brand design artifacts: DESIGN.md, landing page, deck, brand guidelines, etc.
+// Produced by the Open Design skill pipeline absorbed into Brand App.
+export const assets = sqliteTable(
+  "assets",
+  {
+    id: text("id").primaryKey(),
+    project_id: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    kind: text("kind", {
+      enum: ["design_system", "landing_page", "deck", "brand_guidelines", "logo_concept"],
+    }).notNull(),
+    // Proposal variant label: A, B, C. Null for legacy single assets.
+    variant: text("variant"),
+    // Whether this proposal is the chosen one for its kind.
+    selected: integer("selected", { mode: "boolean" }).notNull().default(false),
+    // For landing_page/deck: the design_system asset they follow.
+    design_system_id: text("design_system_id"),
+    name: text("name").notNull(),
+    // The generated artifact (HTML, markdown, or raw design file content).
+    html: text("html"),
+    // The composed prompt used to generate this asset, for provenance / regeneration.
+    prompt: text("prompt"),
+    status: text("status", {
+      enum: ["empty", "draft", "complete"],
+    })
+      .notNull()
+      .default("draft"),
+    ai_generated: integer("ai_generated", { mode: "boolean" }).notNull().default(true),
+    created_at: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updated_at: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("assets_project_idx").on(t.project_id)]
 );

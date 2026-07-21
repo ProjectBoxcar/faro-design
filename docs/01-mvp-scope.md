@@ -7,11 +7,17 @@ methodology, with Claude drafting the synthesis sections.
 
 ## Who uses it
 
-- **The designer (primary).** Owns every section, runs evaluations, edits AI drafts, publishes the
-  handover link.
-- **The client (secondary).** Via a per-project share link, can fill **intake-only** sections
-  (their story, their reality). Never sees designer-internal sections (e.g. the viability gate).
-- **The graphic designer (consumer).** Opens the published read-only handover link. Does not log in.
+**Primary journey (current product):** written for the **brand owner** — they answer plain questions
+about their business, review AI drafts, and publish a brief. Leonardo (or any strategist) may run
+the same journey on a client's behalf; the UI does not assume design expertise.
+
+- **Brand owner / operator (primary).** Answers Reality & Identity, reviews synthesis, publishes the
+  handover link. One local operator per install (no multi-tenant accounts).
+- **Strategist (same seat).** May be the same person as the owner, or Leonardo filling the app for a
+  client. Designer-internal tools (viability gate, evaluations) stay off client-facing surfaces.
+- **Client intake (secondary, deferred).** A scoped share link for intake-only sections is roadmap
+  step 7 — not required for v1.
+- **Graphic designer (consumer).** Opens the published read-only handover link. Does not log in.
 
 ## In scope for v1
 

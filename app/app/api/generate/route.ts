@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { hasApiKey } from "@/lib/anthropic";
+import { hasApiKey } from "@/lib/ai";
 import { getSection } from "@/lib/methodology";
 import { generateSection, generationBlockedReason } from "@/lib/generate";
 import { getProject, markGenerationAccepted } from "@/lib/queries";
@@ -56,7 +56,14 @@ export async function POST(req: Request) {
         accepted: false,
       })
       .run();
-    return NextResponse.json({ values: result.values, reads: result.reads, generationId });
+    // Resolve human-readable upstream names for the provenance UI line.
+    const readNames = result.reads.map((id) => getSection(id)?.name ?? id);
+    return NextResponse.json({
+      values: result.values,
+      reads: result.reads,
+      readNames,
+      generationId,
+    });
   } catch (e) {
     console.error("[generate] failed:", e);
     const message = e instanceof Error ? e.message : "Generation failed";

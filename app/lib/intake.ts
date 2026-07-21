@@ -1,5 +1,5 @@
 import "server-only";
-import { getClient, MODELS } from "@/lib/anthropic";
+import { generateText, MODELS } from "@/lib/ai";
 import { extractJson } from "@/lib/json";
 import { getSection, type Section } from "@/lib/methodology";
 import { saveSection } from "@/lib/queries";
@@ -127,17 +127,13 @@ export async function expandIntake(projectId: string, brandName: string, answers
   const system = buildSystem(includeFeedback);
   const user = buildUserMessage(brandName, answers);
 
-  const resp = await getClient().messages.create({
+  const { text, model } = await generateText({
     model: MODELS.reasoning,
-    max_tokens: 16000,
-    system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+    maxTokens: 16000,
+    system,
     messages: [{ role: "user", content: user }],
+    cacheSystem: true,
   });
-
-  const text = resp.content
-    .map((b) => (b.type === "text" ? b.text : ""))
-    .join("")
-    .trim();
   const parsed = extractJson(text);
 
   const targets = includeFeedback ? [...ALWAYS_TARGETS, ...FEEDBACK_TARGETS] : ALWAYS_TARGETS;
@@ -162,7 +158,7 @@ export async function expandIntake(projectId: string, brandName: string, answers
         id: nanoid(),
         project_id: projectId,
         section_key: id,
-        model: MODELS.reasoning,
+        model,
         reads: ["quick-start-intake"],
         output: JSON.stringify(obj),
         accepted: true,
@@ -171,5 +167,5 @@ export async function expandIntake(projectId: string, brandName: string, answers
     filled.push(id);
   }
 
-  return { filled, model: MODELS.reasoning };
+  return { filled, model };
 }

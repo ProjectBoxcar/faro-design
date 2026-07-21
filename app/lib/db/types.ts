@@ -19,3 +19,9 @@ export type EvalScore = {
 
 // Provenance: the upstream section ids fed to a generation.
 export type AiReads = string[];
+
+// Kinds of generated design artifact stored in the assets table.
+export type AssetKind = "design_system" | "landing_page" | "deck" | "brand_guidelines" | "logo_concept";
+
+// AI provider backend used for synthesis and asset generation.
+export type AiProvider = "anthropic" | "openai-compatible";

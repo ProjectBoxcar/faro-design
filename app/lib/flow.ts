@@ -98,12 +98,14 @@ export function overallProgress(map: StatusMap): { done: number; total: number }
 
 // No hard locks — the owner can work any step in any order, and "Improve with AI"
 // works everywhere. Order is guidance (Up next + "builds on" hints), not a gate.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function phaseUnlocked(_phaseId: string, _map: StatusMap): boolean {
   return true;
 }
 
 export type Lock = { locked: boolean; reason?: string };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function sectionLock(_sectionId: string, _map: StatusMap): Lock {
   return { locked: false };
 }

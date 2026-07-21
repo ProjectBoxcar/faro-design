@@ -22,6 +22,34 @@
       "when": 1783105527309,
       "tag": "0002_personal-project-flag",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1783880000000,
+      "tag": "0003_viability-override",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1784228254664,
+      "tag": "0004_strange_dracula",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1784229851178,
+      "tag": "0005_married_captain_midlands",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1784320874300,
+      "tag": "0006_mixed_blockbuster",
+      "breakpoints": true
     }
   ]
 }

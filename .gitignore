@@ -12,6 +12,7 @@ tsconfig.tsbuildinfo
 **/data/*.db-shm
 **/data/*.db-wal
 **/data/backups/
+**/data/poc-output/
 
 # Secrets
 .env
@@ -21,3 +22,9 @@ tsconfig.tsbuildinfo
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# Large third-party reference clones (not product source)
+external/
+
+# Machine-specific Devin CLI local permissions
+.devin/config.local.json

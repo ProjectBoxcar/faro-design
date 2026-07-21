@@ -1,14 +1,16 @@
 # Project rules for Claude
 
-You are working on the **Brand App** — a personal tool Leonardo (a brand designer) uses to run the
-**Finisterra methodology**: capture a brand engagement, synthesize concept + strategy, and hand a
-brief to a graphic designer via a shareable link. The rules below are LOAD-BEARING.
+You are working on the **Brand App** — a personal local tool that runs the **Finisterra methodology**:
+capture a brand engagement, synthesize concept + strategy, and hand a brief to a graphic designer
+via a shareable link. Leonardo operates it; the in-app journey is written for a **brand owner**
+(plain language, guided review). Strategist and owner may be the same person. The rules below are
+LOAD-BEARING.
 
 ## Language
 
 - **The entire app is in English** — UI, code, comments, and all methodology content.
-- The Finisterra source files (`Finisterra_md_files/`) are Spanish. When seeding content into the app,
-  **translate to English**. Keep the canonical English names from `02-methodology-model.md`
+- The Finisterra source files (`reference/finisterra/`) are Spanish. When seeding content into the app,
+  **translate to English**. Keep the canonical English names from `docs/02-methodology-model.md`
   (e.g. Realidad → Reality, Brief Estratégico → Strategic Brief). Don't invent new names.
 - The Spanish source files are **read-only reference**. Never edit or delete them.
 
@@ -25,16 +27,16 @@ Project data is the user's real client work and is irreplaceable. It lives in `a
 
 ## Scope
 
-- **Primarily single-user (the designer).** Clients touch only intake sections, via per-project
-  share links — no client accounts, no auth system, no multi-tenancy, no paywalls. Don't add
-  "what if an agency uses it" features unless asked.
+- **Primarily single-user (local operator).** One person runs projects on this machine. No client
+  accounts, multi-tenancy, or paywalls. Client-scoped intake links are deferred (roadmap step 7).
+  Don't add "what if an agency uses it" features unless asked.
 - **Local self-hosted.** Runs on `npm run dev` on Windows. No Docker, no CI/CD. (Fly.io is a
   later, separate decision — see Gut app's hosting plan.)
-- The design docs (`01`–`09`) are the source of truth for what's in/out of scope.
+- The design docs in `docs/` (`01`–`09`) are the source of truth for what's in/out of scope.
 
 ## Methodology fidelity
 
-- The methodology is a **pipeline with dependencies** (see `02-methodology-model.md` §Dependencies).
+- The methodology is a **pipeline with dependencies** (see `docs/02-methodology-model.md` §Dependencies).
   Synthesis sections read from upstream sections; don't let a section generate before its inputs exist.
 - **Respect the resolver model**: some sections are client-input, some designer-only, some
   collaborative. The internal **Evaluation Criteria** (viability gate) is designer-only and must
@@ -48,7 +50,7 @@ Project data is the user's real client work and is irreplaceable. It lives in `a
   never auto-committed. The designer reviews and accepts.
 - Default reasoning model is **Claude Opus 4.8** (`claude-opus-4-8`) — synthesis quality is the
   product. Use **Haiku 4.5** (`claude-haiku-4-5-20251001`) only for mechanical derivation
-  (e.g. turning identity claims into survey questions). See `05-ai-architecture.md`.
+  (e.g. turning identity claims into survey questions). See `docs/05-ai-architecture.md`.
 - Enable **prompt caching** on the static methodology system prompt.
 - AI must cite which upstream sections it drew from, so the designer can trace a draft.
 
@@ -60,6 +62,6 @@ Project data is the user's real client work and is irreplaceable. It lives in `a
 
 ## When in doubt
 
-- Read the design docs in this folder first, then `02-methodology-model.md` for the taxonomy.
+- Read the design docs in `docs/` first, then `docs/02-methodology-model.md` for the taxonomy.
 - If a request conflicts with data-safety or the single-user scope, flag it before acting.
 - Keep changes minimal and reversible. Ask before destructive operations.

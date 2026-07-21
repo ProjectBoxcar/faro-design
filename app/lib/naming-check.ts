@@ -1,6 +1,7 @@
 import "server-only";
-import type Anthropic from "@anthropic-ai/sdk";
-import { getClient, MODELS } from "@/lib/anthropic";
+import Anthropic from "@anthropic-ai/sdk";
+import { MODELS } from "@/lib/ai";
+import { getApiKey, getProvider } from "@/lib/settings";
 import { extractJson } from "@/lib/json";
 import { getProject, getSectionRow, getSections, insertEvaluation } from "@/lib/queries";
 import type { EvaluationRow } from "@/lib/queries";
@@ -79,6 +80,9 @@ export async function runNameAvailabilityCheck(
   projectId: string,
   name: string
 ): Promise<NameCheckResult> {
+  if (getProvider() !== "anthropic") {
+    throw new Error("Name availability check requires the Anthropic provider (web search tool).");
+  }
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Name is required");
   const label = trimmed.toLowerCase().replace(/[^a-z0-9-]/g, "");
@@ -115,14 +119,16 @@ export async function runNameAvailabilityCheck(
     .filter(Boolean)
     .join("\n\n");
 
-  const client = getClient();
-  let messages: Anthropic.MessageParam[] = [{ role: "user", content: user }];
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error("No API key configured");
+  const client = new Anthropic({ apiKey });
+  let messages: { role: "user" | "assistant"; content: unknown }[] = [{ role: "user", content: user }];
   let resp = await client.messages.create({
     model: MODELS.reasoning,
     max_tokens: 4096,
     system,
     tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 10 }],
-    messages,
+    messages: messages as Anthropic.MessageParam[],
   });
 
   // Server-side tool loops can pause; re-send to let the search continue.
@@ -133,7 +139,7 @@ export async function runNameAvailabilityCheck(
       max_tokens: 4096,
       system,
       tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 10 }],
-      messages,
+      messages: messages as Anthropic.MessageParam[],
     });
   }
 
