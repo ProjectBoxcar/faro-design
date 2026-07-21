@@ -2,21 +2,55 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Check, Lock, Settings } from "lucide-react";
+import { useState } from "react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  Compass,
+  FileText,
+  Lightbulb,
+  Palette,
+  Settings,
+  type LucideIcon,
+} from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
 
+// A pillar-level review screen (one of the numbered steps in the old flat list).
+export type SidebarGroup = {
+  id: string;
+  name: string;
+  done: number;
+  total: number;
+  isCurrent: boolean;
+};
+
+// A methodology phase that owns several review groups. The rail groups steps
+// under these so each phase — especially the Design studio — is discoverable
+// instead of buried at the bottom of one long list.
 export type SidebarPhase = {
   id: string;
   name: string;
   done: number;
   total: number;
-  unlocked: boolean;
   isCurrent: boolean;
+  groups: SidebarGroup[];
 };
 
-// Desktop-only left rail: project identity, overall progress, and the 4-phase
-// orientation map. Detailed steps stay behind "View all steps" so it never
-// overwhelms — the rail is just "where am I in the journey".
+// Per-phase presentation: an icon so the rail is scannable, a short hint, and an
+// optional display label. The Design phase surfaces as "Design Studio" — the
+// place the designer explores names, visual territory and the brand system —
+// while the underlying methodology name stays "Design".
+const PHASE_META: Record<string, { icon: LucideIcon; label?: string; hint: string }> = {
+  strategic: { icon: Compass, hint: "Understand the business" },
+  handoff: { icon: FileText, hint: "Write the thinking up cleanly" },
+  planning: { icon: Lightbulb, hint: "Turn strategy into a plan" },
+  design: { icon: Palette, label: "Design Studio", hint: "Explore names & visual direction" },
+};
+
+// Desktop-only left rail: project identity, overall progress, and the guided
+// journey grouped by phase. Each phase collapses so the rail stays a calm "where
+// am I", and detailed steps still live behind "View all steps" on the hub.
 export function ProjectSidebar({
   projectId,
   projectName,
@@ -69,47 +103,16 @@ export function ProjectSidebar({
         <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
           Journey
         </div>
-        <ol className="space-y-0.5">
-          {phases.map((p, i) => {
-            const complete = p.total > 0 && p.done === p.total;
-            const current = viewedGroup ? p.id === viewedGroup : p.isCurrent;
-            return (
-              <li key={p.id}>
-                <Link
-                  href={`/projects/${projectId}/review/${p.id}`}
-                  className={`flex items-center gap-3 rounded-xl px-2.5 py-2 transition ${
-                    current ? "bg-[var(--accent-soft)]" : "hover:bg-[var(--surface-2)]"
-                  }`}
-                >
-                  <span
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-medium ${
-                      complete
-                        ? "bg-[var(--ok)] text-white"
-                        : current
-                        ? "bg-[var(--accent)] text-white"
-                        : "bg-[var(--surface-2)] text-[var(--muted)]"
-                    }`}
-                  >
-                    {complete ? <Check size={13} /> : !p.unlocked ? <Lock size={11} /> : i + 1}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className={`truncate text-sm ${current ? "font-medium" : "text-[var(--muted)]"}`}>
-                        {p.name}
-                      </span>
-                      {current && (
-                        <span className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
-                          {viewedGroup ? "Viewing" : "Now"}
-                        </span>
-                      )}
-                    </span>
-                    <ProgressBar done={p.done} total={p.total} className="mt-1.5" />
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ol>
+        <div className="space-y-1">
+          {phases.map((phase) => (
+            <PhaseSection
+              key={phase.id}
+              projectId={projectId}
+              phase={phase}
+              viewedGroup={viewedGroup}
+            />
+          ))}
+        </div>
         <Link
           href={`/projects/${projectId}?plan=open#plan`}
           className="mt-3 block rounded-xl px-2.5 py-2 text-sm text-[var(--accent)] transition hover:bg-[var(--surface-2)]"
@@ -127,5 +130,112 @@ export function ProjectSidebar({
         </Link>
       </div>
     </aside>
+  );
+}
+
+function PhaseSection({
+  projectId,
+  phase,
+  viewedGroup,
+}: {
+  projectId: string;
+  phase: SidebarPhase;
+  viewedGroup: string | null;
+}) {
+  const meta = PHASE_META[phase.id];
+  const Icon = meta?.icon ?? Compass;
+  const label = meta?.label ?? phase.name;
+  const complete = phase.total > 0 && phase.done === phase.total;
+  const holdsViewed = viewedGroup ? phase.groups.some((g) => g.id === viewedGroup) : false;
+  // Open the phase you're viewing, or (off review screens) the phase you're
+  // working on next; the rest stay tucked away so the rail never overwhelms.
+  const [open, setOpen] = useState(holdsViewed || (!viewedGroup && phase.isCurrent));
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition hover:bg-[var(--surface-2)]"
+      >
+        <span
+          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+            complete
+              ? "bg-[var(--ok)] text-white"
+              : phase.isCurrent
+              ? "bg-[var(--accent)] text-white"
+              : "bg-[var(--surface-2)] text-[var(--muted)]"
+          }`}
+        >
+          {complete ? <Check size={13} /> : <Icon size={13} />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="truncate text-sm font-medium">{label}</span>
+            {phase.isCurrent && (
+              <span className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+                Now
+              </span>
+            )}
+          </span>
+          <span className="mt-0.5 block truncate text-[11px] text-[var(--subtle)]">
+            {meta?.hint ?? `${phase.done}/${phase.total} done`}
+          </span>
+        </span>
+        <ChevronDown
+          size={15}
+          className={`shrink-0 text-[var(--subtle)] transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <ol className="mb-1 ml-[1.55rem] space-y-0.5 border-l border-[var(--border)] pl-2">
+          {phase.groups.map((g) => {
+            const done = g.total > 0 && g.done === g.total;
+            const current = viewedGroup ? g.id === viewedGroup : g.isCurrent;
+            return (
+              <li key={g.id}>
+                <Link
+                  href={`/projects/${projectId}/review/${g.id}`}
+                  className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition ${
+                    current ? "bg-[var(--accent-soft)]" : "hover:bg-[var(--surface-2)]"
+                  }`}
+                >
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                    {done ? (
+                      <Check size={13} className="text-[var(--ok)]" />
+                    ) : (
+                      <span
+                        className={`h-2 w-2 rounded-full ${
+                          current ? "bg-[var(--accent)]" : "bg-[var(--border-strong)]"
+                        }`}
+                      />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={`truncate text-[13px] ${
+                          current ? "font-medium" : "text-[var(--muted)]"
+                        }`}
+                      >
+                        {g.name}
+                      </span>
+                      {current && (
+                        <span className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+                          {viewedGroup ? "Viewing" : "Next"}
+                        </span>
+                      )}
+                    </span>
+                    <ProgressBar done={g.done} total={g.total} className="mt-1" />
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
   );
 }

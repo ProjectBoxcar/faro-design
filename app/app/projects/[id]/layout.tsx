@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getProject, getSections } from "@/lib/queries";
+import { methodology } from "@/lib/methodology";
 import {
   reviewGroups,
   reviewGroupProgress,
@@ -26,18 +27,36 @@ export default async function ProjectLayout({
   const statusMap: StatusMap = new Map(getSections(id).map((r) => [r.section_key, r.status]));
   const overall = reviewProgress(statusMap);
   const current = currentReviewGroupId(statusMap);
-  // The sidebar reflects the owner's real journey: the four review screens.
-  const phases: SidebarPhase[] = reviewGroups().map((g) => {
-    const pr = reviewGroupProgress(g.id, statusMap);
-    return {
-      id: g.id,
-      name: g.name,
-      done: pr.done,
-      total: pr.total,
-      unlocked: true,
-      isCurrent: g.id === current,
-    };
-  });
+  // The sidebar reflects the owner's real journey: every review screen, grouped
+  // under its methodology phase so each phase (including the Design studio) is a
+  // discoverable section instead of a numbered row buried in one long list.
+  const groupById = new Map(reviewGroups().map((g) => [g.id, g]));
+  const phases: SidebarPhase[] = methodology.phases
+    .map((phase) => {
+      const groups = phase.pillars
+        .filter((p) => groupById.has(p.id))
+        .map((p) => {
+          const pr = reviewGroupProgress(p.id, statusMap);
+          return {
+            id: p.id,
+            name: groupById.get(p.id)!.name,
+            done: pr.done,
+            total: pr.total,
+            isCurrent: p.id === current,
+          };
+        });
+      const done = groups.reduce((sum, g) => sum + g.done, 0);
+      const total = groups.reduce((sum, g) => sum + g.total, 0);
+      return {
+        id: phase.id,
+        name: phase.name,
+        done,
+        total,
+        isCurrent: groups.some((g) => g.isCurrent),
+        groups,
+      };
+    })
+    .filter((p) => p.groups.length > 0);
 
   return (
     <div className="flex min-h-screen">
