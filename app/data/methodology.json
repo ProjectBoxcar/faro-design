@@ -1145,6 +1145,7 @@
               "kind": "synthesis",
               "internal": false,
               "reads": [
+                "strategic-document.communication",
                 "communication.deferred"
               ],
               "helpText": "Where the design is heading. A brief close that signals what comes without executing it. Names the pending items (manifesto, naming, verbal identity) and bridges to the concept and design plan. Should feel like a starting point. 1 page.",
