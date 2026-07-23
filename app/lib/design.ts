@@ -57,6 +57,7 @@ export function buildBriefContext(projectId: string): BriefContext {
 
   const manifesto = getSectionRow(projectId, "manifesto")?.value;
   const designPlan = getSectionRow(projectId, "design-plan")?.value;
+  const taste = getSectionRow(projectId, "intake.taste")?.value;
 
   // Strategic Document is a set of sections; concatenate them for a full narrative.
   const docParts = [
@@ -99,6 +100,7 @@ export function buildBriefContext(projectId: string): BriefContext {
     manifesto: firstField(manifesto, "text"),
     strategicDocument: docParts || undefined,
     designPlan: designPlan ? JSON.stringify(designPlan, null, 2) : undefined,
+    designTaste: firstField(taste, "taste"),
   };
 }
 
@@ -133,6 +135,7 @@ function stringifyContext(ctx: BriefContext): string {
   add("Manifesto", ctx.manifesto);
   if (ctx.strategicDocument) add("Strategic Document", ctx.strategicDocument);
   if (ctx.designPlan) add("Design Plan", ctx.designPlan);
+  add("Owner's Design Taste (styles they admire, feelings wanted, things to avoid)", ctx.designTaste);
   return lines.join("\n\n");
 }
 
@@ -350,6 +353,25 @@ export async function generateBrandDeckProposals(
     designSystemId: designSystem.id,
     onAsset,
   });
+}
+
+// The application mockups that follow an approved identity system, per the
+// design plan's execution order: identity first, then the landing page and
+// brand deck as applications of it. One of each, auto-selected — they
+// demonstrate the approved system rather than compete for a separate choice.
+export async function generateApplicationMockups(
+  projectId: string,
+  designSystemId: string,
+  onAsset?: (asset: AssetRow) => void
+): Promise<AssetRow[]> {
+  const results: AssetRow[] = [];
+  const [landing] = await generateLandingPageProposals(projectId, designSystemId, 1, onAsset);
+  selectAsset(projectId, landing.id);
+  results.push(getAsset(projectId, landing.id)!);
+  const [deck] = await generateBrandDeckProposals(projectId, designSystemId, 1, onAsset);
+  selectAsset(projectId, deck.id);
+  results.push(getAsset(projectId, deck.id)!);
+  return results;
 }
 
 // Keep single-generation helpers for callers that expect one asset; they create a single variant "A".

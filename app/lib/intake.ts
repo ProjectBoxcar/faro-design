@@ -18,6 +18,7 @@ export type IntakeAnswers = {
   difference: string; // Q3 — what makes them different + industry beliefs
   operations: string; // Q4 — stage, pricing, how clients find them, limits
   edge: string; // Q5 — the one thing a competitor couldn't say
+  taste: string; // Q6 — how the brand should look and feel (design taste)
 };
 
 export type ExpandResult = {
@@ -101,6 +102,7 @@ function buildUserMessage(brandName: string, a: IntakeAnswers): string {
     `3. What makes them different, and what they believe about their industry:\n${a.difference || "(not answered)"}`,
     `4. How the business runs today (stage, pricing/packages, how clients find them, capacity/limits):\n${a.operations || "(not answered)"}`,
     `5. One thing that's true about them a competitor couldn't say:\n${a.edge || "(not answered)"}`,
+    `6. How they want the brand to look and feel (styles admired, feelings wanted, things to avoid):\n${a.taste || "(not answered)"}`,
   ];
   lines.push("\nReturn the JSON object now.");
   return lines.join("\n");

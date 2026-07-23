@@ -182,7 +182,7 @@ export const design_jobs = sqliteTable(
     project_id: text("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
-    kind: text("kind", { enum: ["design_system", "landing_page", "deck"] }).notNull(),
+    kind: text("kind", { enum: ["design_system", "landing_page", "deck", "mockups"] }).notNull(),
     count: integer("count").notNull().default(3),
     design_system_id: text("design_system_id"),
     status: text("status", { enum: ["queued", "running", "complete", "failed"] })

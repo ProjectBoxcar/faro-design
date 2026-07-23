@@ -11,6 +11,7 @@ type Answers = {
   difference: string;
   operations: string;
   edge: string;
+  taste: string;
 };
 
 const QUESTIONS: {
@@ -49,6 +50,12 @@ const QUESTIONS: {
     help: "The hardest-to-copy thing — a standard you hold, a way you work, something only you could claim.",
     placeholder: "We've never shipped a brand we didn't believe in…",
   },
+  {
+    key: "taste",
+    title: "How should the brand look and feel?",
+    help: "Brands or styles you admire, the feeling you want people to have, and anything you definitely don't want (colors, moods, clichés). This guides the design work.",
+    placeholder: "Clean and calm, like Aesop or Apple. Warm but confident. Please no neon colors or startup clichés…",
+  },
 ];
 
 const TOTAL_STEPS = QUESTIONS.length + 1; // intro details + questions
@@ -66,6 +73,7 @@ export default function StartPage() {
     difference: "",
     operations: "",
     edge: "",
+    taste: "",
   });
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -138,8 +146,9 @@ export default function StartPage() {
         setBuilding(false);
         return;
       }
-      // Land in the workspace; drafts are pre-filled and ready to review.
-      router.push(`/projects/${data.projectId}?drafted=1`);
+      // Land on the express journey: the full strategy drafts in the background
+      // and the owner reviews the finished brief + design plan on one page.
+      router.push(`/projects/${data.projectId}/express`);
     } catch {
       setError("Network error. Please try again.");
       setBuilding(false);

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { design_jobs } from "@/lib/db/schema";
 import {
   deleteAsset,
+  generateApplicationMockups,
   generateBrandDeckProposals,
   generateDesignSystemProposals,
   generateLandingPageProposals,
@@ -146,6 +147,9 @@ export function startDesignJob(jobId: string): Promise<void> {
     let generated: AssetRow[];
     if (job.kind === "design_system") {
       generated = await generateDesignSystemProposals(job.project_id, job.count, onAsset);
+    } else if (job.kind === "mockups") {
+      if (!job.design_system_id) throw new Error("A final Brand Identity System is required.");
+      generated = await generateApplicationMockups(job.project_id, job.design_system_id, onAsset);
     } else if (job.kind === "landing_page") {
       if (!job.design_system_id) throw new Error("A final Brand Identity System is required.");
       generated = await generateLandingPageProposals(
