@@ -72,8 +72,8 @@ function isComplete(map: StatusMap, sectionId: string): boolean {
 }
 
 // Required = counts toward finishing a phase / the journey. Optional sections
-// (Image survey, the whole design phase, byproducts) are reachable and useful
-// but never block progress.
+// (the whole design phase, byproducts) are reachable and useful but never
+// block progress.
 function isRequired(sectionId: string): boolean {
   return !getSection(sectionId)?.optional;
 }
@@ -126,8 +126,8 @@ export function currentPhaseId(map: StatusMap): string {
 // ---- Grouped review: one screen per pillar, in phase order, containing EVERY
 // non-internal section — derived straight from methodology.json so the guided
 // review can never silently drop steps again (it used to hand-pick 28 of 70).
-// Optional pillars (Image survey, the whole Design phase) are part of the
-// journey but settle as done when left empty, so they guide without blocking.
+// Optional pillars (the whole Design phase) are part of the journey but
+// settle as done when left empty, so they guide without blocking.
 
 export type ReviewGroup = { id: string; name: string; blurb: string; sectionIds: string[] };
 

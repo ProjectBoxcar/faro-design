@@ -18,7 +18,6 @@ const Schema = z.object({
     difference: z.string().default(""),
     operations: z.string().default(""),
     edge: z.string().default(""),
-    feedback: z.string().optional(),
   }),
 });
 

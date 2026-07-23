@@ -62,7 +62,6 @@ export function buildBriefContext(projectId: string): BriefContext {
   const docParts = [
     getSectionRow(projectId, "strategic-document.reality")?.value,
     getSectionRow(projectId, "strategic-document.identity")?.value,
-    getSectionRow(projectId, "strategic-document.image")?.value,
     getSectionRow(projectId, "strategic-document.communication")?.value,
     getSectionRow(projectId, "strategic-document.direction")?.value,
   ]

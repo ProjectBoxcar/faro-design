@@ -188,7 +188,7 @@ export function unpublishProject(id: string): void {
 }
 
 // Mark every section in a reviewed pillar that actually has content as complete.
-// Empty steps (e.g. an Image survey the owner skipped) are left alone.
+// Empty steps (e.g. an optional step the owner skipped) are left alone.
 export function completeSectionsWithContent(projectId: string, keys: string[]): void {
   for (const key of keys) {
     const row = getSectionRow(projectId, key);

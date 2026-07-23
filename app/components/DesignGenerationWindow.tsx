@@ -13,7 +13,7 @@ const GENERATION_COPY: Record<
     title: "Building your brand identity",
     output: "identity systems",
     focuses: [
-      "Reading across Reality, Identity, Image, and Communication",
+      "Reading across Reality, Identity, and Communication",
       "Finding the central pattern running through the strategy",
       "Mapping the emotional territory the brand should occupy",
       "Translating strategic constraints into visual decisions",

@@ -45,7 +45,6 @@ export const GROUPS: { heading: string; keys: string[] }[] = [
       "communication.personality",
       "communication.tone",
       "communication.promise",
-      "image.key-finding",
     ],
   },
   {
