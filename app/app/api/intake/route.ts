@@ -6,8 +6,8 @@ import { expandIntake } from "@/lib/intake";
 import { maybeRunViabilityGate } from "@/lib/viability";
 import { startExpress } from "@/lib/express";
 
-// Quick Start: create the project, then expand the owner's five (+ optional
-// survey) answers into editable drafts across Reality + Identity in one pass.
+// Quick Start: create the project, then expand the owner's six answers into
+// editable drafts across Reality + Identity in one pass.
 const Schema = z.object({
   name: z.string().min(1, "Name is required"),
   client_name: z.string().optional().nullable(),

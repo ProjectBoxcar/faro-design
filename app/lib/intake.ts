@@ -8,7 +8,7 @@ import { db } from "@/lib/db";
 import { ai_generations } from "@/lib/db/schema";
 import { nanoid } from "nanoid";
 
-// The Quick Start interview: five broad questions the brand owner answers up
+// The Quick Start interview: six broad questions the brand owner answers up
 // front. The AI expands these into editable drafts for every owner-knowable
 // input section of Reality + Identity, so the owner reviews and refines
 // instead of starting blank.

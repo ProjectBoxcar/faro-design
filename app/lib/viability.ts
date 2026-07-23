@@ -106,9 +106,18 @@ async function runViabilityGate(projectId: string): Promise<void> {
     .map((c, i) => `${i + 1}. [${c.type}] ${c.criterion} — implication: ${c.implication ?? ""}`)
     .join("\n");
 
+  // Without a separate client on file, the founder answering IS the client:
+  // they approve creative direction and fund the work by definition, so the
+  // agency-screening criteria about decision-makers and budget are met.
+  const ownerLed = !project.client_name;
   const prompt = [
     `You are applying the Finisterra methodology's internal viability gate to the brand project "${project.name}".`,
     `Answer each criterion strictly yes or no based ONLY on the owner's answers below. If the answers don't address a criterion, infer conservatively and say so in the note.`,
+    ...(ownerLed
+      ? [
+          `NOTE: This project is OWNER-LED — the founder is building their own brand directly in this tool. The person answering IS the decision-maker who approves creative direction, and by running the project themselves they have committed its budget. Answer those criteria "yes" unless the answers state otherwise.`,
+        ]
+      : []),
     `CRITERIA:\n${criteriaList}`,
     `THE OWNER'S ANSWERS:\n${upstream || "(nothing on file)"}`,
     `Respond with ONLY a JSON object: {"answers": [{"n": <criterion number>, "answer": "yes"|"no", "note": "<one sentence of evidence>"}]} — one entry per criterion, in order.`,

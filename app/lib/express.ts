@@ -37,6 +37,22 @@ export function expressSectionIds(): string[] {
 
 const runs = new Map<string, { state: ExpressState; promise: Promise<void> }>();
 
+// Provider rate limits (429) pause the pipeline briefly instead of failing it.
+async function generateWithRetry(projectId: string, id: string) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      return await generateSection(projectId, id, {});
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : "";
+      if (!/429|rate limit|overloaded/i.test(message)) throw error;
+      await new Promise((r) => setTimeout(r, 20_000 * (attempt + 1)));
+    }
+  }
+  throw lastError;
+}
+
 export function expressStatus(projectId: string): ExpressState {
   const active = runs.get(projectId);
   if (active) return active.state;
@@ -71,26 +87,42 @@ export function startExpress(projectId: string): ExpressState {
   };
 
   const promise = (async () => {
-    for (const id of ids) {
-      const filled = filledKeys(projectId);
-      if (filled.has(id)) {
+    // The journey listing is not strictly topological (a section may read a
+    // sibling listed after it), so run passes: each pass drafts every section
+    // whose inputs exist, until all are done or a pass makes no progress.
+    let remaining = ids;
+    while (remaining.length > 0) {
+      const next: string[] = [];
+      let progressed = false;
+      for (const id of remaining) {
+        const filled = filledKeys(projectId);
+        if (filled.has(id)) {
+          state.done += 1;
+          progressed = true;
+          continue;
+        }
+        if (!canGenerate(id, filled)) {
+          next.push(id);
+          continue;
+        }
+        state.current = id;
+        state.currentName = getSection(id)?.name ?? id;
+        const result = await generateWithRetry(projectId, id);
+        saveSection({
+          projectId,
+          key: id,
+          value: result.values as unknown as SectionValue,
+          status: "draft",
+          aiGenerated: true,
+        });
         state.done += 1;
-        continue;
+        progressed = true;
       }
-      if (!canGenerate(id, filled)) {
-        throw new Error(`"${getSection(id)?.name ?? id}" is missing its inputs — fill the Quick Start answers first.`);
+      if (!progressed) {
+        const names = next.map((id) => getSection(id)?.name ?? id).join(", ");
+        throw new Error(`Some steps are missing their inputs — ${names}. Fill the Quick Start answers first.`);
       }
-      state.current = id;
-      state.currentName = getSection(id)?.name ?? id;
-      const result = await generateSection(projectId, id, {});
-      saveSection({
-        projectId,
-        key: id,
-        value: result.values as unknown as SectionValue,
-        status: "draft",
-        aiGenerated: true,
-      });
-      state.done += 1;
+      remaining = next;
     }
     state.current = null;
     state.currentName = null;

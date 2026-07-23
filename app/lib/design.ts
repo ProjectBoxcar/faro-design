@@ -44,7 +44,14 @@ export function buildBriefContext(projectId: string): BriefContext {
     position: getSectionRow(projectId, "identity.position")?.value,
   };
 
-  const brief = getSectionRow(projectId, "brief")?.value;
+  // The Strategic Brief lives as one section per finding.
+  const brief = {
+    centralPattern: getSectionRow(projectId, "brief.central-pattern")?.value,
+    mainTension: getSectionRow(projectId, "brief.main-tension")?.value,
+    constraint: getSectionRow(projectId, "brief.constraint")?.value,
+    emotionalTerritory: getSectionRow(projectId, "brief.emotional-territory")?.value,
+    mustResolve: getSectionRow(projectId, "brief.must-resolve")?.value,
+  };
   const concept = getSectionRow(projectId, "concept")?.value;
 
   const c = {
@@ -84,11 +91,11 @@ export function buildBriefContext(projectId: string): BriefContext {
     aspiration: firstField(i.aspiration, "statement"),
     beliefs: firstField(i.beliefs, "beliefs"),
     position: firstField(i.position, "statement"),
-    centralPattern: firstField(brief, "central-pattern"),
-    mainTension: firstField(brief, "main-tension"),
-    constraint: firstField(brief, "constraint"),
-    emotionalTerritory: firstField(brief, "emotional-territory"),
-    mustResolve: firstField(brief, "must-resolve"),
+    centralPattern: firstField(brief.centralPattern, "pattern"),
+    mainTension: firstField(brief.mainTension, "tension"),
+    constraint: firstField(brief.constraint, "constraint"),
+    emotionalTerritory: firstField(brief.emotionalTerritory, "territory"),
+    mustResolve: firstField(brief.mustResolve, "question"),
     conceptStatement: firstField(concept, "statement"),
     conceptDescription: firstField(concept, "description"),
     conceptDistillation: firstField(concept, "distillation"),
