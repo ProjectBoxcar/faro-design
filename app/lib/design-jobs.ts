@@ -10,9 +10,11 @@ import {
   generateDesignSystemProposals,
   generateLandingPageProposals,
   getAsset,
+  listAssets,
   type AssetRow,
 } from "@/lib/design";
-import { getProject } from "@/lib/queries";
+import { finalDeliverableIssue } from "@/lib/design-deliverable";
+import { getProject, setProjectPhase } from "@/lib/queries";
 import { viabilityActionBlockedReason } from "@/lib/project-gates";
 import type { DesignJobKind, DesignJobState } from "@/lib/design-job-types";
 
@@ -168,6 +170,12 @@ export function startDesignJob(jobId: string): Promise<void> {
       );
     }
     updateJob(job.id, { status: "complete", asset_ids: generated.map((asset) => asset.id) });
+    // The journey completes when the full package — strategy already
+    // published, plus every final design output — is on file.
+    const finished = getProject(job.project_id);
+    if (finished?.share_token && !finalDeliverableIssue(listAssets(job.project_id))) {
+      setProjectPhase(job.project_id, "finished");
+    }
   })()
     .catch((error) => {
       const message = error instanceof Error ? error.message : "Design generation failed";

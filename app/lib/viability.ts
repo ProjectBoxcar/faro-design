@@ -66,9 +66,15 @@ export async function maybeRunViabilityGate(
   // Filled (draft or complete) is enough: the inputs are the owner's real
   // answers, and some (business stage, capacity) live outside the four review
   // screens, so waiting for "complete" could postpone the gate forever.
+  // An input the owner had nothing to say for stays empty forever, so it
+  // can't hold the gate hostage — require the rest, and at least one filled.
   const rows = getSections(projectId);
   const statusOf = new Map(rows.map((r) => [r.section_key, r.status]));
-  const ready = (gate.reads ?? []).every((r) => (statusOf.get(r) ?? "empty") !== "empty");
+  const reads = gate.reads ?? [];
+  const filled = reads.filter((r) => (statusOf.get(r) ?? "empty") !== "empty");
+  const ready =
+    filled.length > 0 &&
+    reads.every((r) => filled.includes(r) || getSection(r)?.kind === "input");
   if (!ready) return;
 
   const existing = inFlightChecks.get(projectId);
