@@ -179,6 +179,18 @@ export function publishProject(id: string): string {
   return token;
 }
 
+// The journey's phase marker — "finished" once the complete brand package
+// (strategy + approved design) is published.
+export function setProjectPhase(
+  id: string,
+  phase: "strategic" | "planning" | "design" | "finished"
+): void {
+  db.update(projects)
+    .set({ current_phase: phase, updated_at: new Date() })
+    .where(eq(projects.id, id))
+    .run();
+}
+
 // Unpublish: revoke the share link by clearing the token and published timestamp.
 export function unpublishProject(id: string): void {
   db.update(projects)

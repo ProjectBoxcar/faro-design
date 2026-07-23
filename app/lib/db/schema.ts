@@ -49,7 +49,7 @@ export const projects = sqliteTable("projects", {
   // (recurring sales, budget) are answered but don't block a personal project.
   personal: integer("personal", { mode: "boolean" }).notNull().default(false),
   current_phase: text("current_phase", {
-    enum: ["strategic", "planning", "design"],
+    enum: ["strategic", "planning", "design", "finished"],
   })
     .notNull()
     .default("strategic"),

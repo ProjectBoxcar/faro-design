@@ -17,6 +17,7 @@ const PHASE_LABEL: Record<string, string> = {
   strategic: "Strategic",
   planning: "Planning",
   design: "Design",
+  finished: "Finished",
 };
 
 export const dynamic = "force-dynamic";
