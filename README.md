@@ -1,13 +1,6 @@
 # Brand App — Finisterra Methodology Workspace
 
-A project-based web app that encodes the **Finisterra brand-design methodology** to:
-
-1. Guide creation of brand concepts (Strategy → Planning → Design), and
-2. Produce **handover briefs** for a professional graphic designer via a shareable read-only link.
-
-**Primary user of the journey:** the brand owner (plain questions → AI drafts → review → brief).
-**Operator:** Leonardo (or any strategist) on a local machine — same seat. The app captures structure,
-runs methodology evaluations (e.g. viability), and uses Claude to draft synthesis for human review.
+A guided brand-building web app that takes a business owner from plain answers about their business to a complete brand: AI-drafted strategy, generated design systems, landing pages, decks, and logo concepts, plus a shareable read-only brief for a graphic designer.
 
 ## Status
 
