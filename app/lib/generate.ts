@@ -1,6 +1,6 @@
 import "server-only";
 import { generateText, MODELS } from "@/lib/ai";
-import { getDefaultModel } from "@/lib/settings";
+
 import { methodology, getSection, getPillarOf, readsOf, canGenerate } from "@/lib/methodology";
 import { sectionGuide } from "@/lib/guide";
 import { getProject, getSectionRow, getSections, filledKeys } from "@/lib/queries";
@@ -196,7 +196,7 @@ export async function generateSection(
   parts.push("Return the JSON object now.");
 
   // Mechanical derivation (e.g. survey questions) uses Haiku; flagship synthesis uses the default (Opus).
-  const model = specialist?.useParsingModel ? MODELS.parsing : getDefaultModel();
+  const model = specialist?.useParsingModel ? MODELS.parsing : MODELS.reasoning;
   const { text, model: usedModel } = await generateText({
     model,
     maxTokens: 8192,

@@ -1,8 +1,8 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { ai_generations } from "@/lib/db/schema";
-import { generateText } from "@/lib/ai";
-import { getDefaultModel } from "@/lib/settings";
+import { generateText, MODELS } from "@/lib/ai";
+
 import { extractJson } from "@/lib/json";
 import {
   getProject,
@@ -127,7 +127,7 @@ export async function generateLogoCandidates(
   const name = clearedName(projectId)!;
   const { context, reads } = strategyContext(projectId);
   const hexes = strategyHexes(projectId);
-  const model = getDefaultModel();
+  const model = MODELS.reasoning;
 
   const system = `You are a senior brand designer executing a strategy that is already decided.
 Never invent strategy — every choice must trace to the brief you are given.
