@@ -12,13 +12,13 @@ const CENTRAL_PATTERN = `
 CENTRAL PATTERN OUTPUT CONTRACT:
 - Return the "pattern" field as one concrete word, or at most a four-word phrase.
 - Return only the pattern itself in that field. No rationale, evidence, preamble, colon, or "in one word" explanation.
-- It must name the recurring truth across Reality, Identity, and Image, not a generic value such as quality or innovation.
+- It must name the recurring truth across Reality and Identity, not a generic value such as quality or innovation.
 `.trim();
 
 const BRIEF_FIELDS = `
 STRATEGIC BRIEF QUALITY BAR:
 - Each field is a design compass entry, not a marketing slogan.
-- Central Pattern: the single recurring truth across Reality, Identity, and Image — specific, not abstract.
+- Central Pattern: the single recurring truth across Reality and Identity — specific, not abstract.
 - Main Tension: the conflict the brand must resolve; classification must be ability | visibility | coherence | other.
 - Constraint: the real limit the design cannot ignore (budget, category, audience, medium).
 - Emotional Territory: how the brand should feel when it works — sensory and human, not buzzwords.
@@ -46,12 +46,12 @@ MANIFESTO QUALITY BAR:
 
 const COMM_PURPOSE = `
 PURPOSE: one clear sentence of why the brand exists for people (not "to make money").
-Derive from Golden Circle + Image contrast. Concrete verbs; no mission-statement sludge.
+Derive from the Golden Circle. Concrete verbs; no mission-statement sludge.
 `.trim();
 
 const COMM_VALUES = `
 VALUES: 3–5 ordered values the brand actually lives. Table rows with clear value names and short proofs.
-Prefer values confirmed by Image patterns when evidence exists; otherwise mark honestly.
+Prefer values backed by concrete evidence from the owner's answers; otherwise mark honestly.
 `.trim();
 
 const COMM_PERSONALITY = `
@@ -68,14 +68,6 @@ const COMM_PROMISE = `
 BRAND PROMISE: the single commitment customers can hold the brand to. One sentence, testable, not a tagline contest entry.
 `.trim();
 
-const SURVEY_DESIGN = `
-SURVEY DESIGN (mechanical derivation):
-- Turn Identity claims into short, neutral customer-facing questions.
-- professional-questions: how they experience the work / offer.
-- personal-questions: how they experience the relationship / feeling.
-- Do not invent survey RESULTS. Only questions. Keep lists tight (5–8 each).
-`.trim();
-
 const BY_KEY: Record<string, SectionPromptAddon> = {
   "brief.central-pattern": { systemAddon: `${BRIEF_FIELDS}\n\n${CENTRAL_PATTERN}` },
   "brief.main-tension": { systemAddon: BRIEF_FIELDS },
@@ -89,7 +81,6 @@ const BY_KEY: Record<string, SectionPromptAddon> = {
   "communication.personality": { systemAddon: COMM_PERSONALITY },
   "communication.tone": { systemAddon: COMM_TONE },
   "communication.promise": { systemAddon: COMM_PROMISE },
-  "image.survey-design": { systemAddon: SURVEY_DESIGN, useParsingModel: true },
 };
 
 export function getSectionPrompt(sectionKey: string): SectionPromptAddon | null {

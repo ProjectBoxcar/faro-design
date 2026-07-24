@@ -76,6 +76,8 @@ export function designSystemPrompt(variant: string, brief: string): string {
   return [
     `You are writing a complete visual brand design system handover for a developer. This is proposal "${variant}".`,
     "",
+    "This identity system is the CORE brand deliverable. Read the entire brand strategy below — especially the Design Plan — and cover every visual-identity component the plan marks for creation (logo, palette, typography, system elements, and directions for photography, iconography, and illustration where listed), in the plan's execution order. Honor the owner's stated design taste if provided.",
+    "",
     "Output MUST be a single, self-contained HTML file (not markdown) with all CSS in a <style> tag and no external dependencies. It will be opened directly in a browser by the designer and the developer.",
     "",
     "Critical preview behavior:",
@@ -119,6 +121,8 @@ export function landingPagePrompt(variant: string, brief: string, designSystem: 
   return [
     `You are building a premium, interactive single-file HTML landing page. This is proposal "${variant}".`,
     "",
+    "This landing page is an APPLICATION MOCKUP of the approved brand identity system — it demonstrates the identity in use, per the Design Plan's execution order. It must follow the design system exactly; it is not a place to invent new visual directions.",
+    "",
     "Output MUST be a single HTML file with all CSS and JavaScript inline. Use system fonts and embedded SVG/data assets only. Do not load any remote font, image, script, stylesheet, CDN, or network resource; it must work fully offline.",
     "",
     "Mandatory creative direction — this must change page architecture and storytelling, not only colors:",
@@ -155,6 +159,8 @@ export function landingPagePrompt(variant: string, brief: string, designSystem: 
 export function brandDeckPrompt(variant: string, brief: string, designSystem: string): string {
   return [
     `You are building a premium, multi-slide brand strategy presentation deck as a single HTML file. This is proposal "${variant}".`,
+    "",
+    "This deck is an APPLICATION MOCKUP of the approved brand identity system — it demonstrates the identity in use, per the Design Plan's execution order. It must follow the design system exactly; it is not a place to invent new visual directions.",
     "",
     "Output MUST be one single HTML file with all CSS and JavaScript inline. Use system fonts and embedded SVG/data assets only. Do not load any remote font, image, script, stylesheet, CDN, or network resource; it must work fully offline.",
     "",

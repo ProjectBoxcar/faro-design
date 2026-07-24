@@ -38,7 +38,7 @@ const KIND_META: Record<
     shortLabel: "Identity",
     icon: <Palette size={18} />,
     description: "Colors, typography, logo, and component rules a developer can use.",
-    cta: "Generate 3 identity proposals",
+    cta: "Create 3 brand proposals",
   },
   landing_page: {
     label: "Landing Page",
@@ -71,7 +71,7 @@ const KIND_META: Record<
 };
 
 type GenerationState = {
-  kind: AssetRow["kind"];
+  kind: AssetRow["kind"] | "mockups";
   stage: "generating" | "selecting";
   jobId?: string;
 } | null;
@@ -187,10 +187,19 @@ export function DesignStudio({
         if (cancelled) return;
         if (job.status === "complete") {
           const generated: AssetRow[] = data.assets;
-          setAssets((previous) => [
-            ...previous.filter((asset) => asset.kind !== job.kind || asset.selected),
-            ...generated,
-          ]);
+          setAssets((previous) =>
+            job.kind === "mockups"
+              ? [
+                  // The mockups job replaces every landing page and deck with
+                  // the fresh pair built on the approved identity.
+                  ...previous.filter((asset) => asset.kind !== "landing_page" && asset.kind !== "deck"),
+                  ...generated,
+                ]
+              : [
+                  ...previous.filter((asset) => asset.kind !== job.kind || asset.selected),
+                  ...generated,
+                ]
+          );
           setPreviewAssetId(generated[0]?.id ?? null);
           setPreviewSection("overview");
           setLoading(null);
@@ -214,6 +223,29 @@ export function DesignStudio({
       if (timer) window.clearTimeout(timer);
     };
   }, [loading?.jobId, loading?.stage, projectId, router]);
+
+  // After the owner approves an identity proposal, the Studio applies it: one
+  // landing page and one brand deck, generated in the design plan's execution
+  // order and selected automatically — they are applications, not new choices.
+  async function generateMockups(designSystemId: string) {
+    setLoading({ kind: "mockups", stage: "generating" });
+    setError(null);
+    try {
+      const res = await fetch("/api/design", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, kind: "mockups", count: 2, designSystemId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Mockup generation failed");
+      const job: DesignJobState | undefined = data.job;
+      if (!job) throw new Error("Mockup generation did not start correctly");
+      setLoading({ kind: "mockups", stage: "generating", jobId: job.id });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Mockup generation failed");
+      setLoading(null);
+    }
+  }
 
   async function generateProposals(kind: AssetRow["kind"]) {
     if (!apiKeyConfigured) {
@@ -262,7 +294,7 @@ export function DesignStudio({
       const currentLabel = currentFinal.variant ? `proposal ${currentFinal.variant}` : "the current proposal";
       const nextLabel = nextFinal?.variant ? `proposal ${nextFinal.variant}` : "this proposal";
       const dependencyWarning = kind === "design_system" && (selectedAsset("landing_page") || selectedAsset("deck"))
-        ? " Landing Page and Brand Deck finals will need to be chosen again so the package stays aligned."
+        ? " The landing page and brand deck mockups will be rebuilt on the new identity."
         : "";
       if (!confirm(`Replace ${currentLabel} with ${nextLabel} as the final direction?${dependencyWarning}`)) return;
     }
@@ -292,9 +324,15 @@ export function DesignStudio({
       setPreviewAssetId(updated.id);
       setPreviewSection("overview");
       router.refresh();
+      if (updated.kind === "design_system") {
+        // Approving the identity moves straight to the plan's next step:
+        // the application mockups.
+        await generateMockups(updated.id);
+        return;
+      }
+      setLoading(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Selection failed");
-    } finally {
       setLoading(null);
     }
   }
@@ -459,7 +497,7 @@ export function DesignStudio({
   const finalCount = finalOutputs.filter((output) => output.ready).length;
   const deliverableReady = finalCount === finalOutputs.length;
   const generationKind: DesignGenerationKind | null = loading?.stage === "generating"
-    && (loading.kind === "design_system" || loading.kind === "landing_page" || loading.kind === "deck")
+    && (loading.kind === "design_system" || loading.kind === "landing_page" || loading.kind === "deck" || loading.kind === "mockups")
     ? loading.kind
     : null;
 
@@ -468,7 +506,8 @@ export function DesignStudio({
       <div className="mb-8">
         <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">Design Studio</h1>
         <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">
-          Turn the {projectName} brief into real brand assets. Generate proposals, compare them, and lock in the best direction.
+          Faro read the {projectName} strategic brief and design plan. Compare the three identity
+          proposals, approve one, and the Studio applies it to the mockups your plan calls for.
         </p>
       </div>
 
@@ -500,7 +539,8 @@ export function DesignStudio({
               <h2 id="deliverable-title" className="font-serif text-xl font-medium tracking-tight">Final brand package</h2>
             </div>
             <p className="max-w-xl text-sm text-[var(--muted)]">
-              Choose one final direction for every output, then share a private browser link anyone can open without technical knowledge.
+              Approve one identity proposal — the Studio then builds the application mockups from
+              your design plan and the complete brand package is ready to share.
             </p>
             <ul className="mt-4 flex flex-wrap gap-2" aria-live="polite">
               {finalOutputs.map((output) => (
@@ -597,40 +637,84 @@ export function DesignStudio({
             onDiscardUnselected={() => discardUnselected("design_system")}
             unlocked={!generationBlockedReason}
           />
-          <PipelineStep
-            kind="landing_page"
-            step={2}
-            anchor="landing-page"
-            meta={KIND_META.landing_page}
-            proposals={byKind.landing_page}
-            loading={loading}
-            deletingId={deletingId}
-            discardingKind={discardingKind}
-            previewAssetId={previewAssetId}
-            onGenerate={() => generateProposals("landing_page")}
-            onSelect={selectProposal}
-            onPreview={previewProposal}
-            onDiscard={discardProposal}
-            onDiscardUnselected={() => discardUnselected("landing_page")}
-            unlocked={Boolean(identitySelected) && !generationBlockedReason}
-          />
-          <PipelineStep
-            kind="deck"
-            step={3}
-            anchor="brand-deck"
-            meta={KIND_META.deck}
-            proposals={byKind.deck}
-            loading={loading}
-            deletingId={deletingId}
-            discardingKind={discardingKind}
-            previewAssetId={previewAssetId}
-            onGenerate={() => generateProposals("deck")}
-            onSelect={selectProposal}
-            onPreview={previewProposal}
-            onDiscard={discardProposal}
-            onDiscardUnselected={() => discardUnselected("deck")}
-            unlocked={Boolean(identitySelected) && !generationBlockedReason}
-          />
+          {/* Application mockups: created automatically after the identity is
+              approved, in the design plan's execution order. Not a separate
+              choice — they demonstrate the approved system. */}
+          <section
+            id="application-mockups"
+            aria-labelledby="application-mockups-title"
+            className={`scroll-mt-24 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow ${!identitySelected ? "opacity-60" : ""}`}
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent)]">
+                2
+              </span>
+              <span className="text-[var(--accent)]"><LayoutTemplate size={18} /></span>
+              <h2 id="application-mockups-title" className="text-sm font-semibold uppercase tracking-wider text-[var(--subtle)]">
+                Application Mockups
+              </h2>
+            </div>
+            <p className="mb-4 text-xs text-[var(--muted)]">
+              A landing page and brand deck showing your approved identity in use. Built
+              automatically when you approve an identity proposal, following the design plan.
+            </p>
+            {!identitySelected ? (
+              <p className="rounded-xl bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--muted)]">
+                Approve an identity proposal first — the mockups follow it.
+              </p>
+            ) : (
+              <>
+                <ul className="space-y-2">
+                  {(["landing_page", "deck"] as const).map((mockKind) => {
+                    const asset = selectedAsset(mockKind) ?? byKind[mockKind][0] ?? null;
+                    const aligned = Boolean(asset && asset.design_system_id === identitySelected.id);
+                    const isPreviewed = Boolean(asset && asset.id === previewAssetId);
+                    return (
+                      <li
+                        key={mockKind}
+                        className={`flex items-center gap-1 rounded-xl border px-1 py-1 transition ${
+                          isPreviewed
+                            ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                            : "border-[var(--border)] bg-[var(--surface)]"
+                        }`}
+                      >
+                        <button
+                          onClick={() => asset && previewProposal(asset.id)}
+                          disabled={!asset}
+                          aria-pressed={isPreviewed}
+                          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left disabled:cursor-default"
+                        >
+                          <span className="text-[var(--accent)]">{KIND_META[mockKind].icon}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm">{KIND_META[mockKind].label}</span>
+                            <span className="block truncate text-xs text-[var(--subtle)]">
+                              {asset && aligned
+                                ? isPreviewed
+                                  ? "Previewing"
+                                  : "Ready — preview"
+                                : loading?.kind === "mockups"
+                                ? "Building…"
+                                : "Not built yet"}
+                            </span>
+                          </span>
+                          {asset && aligned && <Check size={14} className="text-emerald-600" />}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => generateMockups(identitySelected.id)}
+                  disabled={Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind)}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2 text-xs font-medium transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading?.kind === "mockups" ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                  {loading?.kind === "mockups" ? "Building the mockups…" : "Rebuild the mockups"}
+                </button>
+              </>
+            )}
+          </section>
         </div>
 
         {/* Preview */}

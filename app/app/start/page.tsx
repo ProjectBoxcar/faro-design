@@ -11,7 +11,7 @@ type Answers = {
   difference: string;
   operations: string;
   edge: string;
-  feedback: string;
+  taste: string;
 };
 
 const QUESTIONS: {
@@ -50,9 +50,15 @@ const QUESTIONS: {
     help: "The hardest-to-copy thing — a standard you hold, a way you work, something only you could claim.",
     placeholder: "We've never shipped a brand we didn't believe in…",
   },
+  {
+    key: "taste",
+    title: "How should the brand look and feel?",
+    help: "Brands or styles you admire, the feeling you want people to have, and anything you definitely don't want (colors, moods, clichés). This guides the design work.",
+    placeholder: "Clean and calm, like Aesop or Apple. Warm but confident. Please no neon colors or startup clichés…",
+  },
 ];
 
-const TOTAL_STEPS = QUESTIONS.length + 2; // intro details + questions + survey
+const TOTAL_STEPS = QUESTIONS.length + 1; // intro details + questions
 
 export default function StartPage() {
   const router = useRouter();
@@ -67,16 +73,15 @@ export default function StartPage() {
     difference: "",
     operations: "",
     edge: "",
-    feedback: "",
+    taste: "",
   });
-  const [hasFeedback, setHasFeedback] = useState<boolean | null>(null);
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isDetails = step === 0;
   const questionIndex = step - 1; // 0..QUESTIONS.length-1 while in questions
   const isQuestion = questionIndex >= 0 && questionIndex < QUESTIONS.length;
-  const isSurvey = step === QUESTIONS.length + 1;
+  const isLastQuestion = questionIndex === QUESTIONS.length - 1;
 
   const canAdvance = isDetails ? name.trim().length > 0 : true;
 
@@ -132,10 +137,7 @@ export default function StartPage() {
           client_name: client.trim() || null,
           greenfield,
           personal,
-          answers: {
-            ...answers,
-            feedback: hasFeedback ? answers.feedback : "",
-          },
+          answers,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -144,8 +146,9 @@ export default function StartPage() {
         setBuilding(false);
         return;
       }
-      // Land in the workspace; drafts are pre-filled and ready to review.
-      router.push(`/projects/${data.projectId}?drafted=1`);
+      // Land on the express journey: the full strategy drafts in the background
+      // and the owner reviews the finished brief + design plan on one page.
+      router.push(`/projects/${data.projectId}/express`);
     } catch {
       setError("Network error. Please try again.");
       setBuilding(false);
@@ -160,9 +163,8 @@ export default function StartPage() {
         </div>
         <h1 className="mt-5 font-serif text-3xl font-medium tracking-tight">Drafting your strategy…</h1>
         <p className="mt-3 max-w-md text-[var(--muted)]">
-          {hasFeedback
-            ? "We're turning your answers — and the feedback you shared — into a first draft of your brand's foundations. This takes about a minute. Next, we'll walk you through your draft one step at a time."
-            : "We're turning your answers into a first draft of your brand's foundations, and preparing a short customer survey for you to send. This takes about a minute. Next, we'll walk you through your draft one step at a time."}
+          We&apos;re turning your answers into a first draft of your brand&apos;s foundations. This takes about a
+          minute. Next, we&apos;ll walk you through your draft one step at a time.
         </p>
       </main>
     );
@@ -278,61 +280,6 @@ export default function StartPage() {
           </div>
         )}
 
-        {isSurvey && (
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">Last one</div>
-            <h1 className="mt-2 font-serif text-3xl font-medium leading-tight tracking-tight lg:text-4xl">
-              Have customers or testers told you what they think?
-            </h1>
-            <p className="mt-3 text-[var(--muted)]">
-              A strong brand checks how people actually see it against how you see yourself. If you already have
-              feedback, paste it. If not, that&apos;s fine — we&apos;ll prepare a short survey and simple instructions so
-              you can gather it later.
-            </p>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <button
-                onClick={() => setHasFeedback(true)}
-                className={`rounded-xl border p-4 text-left transition ${
-                  hasFeedback === true
-                    ? "border-[var(--accent)] ring-4 ring-[var(--accent-soft)]"
-                    : "border-[var(--border-strong)] hover:bg-[var(--surface-2)]"
-                }`}
-              >
-                <div className="font-medium">Yes, I have some</div>
-                <div className="mt-1 text-sm text-[var(--muted)]">Paste whatever you&apos;ve got — even messages.</div>
-              </button>
-              <button
-                onClick={() => setHasFeedback(false)}
-                className={`rounded-xl border p-4 text-left transition ${
-                  hasFeedback === false
-                    ? "border-[var(--accent)] ring-4 ring-[var(--accent-soft)]"
-                    : "border-[var(--border-strong)] hover:bg-[var(--surface-2)]"
-                }`}
-              >
-                <div className="font-medium">Not yet</div>
-                <div className="mt-1 text-sm text-[var(--muted)]">We&apos;ll set up a survey for you to send.</div>
-              </button>
-            </div>
-
-            {hasFeedback === true && (
-              <textarea
-                autoFocus
-                value={answers.feedback}
-                onChange={(e) => setAnswers((a) => ({ ...a, feedback: e.target.value }))}
-                placeholder="Paste what people have said about working with you, your product, or your service…"
-                rows={6}
-                className="mt-4 w-full resize-y rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-4 py-3 leading-relaxed outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
-              />
-            )}
-            {hasFeedback === false && (
-              <p className="mt-4 rounded-xl bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--muted)]">
-                No problem. In your workspace, the <strong>Image</strong> step will have ready-made survey questions and
-                instructions for who to ask and how — come back and paste the results when you have them.
-              </p>
-            )}
-          </div>
-        )}
       </div>
 
       {error && <p className="mt-6 text-sm text-[var(--danger)]">{error}</p>}
@@ -350,10 +297,9 @@ export default function StartPage() {
           <span />
         )}
 
-        {isSurvey ? (
+        {isLastQuestion ? (
           <button
             onClick={build}
-            disabled={hasFeedback === null}
             className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
           >
             Finish &amp; create my draft <Check size={16} />

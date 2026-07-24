@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Clock3, Sparkles } from "lucide-react";
 
-export type DesignGenerationKind = "design_system" | "landing_page" | "deck";
+export type DesignGenerationKind = "design_system" | "landing_page" | "deck" | "mockups";
 
 const GENERATION_COPY: Record<
   DesignGenerationKind,
@@ -13,7 +13,7 @@ const GENERATION_COPY: Record<
     title: "Building your brand identity",
     output: "identity systems",
     focuses: [
-      "Reading across Reality, Identity, Image, and Communication",
+      "Reading across Reality, Identity, and Communication",
       "Finding the central pattern running through the strategy",
       "Mapping the emotional territory the brand should occupy",
       "Translating strategic constraints into visual decisions",
@@ -35,6 +35,20 @@ const GENERATION_COPY: Record<
       "Shaping responsive behavior for smaller screens",
       "Balancing movement with clarity and accessibility",
       "Making each direction genuinely distinct",
+    ],
+  },
+  mockups: {
+    title: "Applying your identity to the mockups",
+    output: "application mockups",
+    focuses: [
+      "Reading the design plan's execution order",
+      "Carrying the approved identity into a landing page",
+      "Turning the value proposition into a clear opening message",
+      "Building the brand deck from the strategy narrative",
+      "Applying color and type roles consistently",
+      "Keeping every application true to the chosen system",
+      "Shaping responsive behavior for smaller screens",
+      "Balancing movement with clarity and accessibility",
     ],
   },
   deck: {
@@ -96,7 +110,7 @@ export function DesignGenerationWindow({
       className="relative flex min-h-[60vh] flex-1 overflow-hidden rounded-xl bg-[var(--foreground)] px-5 py-8 text-white lg:min-h-[70vh] lg:px-10 lg:py-10"
     >
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        Faro is creating three {copy.output} for {projectName}. Generation is in progress. Keep this page open.
+        Faro is creating {kind === "mockups" ? "the" : "three"} {copy.output} for {projectName}. Generation is in progress. Keep this page open.
       </div>
       <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -left-20 h-72 w-72 rounded-full bg-[var(--client)]/30 blur-3xl" />
@@ -115,7 +129,9 @@ export function DesignGenerationWindow({
                 {copy.title}
               </h2>
               <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/65">
-                Three distinct directions for {projectName}, grounded in the strategy you already shaped.
+                {kind === "mockups"
+                  ? `A landing page and brand deck for ${projectName}, applying the identity you approved.`
+                  : `Three distinct directions for ${projectName}, grounded in the strategy you already shaped.`}
               </p>
             </div>
             <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/65">
@@ -130,6 +146,7 @@ export function DesignGenerationWindow({
           </div>
         </div>
 
+        {kind !== "mockups" && (
         <div>
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
             Three directions in this round
@@ -153,6 +170,7 @@ export function DesignGenerationWindow({
             ))}
           </div>
         </div>
+        )}
 
         <div className="flex flex-col gap-5 border-t border-white/10 pt-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-xl">

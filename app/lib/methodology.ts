@@ -119,19 +119,20 @@ export function readsOf(sectionId: string): Section[] {
 // A synthesis section can be generated once its hard dependencies exist.
 // `filledKeys` is the set of section_keys that are at least `draft`/`complete`.
 //
-// A declared read is WAIVED when that upstream step is optional and still
-// empty — the journey must not dead-end because the owner skipped an optional
-// step (e.g. the Image survey), and the brief should still draft from what
-// exists. Two guards keep this honest:
-//  - at least one declared read must actually be filled, and
-//  - sections INSIDE the Image pillar never waive anything: their inputs are
-//    real customer data, and generating without it would fabricate perception.
+// A declared read is WAIVED when that upstream step is still empty and is
+// either optional or an owner-answered input — the journey must not dead-end
+// because the owner skipped an optional step or had nothing to say for an
+// input, and the brief should still draft from what exists. One guard keeps
+// this honest: at least one declared read must actually be filled.
 export function canGenerate(sectionId: string, filledKeys: Set<string>): boolean {
   const s = getSection(sectionId);
   if (!s || (s.kind !== "synthesis" && s.kind !== "partial")) return false;
   const reads = s.reads ?? [];
   if (reads.length === 0) return true;
-  if (getPillarOf(sectionId)?.id === "image") return reads.every((id) => filledKeys.has(id));
-  const hard = reads.filter((id) => !(getSection(id)?.optional && !filledKeys.has(id)));
+  const hard = reads.filter((id) => {
+    if (filledKeys.has(id)) return true;
+    const upstream = getSection(id);
+    return !(upstream?.optional || upstream?.kind === "input");
+  });
   return hard.every((id) => filledKeys.has(id)) && reads.some((id) => filledKeys.has(id));
 }

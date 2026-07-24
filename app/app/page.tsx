@@ -17,6 +17,7 @@ const PHASE_LABEL: Record<string, string> = {
   strategic: "Strategic",
   planning: "Planning",
   design: "Design",
+  finished: "Finished",
 };
 
 export const dynamic = "force-dynamic";
@@ -34,12 +35,11 @@ export default function Home() {
   );
   const ov = overview();
 
-  // Plain-language explainer of the four things a brand is built from — the first
+  // Plain-language explainer of the things a brand is built from — the first
   // concepts a newcomer meets ("Reality", "Identity"…) and needs defined up front.
   const PARTS = [
     { name: "Reality", text: "The plain facts: what you sell, who it's for, and what makes you different." },
     { name: "Identity", text: "How you see yourself: your story, what you believe, and where you're headed." },
-    { name: "Image", text: "How your customers actually see you — gathered from a short survey." },
     { name: "Communication", text: "How your brand should sound and behave, and the promise it makes." },
   ];
   const STEPS = [

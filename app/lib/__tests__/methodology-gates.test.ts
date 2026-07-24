@@ -25,13 +25,6 @@ describe("canGenerate", () => {
     expect(methodologyDependencyCycles()).toEqual([]);
   });
 
-  it("never waives Image pillar reads", () => {
-    const key = "image.pattern-analysis";
-    const section = getSection(key);
-    if (!section?.reads?.length) return; // skip if taxonomy shifts
-    const almost = new Set(section.reads.slice(0, -1));
-    expect(canGenerate(key, almost)).toBe(false);
-  });
 });
 
 describe("getSectionPrompt", () => {
@@ -42,9 +35,6 @@ describe("getSectionPrompt", () => {
     expect(getSectionPrompt("communication.purpose")?.systemAddon).toBeTruthy();
   });
 
-  it("routes survey design to the parsing model", () => {
-    expect(getSectionPrompt("image.survey-design")?.useParsingModel).toBe(true);
-  });
 
   it("returns null for unregistered sections", () => {
     expect(getSectionPrompt("reality.problem")).toBeNull();

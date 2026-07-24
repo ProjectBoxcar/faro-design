@@ -31,15 +31,33 @@ const fullBrief: BriefContext = {
   personality: "Brave, warm, straightforward",
   tone: "Plain-spoken, encouraging, precise",
   promise: "We make the first step feel possible.",
+  centralPattern: "Accessible adventure",
+  mainTension: "Seen as niche",
+  emotionalTerritory: "Confident, welcoming",
+  designPlan: '{"execution-order":["logo","system","web"]}',
 };
 
 describe("designSystemBlockedReason", () => {
-  it("never blocks generation, even with an incomplete strategy", () => {
-    expect(designSystemBlockedReason({ ...fullBrief, conceptStatement: undefined })).toBeNull();
+  it("blocks generation until the brief, concept, and design plan exist", () => {
+    expect(designSystemBlockedReason(fullBrief)).toBeNull();
+    expect(designSystemBlockedReason({ ...fullBrief, conceptStatement: undefined })).toContain(
+      "the brand concept"
+    );
+    expect(designSystemBlockedReason({ ...fullBrief, designPlan: undefined })).toContain(
+      "the design plan"
+    );
+    expect(
+      designSystemBlockedReason({
+        ...fullBrief,
+        centralPattern: undefined,
+        mainTension: undefined,
+        emotionalTerritory: undefined,
+      })
+    ).toContain("the strategic brief");
+    // Softer gaps do not block — the strategy essentials are the gate.
     expect(designSystemBlockedReason({ ...fullBrief, personality: undefined })).toBeNull();
     expect(designSystemBlockedReason({ ...fullBrief, tone: undefined })).toBeNull();
     expect(designSystemBlockedReason({ ...fullBrief, promise: undefined })).toBeNull();
-    expect(designSystemBlockedReason(fullBrief)).toBeNull();
   });
 });
 

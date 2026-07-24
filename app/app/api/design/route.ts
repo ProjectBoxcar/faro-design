@@ -22,7 +22,7 @@ import {
 
 const GenerateSchema = z.object({
   projectId: z.string().min(1),
-  kind: z.enum(["design_system", "landing_page", "deck"]),
+  kind: z.enum(["design_system", "landing_page", "deck", "mockups"]),
   count: z.number().int().min(1).max(6).optional(),
   designSystemId: z.string().min(1).optional(),
   variant: z.string().min(1).max(5).optional(),
@@ -50,6 +50,19 @@ export async function POST(req: Request) {
   }
   const blocked = viabilityActionBlockedReason(project, "design");
   if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
+
+  // Composite mockups job: landing page + deck, one each, applying the approved
+  // identity per the design plan's execution order. Always runs as a job.
+  if (kind === "mockups") {
+    if (!designSystemId) {
+      return NextResponse.json(
+        { error: "designSystemId is required to create the application mockups" },
+        { status: 400 }
+      );
+    }
+    const job = createDesignJob({ projectId, kind, count: 2, designSystemId });
+    return NextResponse.json({ job: serializeDesignJob(job) }, { status: 202 });
+  }
 
   if (count > 1) {
     if (kind !== "design_system" && !designSystemId) {

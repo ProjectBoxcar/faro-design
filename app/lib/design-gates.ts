@@ -32,15 +32,19 @@ export type BriefContext = {
   manifesto?: string;
   strategicDocument?: string;
   designPlan?: string;
+  designTaste?: string;
 };
 
-// The design studio is intentionally exploratory: incomplete strategy should not
-// block generating a visual system. The prompt will include whatever brief context
-// exists, and the result is always editable. Hard gates are reserved for the
-// case where no API key is configured (handled in the UI).
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function designSystemBlockedReason(_ctx: BriefContext): string | null {
-  return null;
+// Step-by-step contract: the Studio only works from a finished strategy. The
+// visual system may not generate until the strategic brief, the brand concept,
+// and the design plan all exist — they are what the proposals are built from.
+export function designSystemBlockedReason(ctx: BriefContext): string | null {
+  const missing: string[] = [];
+  if (!ctx.centralPattern && !ctx.mainTension && !ctx.emotionalTerritory) missing.push("the strategic brief");
+  if (!ctx.conceptStatement) missing.push("the brand concept");
+  if (!ctx.designPlan) missing.push("the design plan");
+  if (missing.length === 0) return null;
+  return `Finish and approve the strategy first — the Studio needs ${missing.join(", ")} before it can design.`;
 }
 
 // Landing page and deck are downstream artifacts: they read the generated DESIGN.md

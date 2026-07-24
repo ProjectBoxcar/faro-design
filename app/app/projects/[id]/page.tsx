@@ -40,8 +40,6 @@ export default async function ProjectHub({
 
   const rows = getSections(id);
   const statusMap: StatusMap = new Map(rows.map((r) => [r.section_key, r.status]));
-  // Did the Quick Start interview structure pasted customer feedback (vs. only prep a survey)?
-  const gaveFeedback = rows.some((r) => r.section_key === "image.results" && r.status !== "empty");
   const latestViabilityEval = listEvaluations(id, "viability")[0] ?? null;
 
   const currentPhase = currentPhaseId(statusMap);
@@ -111,14 +109,8 @@ export default async function ProjectHub({
           <p className="mt-2 max-w-2xl text-[var(--muted)]">
             We turned your answers into the first drafts of your brand. Now we&apos;ll walk you through your strategy{" "}
             <strong className="text-[var(--foreground)]">one step at a time</strong>. Every step is written for you from
-            what you told us — you just read it and tweak anything that&apos;s off. A few later steps fill in
-            automatically once you add your customer survey. Your progress saves as you go, and you can stop and come
-            back anytime.
-          </p>
-          <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-            {gaveFeedback
-              ? "The feedback you pasted is organized under the Image step, further along."
-              : "We also prepared a short customer survey under the Image step, for you to send when you're ready."}
+            what you told us — you just read it and tweak anything that&apos;s off. Your progress saves as you go, and
+            you can stop and come back anytime.
           </p>
           {reviewGroupId && (
             <Link

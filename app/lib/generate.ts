@@ -1,6 +1,6 @@
 import "server-only";
 import { generateText, MODELS } from "@/lib/ai";
-import { getDefaultModel } from "@/lib/settings";
+
 import { methodology, getSection, getPillarOf, readsOf, canGenerate } from "@/lib/methodology";
 import { sectionGuide } from "@/lib/guide";
 import { getProject, getSectionRow, getSections, filledKeys } from "@/lib/queries";
@@ -47,9 +47,8 @@ function ownWordsOnFile(projectId: string, sectionKey: string): boolean {
 
 // Server-side generation gate — the client UI mirrors this, but the API is the
 // authority. Returns a user-facing reason when generation must not run:
-//  - steps that record real-world RESULTS or ACTIONS (customer survey answers,
-//    domain registrations) are never AI-written — fabricated survey answers
-//    poison the Image pillar; those steps have dedicated tools instead;
+//  - steps that record real-world RESULTS or ACTIONS (domain registrations)
+//    are never AI-written; those steps have dedicated tools instead;
 //  - Reality/Identity inputs draft only from the owner's own words on file;
 //  - synthesis steps need something real to build on: all declared reads (the
 //    dependency pipeline), the owner's own notes, or — for Reality/Identity
@@ -68,9 +67,6 @@ export function generationBlockedReason(
       if (Object.values(rough ?? {}).some(isNonEmpty)) return null;
       if (ownWordsOnFile(projectId, sectionKey)) return null;
       return "This step records facts about your business, so the AI needs your words to work from — jot a few rough notes below, or run the Quick Start first.";
-    }
-    if (sectionKey.startsWith("image.")) {
-      return "This step records what customers actually said or who they are — the AI never invents that. Use the survey, or the AI outside view offered on this pillar.";
     }
     return "This step records a real-world action or result, so it can't be AI-written — it's yours to log.";
   }
@@ -200,7 +196,7 @@ export async function generateSection(
   parts.push("Return the JSON object now.");
 
   // Mechanical derivation (e.g. survey questions) uses Haiku; flagship synthesis uses the default (Opus).
-  const model = specialist?.useParsingModel ? MODELS.parsing : getDefaultModel();
+  const model = specialist?.useParsingModel ? MODELS.parsing : MODELS.reasoning;
   const { text, model: usedModel } = await generateText({
     model,
     maxTokens: 8192,

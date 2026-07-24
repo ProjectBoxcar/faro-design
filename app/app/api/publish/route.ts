@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { getProject, publishProject, unpublishProject } from "@/lib/queries";
+import { getProject, publishProject, unpublishProject, setProjectPhase } from "@/lib/queries";
 import { z } from "zod";
 import { viabilityActionBlockedReason } from "@/lib/project-gates";
+import { finalDeliverableIssue } from "@/lib/design-deliverable";
+import { listAssets } from "@/lib/design";
 
 const PublishSchema = z.object({
   projectId: z.string().min(1),
@@ -32,5 +34,10 @@ export async function POST(req: Request) {
   if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
 
   const token = publishProject(parsed.data.projectId);
+  // Publishing with the full design package on file completes the journey:
+  // strategy + approved proposal + mockups are all behind this one link.
+  if (!finalDeliverableIssue(listAssets(parsed.data.projectId))) {
+    setProjectPhase(parsed.data.projectId, "finished");
+  }
   return NextResponse.json({ token });
 }

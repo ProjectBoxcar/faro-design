@@ -766,330 +766,6 @@
           ]
         },
         {
-          "id": "image",
-          "name": "Image",
-          "tagline": "designer works, client only supplies contacts",
-          "sections": [
-            {
-              "id": "image.survey-design",
-              "name": "Survey Design",
-              "resolver": "designer",
-              "kind": "synthesis",
-              "internal": false,
-              "reads": [
-                "identity.self-perception",
-                "identity.beliefs",
-                "identity.golden-circle"
-              ],
-              "helpText": "The central tool of this pillar. Questions are born directly from Identity: each claim becomes a hypothesis the survey validates or contradicts. The goal is not to collect praise but to find gaps. Split into professional and personal sets.",
-              "triggerQuestions": [
-                "Which aspects of the identity do you most urgently need to validate?",
-                "Who knows your work best (not who likes you most)?",
-                "Is there anyone who decided not to work with you? Their perspective is valuable."
-              ],
-              "fields": [
-                {
-                  "id": "professional-questions",
-                  "label": "Questions for clients and colleagues (professional)",
-                  "type": "list"
-                },
-                {
-                  "id": "personal-questions",
-                  "label": "Questions for acquaintances and friends (personal)",
-                  "type": "list"
-                }
-              ],
-              "optional": true
-            },
-            {
-              "id": "image.respondents",
-              "name": "Respondent Selection",
-              "resolver": "collab",
-              "kind": "input",
-              "internal": false,
-              "reads": [
-                "image.survey-design"
-              ],
-              "helpText": "Minimum 5 respondents to spot patterns, ideally 10+. Fewer than 5 is anecdotal. The sample must include different relationships: at least 2 clients, 2 colleagues or suppliers, 1 who knows the founder but not the work, ideally 1 who chose a competitor.",
-              "triggerQuestions": [
-                "Who knows the result of your work (clients)?",
-                "Who knows your way of working (colleagues, suppliers)?",
-                "Who knows you as a person but not your service?",
-                "Is there someone who declined to work with you, to reveal hidden objections?"
-              ],
-              "fields": [
-                {
-                  "id": "respondents",
-                  "label": "Selected respondents",
-                  "type": "table",
-                  "columns": [
-                    {
-                      "id": "name",
-                      "label": "Name / label",
-                      "type": "text"
-                    },
-                    {
-                      "id": "relationship",
-                      "label": "Relationship",
-                      "type": "text"
-                    },
-                    {
-                      "id": "language",
-                      "label": "Language",
-                      "type": "text"
-                    }
-                  ]
-                }
-              ],
-              "optional": true
-            },
-            {
-              "id": "image.distribution",
-              "name": "Survey Distribution",
-              "resolver": "client",
-              "kind": "input",
-              "internal": false,
-              "reads": [
-                "image.respondents"
-              ],
-              "helpText": "The medium changes the depth of answers. WhatsApp / direct message for spontaneous, honest answers (small close circles); email for considered answers (corporate); form for structured, tabulatable answers or anonymity (large samples).",
-              "triggerQuestions": [
-                "Which medium fits each respondent group?",
-                "Do you need anonymity for honest answers?",
-                "Are the relationships close and informal, or formal and corporate?"
-              ],
-              "fields": [
-                {
-                  "id": "medium",
-                  "label": "Distribution medium and rationale",
-                  "type": "textarea"
-                }
-              ],
-              "optional": true
-            },
-            {
-              "id": "image.results",
-              "name": "Results",
-              "resolver": "collab",
-              "kind": "input",
-              "internal": false,
-              "reads": [
-                "image.survey-design",
-                "image.distribution"
-              ],
-              "helpText": "The raw survey responses, gathered per respondent. Client provides contacts and forwards; designer collects. Keep responses verbatim here; synthesis happens downstream.",
-              "triggerQuestions": [
-                "What did each respondent answer to each question?",
-                "Did anyone give an answer that surprised you?"
-              ],
-              "fields": [
-                {
-                  "id": "responses",
-                  "label": "Responses by respondent",
-                  "type": "table",
-                  "columns": [
-                    {
-                      "id": "respondent",
-                      "label": "Respondent",
-                      "type": "text"
-                    },
-                    {
-                      "id": "describe-work",
-                      "label": "Describes my work",
-                      "type": "textarea"
-                    },
-                    {
-                      "id": "way-of-working",
-                      "label": "Way of working",
-                      "type": "textarea"
-                    },
-                    {
-                      "id": "strength",
-                      "label": "Biggest strength",
-                      "type": "textarea"
-                    },
-                    {
-                      "id": "improve",
-                      "label": "Could improve",
-                      "type": "textarea"
-                    },
-                    {
-                      "id": "recommend",
-                      "label": "Would recommend?",
-                      "type": "textarea"
-                    }
-                  ]
-                }
-              ],
-              "optional": true
-            },
-            {
-              "id": "image.pattern-analysis",
-              "name": "Pattern Analysis",
-              "resolver": "designer",
-              "kind": "synthesis",
-              "internal": false,
-              "reads": [
-                "image.results"
-              ],
-              "helpText": "Synthesis of what the results reveal together. Not a summary of individual answers, the recurring patterns that define how the institution is actually perceived: strengths, way of working, areas to improve, recommendation rate.",
-              "triggerQuestions": [
-                "What words or ideas repeat without you having suggested them?",
-                "Is there something people mention that you did not include in the identity?",
-                "Which strengths are mentioned most, and which least?",
-                "Do the areas to improve converge or are they scattered?"
-              ],
-              "fields": [
-                {
-                  "id": "strengths",
-                  "label": "Most-mentioned strengths",
-                  "type": "table",
-                  "columns": [
-                    {
-                      "id": "strength",
-                      "label": "Strength",
-                      "type": "text"
-                    },
-                    {
-                      "id": "mentions",
-                      "label": "Mentions",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "id": "way-of-working",
-                  "label": "Perceived way of working",
-                  "type": "textarea"
-                },
-                {
-                  "id": "improvements",
-                  "label": "Areas to improve",
-                  "type": "table",
-                  "columns": [
-                    {
-                      "id": "area",
-                      "label": "Area",
-                      "type": "text"
-                    },
-                    {
-                      "id": "mentions",
-                      "label": "Mentions",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "id": "recommendation",
-                  "label": "Recommendation rate",
-                  "type": "text"
-                }
-              ],
-              "optional": true
-            },
-            {
-              "id": "image.contrast",
-              "name": "Contrast with Identity",
-              "resolver": "designer",
-              "kind": "synthesis",
-              "internal": false,
-              "reads": [
-                "identity.self-perception",
-                "identity.golden-circle",
-                "image.pattern-analysis"
-              ],
-              "helpText": "The most revealing moment of the pillar. Place what the institution believes about itself next to what people perceive. Matches validate identity; differences reveal gaps to address before defining communication. The central gap exercise.",
-              "triggerQuestions": [
-                "Does what they said match how you described yourself in self-perception?",
-                "Is there something they mention that you had not thought of?",
-                "Is there something you believed important that no one mentioned?",
-                "Is the gap one of ability, of visibility, or of coherence?"
-              ],
-              "fields": [
-                {
-                  "id": "how-they-see",
-                  "label": "How they see me (image)",
-                  "type": "textarea"
-                },
-                {
-                  "id": "how-i-see",
-                  "label": "How I see myself (identity)",
-                  "type": "textarea"
-                },
-                {
-                  "id": "gap",
-                  "label": "The gap (one sentence)",
-                  "type": "textarea"
-                },
-                {
-                  "id": "validates",
-                  "label": "What the image validates of the identity",
-                  "type": "textarea"
-                },
-                {
-                  "id": "reveals",
-                  "label": "What the image reveals that the identity did not say",
-                  "type": "textarea"
-                },
-                {
-                  "id": "action",
-                  "label": "Action this implies for communication",
-                  "type": "textarea"
-                }
-              ],
-              "optional": true
-            },
-            {
-              "id": "image.key-finding",
-              "name": "Key Finding",
-              "resolver": "designer",
-              "kind": "synthesis",
-              "internal": false,
-              "reads": [
-                "image.pattern-analysis",
-                "image.contrast"
-              ],
-              "helpText": "The single most consolidated insight from the survey: a word or idea that appears organically and repeatedly across respondents, confirming a perception the strategy can build on.",
-              "triggerQuestions": [
-                "What is the one perception that appears again and again, unprompted?",
-                "Which strategic claim does the survey confirm is real, not invented?"
-              ],
-              "fields": [
-                {
-                  "id": "finding",
-                  "label": "Key finding",
-                  "type": "textarea"
-                }
-              ],
-              "optional": true
-            },
-            {
-              "id": "image.sample-limitation",
-              "name": "Sample Limitation",
-              "resolver": "designer",
-              "kind": "input",
-              "internal": false,
-              "reads": [
-                "image.respondents"
-              ],
-              "helpText": "Honest acknowledgement of how the sample biases the image (e.g. only close contacts, no detractors). Does not invalidate patterns, but names what the sample cannot capture.",
-              "triggerQuestions": [
-                "Who is missing from the sample (detractors, neutrals, those who chose a competitor)?",
-                "How does that bias the perceived image?",
-                "What objections might the close circle not be able to see?"
-              ],
-              "fields": [
-                {
-                  "id": "limitation",
-                  "label": "Sample limitation",
-                  "type": "textarea"
-                }
-              ],
-              "optional": true
-            }
-          ]
-        },
-        {
           "id": "communication",
           "name": "Communication",
           "tagline": "designer creates, client validates",
@@ -1101,8 +777,7 @@
               "kind": "synthesis",
               "internal": false,
               "reads": [
-                "identity.golden-circle",
-                "image.contrast"
+                "identity.golden-circle"
               ],
               "helpText": "The institution's reason for being beyond making money. Internal but can be public. Answers why the institution exists and what void it would leave. Not a slogan, the founding declaration. If it sounds like the Value Proposition, deepen it.",
               "triggerQuestions": [
@@ -1125,10 +800,10 @@
               "kind": "synthesis",
               "internal": false,
               "reads": [
-                "image.pattern-analysis",
-                "image.contrast"
+                "identity.beliefs",
+                "identity.self-perception"
               ],
-              "helpText": "Principles that guide decisions, verifiable in practice, ordered by what the survey confirmed (what people see is what to amplify). 3 to 5 communicable values; more than 5 dilutes, fewer than 3 fails to define.",
+              "helpText": "Principles that guide decisions, verifiable in practice, ordered by how clearly clients experience them. 3 to 5 communicable values; more than 5 dilutes, fewer than 3 fails to define.",
               "triggerQuestions": [
                 "What principle guides your decisions when there is a dilemma?",
                 "What would you do even if it were not profitable?",
@@ -1138,7 +813,7 @@
               "fields": [
                 {
                   "id": "values",
-                  "label": "Communicable values (3-5, ordered by survey)",
+                  "label": "Communicable values (3-5)",
                   "type": "table",
                   "columns": [
                     {
@@ -1153,7 +828,7 @@
                     },
                     {
                       "id": "confirmed-by",
-                      "label": "Confirmed by (survey)",
+                      "label": "Confirmed by (evidence)",
                       "type": "text"
                     }
                   ]
@@ -1167,10 +842,9 @@
               "kind": "synthesis",
               "internal": false,
               "reads": [
-                "communication.values",
-                "image.pattern-analysis"
+                "communication.values"
               ],
-              "helpText": "Principles practiced internally but not preached publicly. If the survey shows them as a perceived strength but they are not a communicable value, they are operating principles: demonstrated, not declared.",
+              "helpText": "Principles practiced internally but not preached publicly. If clients experience a standard as a strength but it is not a communicable value, it is an operating principle: demonstrated, not declared.",
               "triggerQuestions": [
                 "Which principles guide internal decisions but do not need to be public?",
                 "What standard does the client experience without you having to say it?"
@@ -1202,10 +876,9 @@
               "kind": "synthesis",
               "internal": false,
               "reads": [
-                "image.contrast",
                 "identity.self-perception"
               ],
-              "helpText": "How the brand behaves in practice (a meeting, an email, a decision, a conflict). Defined from real behavior patterns and validated against the image. 3 to 5 distinguishable, verifiable traits.",
+              "helpText": "How the brand behaves in practice (a meeting, an email, a decision, a conflict). Defined from real behavior patterns. 3 to 5 distinguishable, verifiable traits.",
               "triggerQuestions": [
                 "If your brand were a person in a meeting, how would it behave?",
                 "What three adjectives would clients use for the experience of working with you?",
@@ -1240,8 +913,7 @@
               "kind": "synthesis",
               "internal": false,
               "reads": [
-                "communication.personality",
-                "image.contrast"
+                "communication.personality"
               ],
               "helpText": "How the brand speaks, consistent across any channel or piece. Not the execution (that is design), the definition of how it should always sound. 3 to 5 characteristics, each applicable to any piece from an email to a post.",
               "triggerQuestions": [
@@ -1302,10 +974,9 @@
               "kind": "synthesis",
               "internal": false,
               "reads": [
-                "reality.brand-architecture",
-                "image.contrast"
+                "reality.brand-architecture"
               ],
-              "helpText": "How the brands should relate strategically: which is the parent, which is a product, what is discarded, how they coexist across channels. Decided after the identity/image contrast, since perception may show a sub-brand is not recognized.",
+              "helpText": "How the brands should relate strategically: which is the parent, which is a product, what is discarded, how they coexist across channels.",
               "triggerQuestions": [
                 "Of the existing brands, which holds the public's trust?",
                 "Does any sub-brand have its own recognition or does it depend on the founder's name?",
@@ -1438,33 +1109,8 @@
               ]
             },
             {
-              "id": "strategic-document.image",
-              "name": "3. Image",
-              "resolver": "designer-client",
-              "kind": "synthesis",
-              "internal": false,
-              "reads": [
-                "image.contrast",
-                "image.key-finding"
-              ],
-              "helpText": "How others see the institution. The section that most surprises the client. Patterns as conclusions, not raw data or individual respondents. The gap stated in one sentence. 1 to 2 pages.",
-              "triggerQuestions": [
-                "Am I presenting patterns or listing individual answers? Patterns only.",
-                "Is the gap clear in one sentence?",
-                "Did I separate what enriches the identity from what is operational?",
-                "Does what it validates feel like a discovery, not an obvious confirmation?"
-              ],
-              "fields": [
-                {
-                  "id": "narrative",
-                  "label": "Image narrative",
-                  "type": "textarea"
-                }
-              ]
-            },
-            {
               "id": "strategic-document.communication",
-              "name": "4. Communication",
+              "name": "3. Communication",
               "resolver": "designer-client",
               "kind": "synthesis",
               "internal": false,
@@ -1494,12 +1140,12 @@
             },
             {
               "id": "strategic-document.direction",
-              "name": "5. Direction",
+              "name": "4. Direction",
               "resolver": "designer-client",
               "kind": "synthesis",
               "internal": false,
               "reads": [
-                "image.contrast",
+                "strategic-document.communication",
                 "communication.deferred"
               ],
               "helpText": "Where the design is heading. A brief close that signals what comes without executing it. Names the pending items (manifesto, naming, verbal identity) and bridges to the concept and design plan. Should feel like a starting point. 1 page.",
@@ -1531,13 +1177,12 @@
               "reads": [
                 "reality.value-proposition",
                 "reality.differentiator",
-                "image.key-finding",
                 "identity.golden-circle"
               ],
-              "helpText": "The idea that repeats across the 4 pillars unforced. Not what the institution says it is, what appears again and again when reality, identity, image and communication cross. Reducible to one word.",
+              "helpText": "The idea that repeats across the pillars unforced. Not what the institution says it is, what appears again and again when reality, identity and communication cross. Reducible to one word.",
               "triggerQuestions": [
                 "What word or idea appears in more than one pillar without being forced?",
-                "Is there something the client said, the survey confirmed, and the value proposition already contained?",
+                "Is there something the client said that the value proposition already contained?",
                 "If you had to summarize the whole strategy in one word, what would it be?"
               ],
               "fields": [
@@ -1554,12 +1199,13 @@
               "resolver": "designer",
               "kind": "synthesis",
               "reads": [
-                "image.contrast"
+                "identity.self-perception",
+                "reality.market-context"
               ],
-              "helpText": "The biggest gap between identity and image. Not a problem to solve but a tension that gives direction: it shows where the project's energy is. Classify it.",
+              "helpText": "The biggest gap between how the brand sees itself and how the market currently reads it. Not a problem to solve but a tension that gives direction: it shows where the project's energy is. Classify it.",
               "triggerQuestions": [
-                "What does the institution believe about itself that people do not perceive?",
-                "Is there something people see that the institution did not know it projected?",
+                "What does the institution believe about itself that the market does not yet perceive?",
+                "Is there something the brand projects without knowing it?",
                 "Is the gap one of ability, of visibility, or of coherence?"
               ],
               "fields": [
@@ -1612,13 +1258,12 @@
               "kind": "synthesis",
               "reads": [
                 "communication.personality",
-                "communication.tone",
-                "image.pattern-analysis"
+                "communication.tone"
               ],
-              "helpText": "The expressive space where the brand should live. Not an adjective or a moodboard, the sensation the brand should provoke when experienced. Built by crossing personality, tone of voice, and the image findings.",
+              "helpText": "The expressive space where the brand should live. Not an adjective or a moodboard, the sensation the brand should provoke when experienced. Built by crossing personality and tone of voice.",
               "triggerQuestions": [
                 "What should someone feel when interacting with this brand?",
-                "What sensation do the personality, the tone, and the external perception share?",
+                "What sensation do the personality and the tone share?",
                 "If the brand were a place, how would it feel to be there?"
               ],
               "fields": [

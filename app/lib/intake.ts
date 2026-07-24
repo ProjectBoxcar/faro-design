@@ -8,17 +8,17 @@ import { db } from "@/lib/db";
 import { ai_generations } from "@/lib/db/schema";
 import { nanoid } from "nanoid";
 
-// The Quick Start interview: five broad questions the brand owner answers up
-// front, plus one optional question about existing customer feedback. The AI
-// expands these into editable drafts for every owner-knowable input section of
-// Reality + Identity, so the owner reviews and refines instead of starting blank.
+// The Quick Start interview: six broad questions the brand owner answers up
+// front. The AI expands these into editable drafts for every owner-knowable
+// input section of Reality + Identity, so the owner reviews and refines
+// instead of starting blank.
 export type IntakeAnswers = {
   offering: string; // Q1 — what they sell and to whom
   story: string; // Q2 — how it started and where it's going
   difference: string; // Q3 — what makes them different + industry beliefs
   operations: string; // Q4 — stage, pricing, how clients find them, limits
   edge: string; // Q5 — the one thing a competitor couldn't say
-  feedback?: string; // optional — pasted customer/tester feedback (Image)
+  taste: string; // Q6 — how the brand should look and feel (design taste)
 };
 
 export type ExpandResult = {
@@ -26,11 +26,8 @@ export type ExpandResult = {
   model: string;
 };
 
-// Reality + Identity input sections the interview fills, plus the Image survey
-// *questions* (derived from the inferred identity — never fabricated answers).
-// image.results / image.sample-limitation are added only when the owner pasted
-// real feedback; we never invent market perception.
-const ALWAYS_TARGETS = [
+// Reality + Identity input sections the interview fills.
+const TARGETS = [
   "reality.problem",
   "reality.solution",
   "reality.service",
@@ -44,9 +41,7 @@ const ALWAYS_TARGETS = [
   "identity.self-perception",
   "identity.aspiration",
   "identity.beliefs",
-  "image.survey-design",
 ];
-const FEEDBACK_TARGETS = ["image.results", "image.sample-limitation"];
 
 // Render one section's fields as a contract the model fills.
 function fieldSpec(section: Section): string {
@@ -82,16 +77,14 @@ const SYSTEM_INTRO = [
   "- Stay truthful to what they actually said. Sharpen, structure, and articulate it; you may infer reasonable detail, but never invent facts that contradict their answers.",
   "- Write in plain English the owner would recognize as their own voice. Be concrete and concise; avoid buzzwords and filler.",
   "- If you genuinely cannot fill a field from the answers, use an empty string (or empty array) rather than inventing something — they will fill it in.",
-  "- The Image survey section is special: produce SURVEY QUESTIONS to ask their customers, derived from the identity you inferred. Never write fake survey answers.",
   "",
   "Respond with ONLY a single JSON object — no prose, no markdown fences. Its top-level keys are the section ids listed below; each value is an object whose keys are that section's field ids, matching the stated types.",
 ].join("\n");
 
 // Build the cacheable system prompt: a stable description of every section this
 // interview can fill. Identical across projects ⇒ prompt-cacheable.
-function buildSystem(includeFeedback: boolean): string {
-  const ids = includeFeedback ? [...ALWAYS_TARGETS, ...FEEDBACK_TARGETS] : ALWAYS_TARGETS;
-  const briefs = ids
+function buildSystem(): string {
+  const briefs = TARGETS
     .map((id) => getSection(id))
     .filter((s): s is Section => Boolean(s))
     .map(sectionBrief)
@@ -109,12 +102,8 @@ function buildUserMessage(brandName: string, a: IntakeAnswers): string {
     `3. What makes them different, and what they believe about their industry:\n${a.difference || "(not answered)"}`,
     `4. How the business runs today (stage, pricing/packages, how clients find them, capacity/limits):\n${a.operations || "(not answered)"}`,
     `5. One thing that's true about them a competitor couldn't say:\n${a.edge || "(not answered)"}`,
+    `6. How they want the brand to look and feel (styles admired, feelings wanted, things to avoid):\n${a.taste || "(not answered)"}`,
   ];
-  if (a.feedback && a.feedback.trim()) {
-    lines.push(
-      `\nExisting customer/tester feedback the owner already has (structure this into image.results; note in image.sample-limitation how informal or small the sample is):\n${a.feedback}`
-    );
-  }
   lines.push("\nReturn the JSON object now.");
   return lines.join("\n");
 }
@@ -123,8 +112,7 @@ function buildUserMessage(brandName: string, a: IntakeAnswers): string {
 // drafts for every target section, saved as editable AI drafts (status "draft",
 // ai_generated true) for the owner to review.
 export async function expandIntake(projectId: string, brandName: string, answers: IntakeAnswers): Promise<ExpandResult> {
-  const includeFeedback = Boolean(answers.feedback && answers.feedback.trim());
-  const system = buildSystem(includeFeedback);
+  const system = buildSystem();
   const user = buildUserMessage(brandName, answers);
 
   const { text, model } = await generateText({
@@ -136,10 +124,9 @@ export async function expandIntake(projectId: string, brandName: string, answers
   });
   const parsed = extractJson(text);
 
-  const targets = includeFeedback ? [...ALWAYS_TARGETS, ...FEEDBACK_TARGETS] : ALWAYS_TARGETS;
   const filled: string[] = [];
 
-  for (const id of targets) {
+  for (const id of TARGETS) {
     const value = parsed[id];
     if (!value || typeof value !== "object" || Array.isArray(value)) continue;
     const obj = value as Record<string, unknown>;

@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { hasApiKey } from "@/lib/ai";
-import { createProject } from "@/lib/queries";
+import { createProject, saveSection } from "@/lib/queries";
 import { expandIntake } from "@/lib/intake";
 import { maybeRunViabilityGate } from "@/lib/viability";
+import { startExpress } from "@/lib/express";
 
-// Quick Start: create the project, then expand the owner's five (+ optional
-// survey) answers into editable drafts across Reality + Identity in one pass.
+// Quick Start: create the project, then expand the owner's six answers into
+// editable drafts across Reality + Identity in one pass.
 const Schema = z.object({
   name: z.string().min(1, "Name is required"),
   client_name: z.string().optional().nullable(),
@@ -18,7 +19,7 @@ const Schema = z.object({
     difference: z.string().default(""),
     operations: z.string().default(""),
     edge: z.string().default(""),
-    feedback: z.string().optional(),
+    taste: z.string().default(""),
   }),
 });
 
@@ -41,11 +42,25 @@ export async function POST(req: Request) {
     );
   }
 
+  // The owner's design taste feeds the Design Studio directly — keep the raw
+  // answer on file so visual generation can honor it verbatim.
+  if (answers.taste.trim()) {
+    saveSection({
+      projectId: project.id,
+      key: "intake.taste",
+      value: { taste: answers.taste.trim() },
+      status: "complete",
+    });
+  }
+
   try {
     const result = await expandIntake(project.id, name, answers);
     // The intake drafts are the viability gate's inputs — evaluate right away,
     // in the background, so the verdict is on the hub by the time it's read.
     void maybeRunViabilityGate(project.id).catch((e) => console.error("[viability] failed:", e));
+    // Kick off the express pipeline: the full strategy chain drafts in the
+    // background while the owner watches progress on the express page.
+    startExpress(project.id);
     return NextResponse.json({ projectId: project.id, filled: result.filled.length }, { status: 201 });
   } catch (e) {
     console.error("[intake] expansion failed:", e);

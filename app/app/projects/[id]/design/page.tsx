@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProject } from "@/lib/queries";
-import { listAssets } from "@/lib/design";
+import { buildBriefContext, listAssets } from "@/lib/design";
+import { designSystemBlockedReason } from "@/lib/design-gates";
 import { apiKeyStatus } from "@/lib/settings";
 import { DesignStudio } from "@/components/DesignStudio";
 import { getActiveDesignJob, serializeDesignJob, startDesignJob } from "@/lib/design-jobs";
@@ -29,7 +30,10 @@ export default async function DesignPage({
       initialAssets={assets}
       initialJob={activeJob ? serializeDesignJob(activeJob) : null}
       initialShareToken={project.share_token}
-      generationBlockedReason={viabilityActionBlockedReason(project, "design")}
+      generationBlockedReason={
+        viabilityActionBlockedReason(project, "design")
+          ?? designSystemBlockedReason(buildBriefContext(id))
+      }
       apiKeyConfigured={keyStatus.configured}
     />
   );

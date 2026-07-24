@@ -5,13 +5,16 @@ import { db } from "@/lib/db";
 import { design_jobs } from "@/lib/db/schema";
 import {
   deleteAsset,
+  generateApplicationMockups,
   generateBrandDeckProposals,
   generateDesignSystemProposals,
   generateLandingPageProposals,
   getAsset,
+  listAssets,
   type AssetRow,
 } from "@/lib/design";
-import { getProject } from "@/lib/queries";
+import { finalDeliverableIssue } from "@/lib/design-deliverable";
+import { getProject, setProjectPhase } from "@/lib/queries";
 import { viabilityActionBlockedReason } from "@/lib/project-gates";
 import type { DesignJobKind, DesignJobState } from "@/lib/design-job-types";
 
@@ -146,6 +149,9 @@ export function startDesignJob(jobId: string): Promise<void> {
     let generated: AssetRow[];
     if (job.kind === "design_system") {
       generated = await generateDesignSystemProposals(job.project_id, job.count, onAsset);
+    } else if (job.kind === "mockups") {
+      if (!job.design_system_id) throw new Error("A final Brand Identity System is required.");
+      generated = await generateApplicationMockups(job.project_id, job.design_system_id, onAsset);
     } else if (job.kind === "landing_page") {
       if (!job.design_system_id) throw new Error("A final Brand Identity System is required.");
       generated = await generateLandingPageProposals(
@@ -164,6 +170,12 @@ export function startDesignJob(jobId: string): Promise<void> {
       );
     }
     updateJob(job.id, { status: "complete", asset_ids: generated.map((asset) => asset.id) });
+    // The journey completes when the full package — strategy already
+    // published, plus every final design output — is on file.
+    const finished = getProject(job.project_id);
+    if (finished?.share_token && !finalDeliverableIssue(listAssets(job.project_id))) {
+      setProjectPhase(job.project_id, "finished");
+    }
   })()
     .catch((error) => {
       const message = error instanceof Error ? error.message : "Design generation failed";

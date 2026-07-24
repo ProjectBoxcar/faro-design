@@ -13,11 +13,14 @@ export type GenerateTextResult = {
 // parsing uses a cheap model appropriate to the active provider.
 export const MODELS = {
   get reasoning(): string {
-    return getDefaultModel();
+    return getProviderConfig().model;
   },
   get parsing(): string {
     const cfg = getProviderConfig();
-    return cfg.provider === "anthropic" ? "claude-haiku-4-5-20251001" : "gpt-4o-mini";
+    if (cfg.provider === "anthropic") return "claude-haiku-4-5-20251001";
+    // Custom OpenAI-compatible providers (Gemini, Groq, …) don't serve OpenAI
+    // model names, so fall back to the user's configured model.
+    return cfg.baseUrl ? cfg.model : "gpt-4o-mini";
   },
 } as const;
 

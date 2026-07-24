@@ -179,6 +179,18 @@ export function publishProject(id: string): string {
   return token;
 }
 
+// The journey's phase marker — "finished" once the complete brand package
+// (strategy + approved design) is published.
+export function setProjectPhase(
+  id: string,
+  phase: "strategic" | "planning" | "design" | "finished"
+): void {
+  db.update(projects)
+    .set({ current_phase: phase, updated_at: new Date() })
+    .where(eq(projects.id, id))
+    .run();
+}
+
 // Unpublish: revoke the share link by clearing the token and published timestamp.
 export function unpublishProject(id: string): void {
   db.update(projects)
@@ -188,7 +200,7 @@ export function unpublishProject(id: string): void {
 }
 
 // Mark every section in a reviewed pillar that actually has content as complete.
-// Empty steps (e.g. an Image survey the owner skipped) are left alone.
+// Empty steps (e.g. an optional step the owner skipped) are left alone.
 export function completeSectionsWithContent(projectId: string, keys: string[]): void {
   for (const key of keys) {
     const row = getSectionRow(projectId, key);
