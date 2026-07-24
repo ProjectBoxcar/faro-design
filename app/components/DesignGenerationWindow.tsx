@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Clock3, Sparkles } from "lucide-react";
+import { Clock3, Loader2, Sparkles, Square } from "lucide-react";
 
 export type DesignGenerationKind = "design_system" | "landing_page" | "deck" | "mockups";
 
@@ -86,9 +86,13 @@ export function generationFocusIndex(seconds: number, count: number): number {
 export function DesignGenerationWindow({
   kind,
   projectName,
+  onCancel,
+  cancelling = false,
 }: {
   kind: DesignGenerationKind;
   projectName: string;
+  onCancel?: () => void;
+  cancelling?: boolean;
 }) {
   const [elapsed, setElapsed] = useState(0);
 
@@ -179,9 +183,29 @@ export function DesignGenerationWindow({
               {focus}
             </p>
           </div>
-          <p className="max-w-xs text-xs leading-relaxed text-white/45 sm:text-right">
-            Real brand work takes a little time. Keep this page open; the proposals will appear here when ready.
-          </p>
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            <p className="max-w-xs text-xs leading-relaxed text-white/45 sm:text-right">
+              Real brand work takes a little time. Keep this page open; the proposals will appear here when ready.
+            </p>
+            {onCancel && (
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={cancelling}
+                className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/15 disabled:opacity-50"
+              >
+                {cancelling ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" /> Stopping…
+                  </>
+                ) : (
+                  <>
+                    <Square size={12} fill="currentColor" /> Stop generation
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </section>

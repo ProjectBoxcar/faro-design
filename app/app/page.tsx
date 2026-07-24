@@ -1,42 +1,99 @@
 import Link from "next/link";
-import { Settings, Sparkles } from "lucide-react";
+import { Settings } from "lucide-react";
 import { listProjects, getSections } from "@/lib/queries";
 import { NewProjectButton } from "@/components/NewProjectButton";
-import { ProgressBar } from "@/components/ProgressBar";
+import { ProjectList } from "@/components/ProjectList";
 import { overview } from "@/lib/guide";
-import { reviewProgress, type StatusMap } from "@/lib/flow";
-
-const STATUS_LABEL: Record<string, string> = {
-  active: "Active",
-  at_risk: "At risk",
-  blocked: "Blocked",
-  archived: "Archived",
-};
-
-const PHASE_LABEL: Record<string, string> = {
-  strategic: "Strategic",
-  planning: "Planning",
-  design: "Design",
-  finished: "Finished",
-};
+import { methodology, getSection } from "@/lib/methodology";
+import { flowSteps, type StatusMap } from "@/lib/flow";
+import { hasApprovedLogo, studioBlockedReason } from "@/lib/studio";
+import type { JourneyStep } from "@/components/JourneyProgress";
 
 export const dynamic = "force-dynamic";
 
+const PHASE_SHORT: Record<string, string> = {
+  strategic: "Strategy",
+  handoff: "Brief",
+  planning: "Plan",
+  design: "Design",
+};
+
+function isFilled(status: string | undefined): boolean {
+  return status === "draft" || status === "complete" || status === "client_submitted";
+}
+
+function isComplete(status: string | undefined): boolean {
+  return status === "complete";
+}
+
 export default function Home() {
   const projects = listProjects();
-  // Progress = the owner's guided review journey (the four screens), the same
-  // metric the project hub shows — NOT all 70 methodology steps, most of which
-  // are optional design-phase work. Finishing the review reads as 100%.
-  const progress = new Map(
-    projects.map((p) => {
-      const map: StatusMap = new Map(getSections(p.id).map((r) => [r.section_key, r.status]));
-      return [p.id, reviewProgress(map)];
-    })
-  );
+  // Journey points = methodology phases (same arc the app walks). Progress counts
+  // required sections only; Design has no required steps and only unlocks after.
+  const requiredByPhase = new Map<string, string[]>();
+  for (const step of flowSteps()) {
+    const section = getSection(step.sectionId);
+    if (!section || section.optional) continue;
+    const list = requiredByPhase.get(step.phaseId) ?? [];
+    list.push(step.sectionId);
+    requiredByPhase.set(step.phaseId, list);
+  }
+
+  const cards = projects.map((p) => {
+    const map: StatusMap = new Map(getSections(p.id).map((r) => [r.section_key, r.status]));
+    const steps: JourneyStep[] = methodology.phases.map((phase) => {
+      const ids = requiredByPhase.get(phase.id) ?? [];
+      // Design phase is optional artifact work — show as a destination point.
+      if (phase.id === "design") {
+        const designOpen =
+          p.current_phase === "design" ||
+          p.current_phase === "finished" ||
+          Boolean(p.published_at);
+        return {
+          id: phase.id,
+          label: phase.name,
+          short: PHASE_SHORT[phase.id] ?? phase.name,
+          done: designOpen ? 1 : 0,
+          total: 1,
+        };
+      }
+      return {
+        id: phase.id,
+        label: phase.name,
+        short: PHASE_SHORT[phase.id] ?? phase.name,
+        done: ids.filter((id) => isFilled(map.get(id))).length,
+        total: ids.length,
+      };
+    });
+
+    const strategyIds = [...requiredByPhase.entries()]
+      .filter(([phaseId]) => phaseId !== "design")
+      .flatMap(([, ids]) => ids);
+    const strategyFilled = strategyIds.filter((id) => isFilled(map.get(id))).length;
+    const strategyComplete = strategyIds.filter((id) => isComplete(map.get(id))).length;
+    const designPlan = map.get("design-plan");
+    const expressReady = isFilled(designPlan) && strategyComplete < strategyIds.length;
+    const logoWorkshopReady = !studioBlockedReason(p.id, "logo");
+    const logoApproved = hasApprovedLogo(p.id);
+
+    return {
+      id: p.id,
+      name: p.name,
+      clientName: p.client_name ?? null,
+      status: p.status,
+      phase: p.current_phase,
+      steps,
+      strategyFilled,
+      strategyTotal: strategyIds.length,
+      strategyComplete,
+      published: Boolean(p.published_at),
+      expressReady,
+      logoWorkshopReady,
+      logoApproved,
+    };
+  });
   const ov = overview();
 
-  // Plain-language explainer of the things a brand is built from — the first
-  // concepts a newcomer meets ("Reality", "Identity"…) and needs defined up front.
   const PARTS = [
     { name: "Reality", text: "The plain facts: what you sell, who it's for, and what makes you different." },
     { name: "Identity", text: "How you see yourself: your story, what you believe, and where you're headed." },
@@ -71,7 +128,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* What this app is for */}
       <section className="mb-10 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow lg:p-8">
         <p className="max-w-3xl text-base leading-relaxed text-[var(--muted)]">{ov.summary}</p>
 
@@ -100,82 +156,31 @@ export default function Home() {
           from your answers, and you just review:
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
-          {PARTS.map((p) => (
-            <div key={p.name} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
-              <div className="text-sm font-semibold">{p.name}</div>
-              <p className="mt-0.5 text-sm text-[var(--muted)]">{p.text}</p>
+          {PARTS.map((part) => (
+            <div key={part.name} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+              <div className="text-sm font-semibold">{part.name}</div>
+              <p className="mt-0.5 text-sm text-[var(--muted)]">{part.text}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
-          Your projects
-        </h2>
-      </div>
-
-      {projects.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-12 text-center">
-          <p className="text-[var(--muted)]">No projects yet.</p>
-          <p className="mt-1 text-sm text-[var(--subtle)]">
-            Create your first brand engagement to start the Strategic phase.
-          </p>
-        </div>
+      {cards.length === 0 ? (
+        <>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
+              Your projects
+            </h2>
+          </div>
+          <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-12 text-center">
+            <p className="text-[var(--muted)]">No projects yet.</p>
+            <p className="mt-1 text-sm text-[var(--subtle)]">
+              Create your first brand engagement to start the Strategic phase.
+            </p>
+          </div>
+        </>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-          {projects.map((p) => (
-            <li key={p.id} className="card-shadow flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 transition hover:bg-[var(--surface-2)]">
-              <Link href={`/projects/${p.id}`} className="block">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="truncate font-medium">{p.name}</div>
-                    {p.client_name && (
-                      <div className="truncate text-sm text-[var(--subtle)]">{p.client_name}</div>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3 text-xs text-[var(--muted)]">
-                    <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5">
-                      {PHASE_LABEL[p.current_phase]}
-                    </span>
-                    <span
-                      className={
-                        p.status === "blocked"
-                          ? "text-[var(--danger)]"
-                          : p.status === "at_risk"
-                          ? "text-[var(--warn)]"
-                          : ""
-                      }
-                    >
-                      {STATUS_LABEL[p.status]}
-                    </span>
-                  </div>
-                </div>
-              </Link>
-              <Link href={`/projects/${p.id}`} className="block">
-                <ProgressBar
-                  done={progress.get(p.id)?.done ?? 0}
-                  total={progress.get(p.id)?.total ?? 1}
-                  showPercent
-                />
-              </Link>
-              <div className="mt-auto flex items-center justify-between gap-2 border-t border-[var(--border)] pt-3">
-                <Link
-                  href={`/projects/${p.id}`}
-                  className="text-xs text-[var(--subtle)] transition hover:text-[var(--foreground)]"
-                >
-                  {progress.get(p.id)?.done === progress.get(p.id)?.total ? "Strategy ready" : "In progress"}
-                </Link>
-                <Link
-                  href={`/projects/${p.id}/design`}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)]"
-                >
-                  <Sparkles size={12} /> Design Studio
-                </Link>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <ProjectList projects={cards} />
       )}
     </main>
   );

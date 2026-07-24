@@ -38,26 +38,32 @@ const fullBrief: BriefContext = {
 };
 
 describe("designSystemBlockedReason", () => {
-  it("blocks generation until the brief, concept, and design plan exist", () => {
-    expect(designSystemBlockedReason(fullBrief)).toBeNull();
-    expect(designSystemBlockedReason({ ...fullBrief, conceptStatement: undefined })).toContain(
-      "the brand concept"
-    );
-    expect(designSystemBlockedReason({ ...fullBrief, designPlan: undefined })).toContain(
-      "the design plan"
+  it("blocks generation until the brief, concept, design plan, and approved logo exist", () => {
+    expect(designSystemBlockedReason(fullBrief, { hasApprovedLogo: true })).toBeNull();
+    expect(designSystemBlockedReason(fullBrief, { hasApprovedLogo: false })).toContain(
+      "Logo Workshop"
     );
     expect(
-      designSystemBlockedReason({
-        ...fullBrief,
-        centralPattern: undefined,
-        mainTension: undefined,
-        emotionalTerritory: undefined,
-      })
+      designSystemBlockedReason({ ...fullBrief, conceptStatement: undefined }, { hasApprovedLogo: true })
+    ).toContain("the brand concept");
+    expect(
+      designSystemBlockedReason({ ...fullBrief, designPlan: undefined }, { hasApprovedLogo: true })
+    ).toContain("the design plan");
+    expect(
+      designSystemBlockedReason(
+        {
+          ...fullBrief,
+          centralPattern: undefined,
+          mainTension: undefined,
+          emotionalTerritory: undefined,
+        },
+        { hasApprovedLogo: true }
+      )
     ).toContain("the strategic brief");
     // Softer gaps do not block — the strategy essentials are the gate.
-    expect(designSystemBlockedReason({ ...fullBrief, personality: undefined })).toBeNull();
-    expect(designSystemBlockedReason({ ...fullBrief, tone: undefined })).toBeNull();
-    expect(designSystemBlockedReason({ ...fullBrief, promise: undefined })).toBeNull();
+    expect(designSystemBlockedReason({ ...fullBrief, personality: undefined }, { hasApprovedLogo: true })).toBeNull();
+    expect(designSystemBlockedReason({ ...fullBrief, tone: undefined }, { hasApprovedLogo: true })).toBeNull();
+    expect(designSystemBlockedReason({ ...fullBrief, promise: undefined }, { hasApprovedLogo: true })).toBeNull();
   });
 });
 
@@ -87,11 +93,15 @@ describe("variantCreativeDirection", () => {
 });
 
 describe("designSystemPrompt", () => {
-  it("produces a visual developer handover HTML prompt", () => {
-    const prompt = designSystemPrompt("A", "brief text");
+  it("produces a visual developer handover that reuses the approved workshop logo", () => {
+    const logoSvg = '<svg xmlns="http://www.w3.org/2000/svg"><circle r="4"/></svg>';
+    const prompt = designSystemPrompt("A", "brief text", logoSvg);
     expect(prompt).toContain("proposal \"A\"");
     expect(prompt).toContain("<!DOCTYPE html>");
-    expect(prompt).toContain("embedded SVG logo");
+    expect(prompt).toContain("MUST NOT invent");
+    expect(prompt).toContain("STRATEGY BRIEF FIDELITY");
+    expect(prompt).toContain(logoSvg);
+    expect(prompt).toContain("APPROVED LOGO SVG");
     expect(prompt).toContain("color palette");
     expect(prompt).toContain("typography");
     expect(prompt).toContain("components");

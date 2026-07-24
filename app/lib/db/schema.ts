@@ -16,11 +16,17 @@ export const settings = sqliteTable("settings", {
   ai_base_url: text("ai_base_url"),
   // Optional per-provider model override. Falls back to default_model when null.
   ai_model: text("ai_model"),
-  // API key set from the in-app Settings page (local, single-user).
-  // Works for Anthropic or any OpenAI-compatible provider. Falls back to the
-  // ANTHROPIC_API_KEY env var when null. Stored plaintext in the local SQLite
-  // file (gitignored) — fine for a personal local tool.
+  // Strategy-lane API key (Settings page). Falls back to ANTHROPIC_API_KEY /
+  // OPENAI_API_KEY env. Never used for graphic generation.
   anthropic_api_key: text("anthropic_api_key"),
+  // Open Design lane — graphics only (logos, identity systems, mockups).
+  // Does NOT fall back to the strategy key. Env: OPEN_DESIGN_API_KEY, etc.
+  design_api_key: text("design_api_key"),
+  design_ai_provider: text("design_ai_provider", { enum: ["anthropic", "openai-compatible"] })
+    .notNull()
+    .default("openai-compatible"),
+  design_ai_base_url: text("design_ai_base_url"),
+  design_ai_model: text("design_ai_model"),
   debug_mode: integer("debug_mode", { mode: "boolean" }).notNull().default(false),
   created_at: integer("created_at", { mode: "timestamp" })
     .notNull()

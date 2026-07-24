@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { hasApiKey } from "@/lib/ai";
+import { hasOpenDesignKey } from "@/lib/ai";
 import {
   getProject,
   chooseStudioAsset,
@@ -8,7 +8,12 @@ import {
   revokeStudioAssetApproval,
   discardStudioAsset,
 } from "@/lib/queries";
-import { generateLogoCandidates, logoWorkspace, studioBlockedReason } from "@/lib/studio";
+import {
+  cancelLogoGeneration,
+  generateLogoCandidates,
+  logoWorkspace,
+  studioBlockedReason,
+} from "@/lib/studio";
 
 // Two Opus calls (generate + judge) can take a while.
 export const maxDuration = 300;
@@ -16,6 +21,7 @@ export const maxDuration = 300;
 const Schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("generate"), projectId: z.string().min(1) }),
   z.object({ action: z.literal("variations"), projectId: z.string().min(1), assetId: z.string().min(1) }),
+  z.object({ action: z.literal("cancel"), projectId: z.string().min(1) }),
   z.object({ action: z.literal("choose"), projectId: z.string().min(1), assetId: z.string().min(1) }),
   // "approve" is the human gate — this endpoint is only ever reached by the
   // owner pressing the Approve button. No server code calls it.
@@ -34,6 +40,10 @@ export async function POST(req: Request) {
   if (!getProject(input.projectId)) {
     return NextResponse.json({ error: "Unknown project" }, { status: 404 });
   }
+  if (input.action === "cancel") {
+    cancelLogoGeneration(input.projectId);
+    return NextResponse.json({ ok: true, workspace: logoWorkspace(input.projectId) });
+  }
   const blocked = studioBlockedReason(input.projectId, "logo");
   if (blocked && ["generate", "variations", "choose", "approve"].includes(input.action)) {
     return NextResponse.json({ error: blocked }, { status: 409 });
@@ -43,9 +53,12 @@ export async function POST(req: Request) {
     switch (input.action) {
       case "generate":
       case "variations": {
-        if (!hasApiKey()) {
+        if (!hasOpenDesignKey()) {
           return NextResponse.json(
-            { error: "AI isn't configured yet — add your Anthropic API key in Settings." },
+            {
+              error:
+                "No Anthropic key for Open Design BYOK — save it in Settings. Logos run through the OD daemon only.",
+            },
             { status: 400 }
           );
         }
@@ -70,6 +83,9 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ workspace: logoWorkspace(input.projectId) });
   } catch (e) {
+    if (e instanceof Error && (e.name === "LogoGenerationCancelled" || e.message === "Generation stopped.")) {
+      return NextResponse.json({ error: "Generation stopped.", cancelled: true }, { status: 499 });
+    }
     console.error("[studio] failed:", e);
     const message = e instanceof Error ? e.message : "Studio action failed";
     return NextResponse.json({ error: message }, { status: 500 });

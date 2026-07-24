@@ -1,14 +1,15 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { assets } from "@/lib/db/schema";
+import { assets, design_jobs } from "@/lib/db/schema";
 import { eq, and, desc, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { generateText } from "@/lib/ai";
+import { generateDesignText, hasOpenDesignKey } from "@/lib/ai";
 import { getSectionRow, getProject } from "@/lib/queries";
 import { designSystemPrompt, landingPagePrompt, brandDeckPrompt } from "@/lib/design-prompts";
 import { designSystemBlockedReason, artifactBlockedReason } from "@/lib/design-gates";
 import { isNearDuplicateProposal, proposalSimilarity } from "@/lib/design-similarity";
 import { generatedArtifactIssues } from "@/lib/design-validation";
+import { getApprovedLogo } from "@/lib/studio";
 import type { BriefContext } from "@/lib/design-gates";
 import type { AssetKind } from "@/lib/db/types";
 
@@ -147,14 +148,17 @@ function stringifyContext(ctx: BriefContext): string {
 }
 
 async function callAi(prompt: string): Promise<string> {
-  const { text } = await generateText({
+  // Graphics only — Open Design lane. Never the strategy Anthropic/GPT key.
+  const { text } = await generateDesignText({
     maxTokens: 32000,
     system:
-      "You are a senior brand designer translating a Finisterra brand strategy into real, usable design artifacts. Be concrete, specific, and decisive. Avoid generic AI-speak and placeholder copy. Output must be a single HTML file starting with <!DOCTYPE html>.",
+      "You are a senior brand designer (Open Design pipeline) translating a finished Finisterra strategy brief into real design artifacts. The strategy brief is the sole source of brand meaning — never invent claims, features, audiences, or stories not present there. Be concrete and decisive. Avoid generic AI-speak and placeholder copy. Output must be a single HTML file starting with <!DOCTYPE html>.",
     messages: [{ role: "user", content: prompt }],
   });
   return text;
 }
+
+export { hasOpenDesignKey };
 
 function variantLabel(index: number): string {
   return String.fromCharCode(65 + index); // A, B, C...
@@ -168,13 +172,17 @@ async function generateSingleAsset(
   projectName: string,
   designSystemHtml?: string,
   designSystemId?: string,
-  priorHtml: string[] = []
+  priorHtml: string[] = [],
+  approvedLogoSvg?: string
 ): Promise<AssetRow> {
   let prompt: string;
   let name: string;
 
   if (kind === "design_system") {
-    prompt = designSystemPrompt(variant, brief);
+    if (!approvedLogoSvg) {
+      throw new Error("Approve a logo in the Logo Workshop before generating identity systems.");
+    }
+    prompt = designSystemPrompt(variant, brief, approvedLogoSvg);
     name = `${projectName} — Identity System ${variant}`;
   } else if (kind === "landing_page") {
     prompt = landingPagePrompt(variant, brief, designSystemHtml ?? "");
@@ -244,6 +252,7 @@ async function generateProposalSet({
   projectName,
   designSystemHtml,
   designSystemId,
+  approvedLogoSvg,
   onAsset,
 }: {
   projectId: string;
@@ -253,6 +262,7 @@ async function generateProposalSet({
   projectName: string;
   designSystemHtml?: string;
   designSystemId?: string;
+  approvedLogoSvg?: string;
   onAsset?: (asset: AssetRow) => void;
 }): Promise<AssetRow[]> {
   const existing = listProposals(projectId, kind);
@@ -274,7 +284,8 @@ async function generateProposalSet({
         projectName,
         designSystemHtml,
         designSystemId,
-        priorHtml
+        priorHtml,
+        approvedLogoSvg
       );
       results.push(asset);
       onAsset?.(asset);
@@ -293,8 +304,11 @@ export async function generateDesignSystemProposals(
   onAsset?: (asset: AssetRow) => void
 ): Promise<AssetRow[]> {
   const ctx = buildBriefContext(projectId);
-  const blocked = designSystemBlockedReason(ctx);
+  const approvedLogo = getApprovedLogo(projectId);
+  const logoSvg = approvedLogo?.payload?.svg;
+  const blocked = designSystemBlockedReason(ctx, { hasApprovedLogo: Boolean(logoSvg) });
   if (blocked) throw new Error(blocked);
+  if (!logoSvg) throw new Error("Approve a logo in the Logo Workshop first.");
 
   const brief = stringifyContext(ctx);
   return generateProposalSet({
@@ -303,6 +317,7 @@ export async function generateDesignSystemProposals(
     count,
     brief,
     projectName: ctx.name,
+    approvedLogoSvg: logoSvg,
     onAsset,
   });
 }
@@ -500,6 +515,19 @@ export function deleteAsset(projectId: string, assetId: string): void {
   db.delete(assets)
     .where(and(eq(assets.project_id, projectId), eq(assets.id, assetId)))
     .run();
+  // Keep design job ledgers in sync so a deleted proposal is not still listed.
+  const jobs = db.select().from(design_jobs).where(eq(design_jobs.project_id, projectId)).all();
+  for (const row of jobs) {
+    const ids = row.asset_ids ?? [];
+    if (!ids.includes(assetId)) continue;
+    db.update(design_jobs)
+      .set({
+        asset_ids: ids.filter((id) => id !== assetId),
+        updated_at: new Date(),
+      })
+      .where(and(eq(design_jobs.id, row.id), eq(design_jobs.project_id, projectId)))
+      .run();
+  }
 }
 
 export function deleteProposals(projectId: string, kind: AssetKind, keepSelected = true): void {
@@ -507,6 +535,6 @@ export function deleteProposals(projectId: string, kind: AssetKind, keepSelected
     .filter((a) => !keepSelected || !a.selected)
     .map((a) => a.id);
   for (const id of idsToDelete) {
-    db.delete(assets).where(and(eq(assets.project_id, projectId), eq(assets.id, id))).run();
+    deleteAsset(projectId, id);
   }
 }

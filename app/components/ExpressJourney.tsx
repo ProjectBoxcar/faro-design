@@ -3,23 +3,41 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Check, ChevronDown, Loader2, Pencil, Sparkles } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Loader2, Pencil, Sparkles, Square, X } from "lucide-react";
 
 // One value block of a strategy section, already reduced to plain JSON.
 export type ExpressSection = {
   id: string;
   name: string;
   value: Record<string, unknown> | null;
-  fields: { id: string; label: string; type: string; columns: { id: string; label: string }[] }[];
+  fields: {
+    id: string;
+    label: string;
+    type: string;
+    columns: { id: string; label: string }[];
+    options?: string[];
+  }[];
 };
 
 export type ExpressStateDto = {
-  status: "idle" | "running" | "done" | "failed";
+  status: "idle" | "running" | "done" | "failed" | "cancelled";
   done: number;
   total: number;
   current: string | null;
   currentName: string | null;
   error: string | null;
+};
+
+export type RefineStateDto = {
+  status: "idle" | "running" | "done" | "failed" | "cancelled";
+  sourceId: string | null;
+  sourceName: string | null;
+  done: number;
+  total: number;
+  current: string | null;
+  currentName: string | null;
+  error: string | null;
+  updatedIds: string[];
 };
 
 const PIPELINE_STAGES = [
@@ -41,6 +59,10 @@ function isEmptyValue(v: unknown): boolean {
   if (typeof v === "string") return v.trim() === "";
   if (Array.isArray(v)) return v.length === 0;
   return false;
+}
+
+function cloneValue(value: Record<string, unknown> | null): Record<string, unknown> {
+  return value ? (JSON.parse(JSON.stringify(value)) as Record<string, unknown>) : {};
 }
 
 // Generic renderer for a section value: strings as paragraphs, lists as
@@ -76,7 +98,9 @@ function ValueBlock({ section, compactFields }: { section: ExpressSection; compa
                   <thead>
                     <tr className="border-b border-[var(--border)] text-[11px] uppercase tracking-wider text-[var(--subtle)]">
                       {f.columns.map((c) => (
-                        <th key={c.id} className="py-1.5 pr-4 font-semibold">{c.label}</th>
+                        <th key={c.id} className="py-1.5 pr-4 font-semibold">
+                          {c.label}
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -84,7 +108,9 @@ function ValueBlock({ section, compactFields }: { section: ExpressSection; compa
                     {(v as Record<string, unknown>[]).map((row, i) => (
                       <tr key={i} className="border-b border-[var(--border)] last:border-0 align-top">
                         {f.columns.map((c) => (
-                          <td key={c.id} className="py-2 pr-4 leading-relaxed">{String(row?.[c.id] ?? "")}</td>
+                          <td key={c.id} className="py-2 pr-4 leading-relaxed">
+                            {String(row?.[c.id] ?? "")}
+                          </td>
                         ))}
                       </tr>
                     ))}
@@ -99,27 +125,233 @@ function ValueBlock({ section, compactFields }: { section: ExpressSection; compa
   );
 }
 
-function Card({
+function FieldEditor({
+  field,
+  value,
+  onChange,
+}: {
+  field: ExpressSection["fields"][number];
+  value: unknown;
+  onChange: (v: unknown) => void;
+}) {
+  const inputClass =
+    "w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2 text-sm leading-relaxed outline-none transition focus:border-[var(--accent)]";
+
+  if (field.type === "list") {
+    const lines = Array.isArray(value) ? (value as unknown[]).map((x) => String(x)) : [];
+    return (
+      <textarea
+        className={`${inputClass} min-h-[100px]`}
+        value={lines.join("\n")}
+        onChange={(e) =>
+          onChange(
+            e.target.value
+              .split("\n")
+              .map((l) => l.trimEnd())
+              .filter((l, i, arr) => l.length > 0 || i < arr.length - 1)
+          )
+        }
+        placeholder="One item per line"
+      />
+    );
+  }
+
+  if (field.type === "table") {
+    const rows = Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+    return (
+      <div className="space-y-3">
+        {rows.map((row, rowIndex) => (
+          <div key={rowIndex} className="rounded-xl border border-[var(--border)] p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
+                Row {rowIndex + 1}
+              </span>
+              <button
+                type="button"
+                onClick={() => onChange(rows.filter((_, i) => i !== rowIndex))}
+                className="text-[11px] text-[var(--danger)]/80 transition hover:text-[var(--danger)]"
+              >
+                Remove
+              </button>
+            </div>
+            <div className="space-y-2">
+              {field.columns.map((c) => (
+                <label key={c.id} className="block">
+                  <span className="mb-1 block text-[11px] text-[var(--subtle)]">{c.label}</span>
+                  <textarea
+                    className={`${inputClass} min-h-[60px]`}
+                    value={String(row?.[c.id] ?? "")}
+                    onChange={(e) => {
+                      const next = rows.map((r, i) =>
+                        i === rowIndex ? { ...r, [c.id]: e.target.value } : r
+                      );
+                      onChange(next);
+                    }}
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => {
+            const blank: Record<string, unknown> = {};
+            for (const c of field.columns) blank[c.id] = "";
+            onChange([...rows, blank]);
+          }}
+          className="text-xs font-medium text-[var(--accent)] transition hover:text-[var(--accent-hover)]"
+        >
+          + Add row
+        </button>
+      </div>
+    );
+  }
+
+  if (field.type === "enum" && field.options?.length) {
+    return (
+      <select
+        className={inputClass}
+        value={String(value ?? "")}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">Select…</option>
+        {field.options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  // text / textarea / fallback
+  const multiline = field.type === "textarea" || String(value ?? "").length > 80;
+  if (multiline) {
+    return (
+      <textarea
+        className={`${inputClass} min-h-[120px]`}
+        value={String(value ?? "")}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    );
+  }
+  return (
+    <input
+      type="text"
+      className={inputClass}
+      value={String(value ?? "")}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  );
+}
+
+function SectionEditorInline({
+  section,
+  draft,
+  onChange,
+  compactFields,
+}: {
+  section: ExpressSection;
+  draft: Record<string, unknown>;
+  onChange: (next: Record<string, unknown>) => void;
+  compactFields?: string[];
+}) {
+  const fields = compactFields
+    ? section.fields.filter((f) => compactFields.includes(f.id))
+    : section.fields;
+  return (
+    <div className="space-y-4">
+      {fields.map((f) => (
+        <label key={f.id} className="block">
+          <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
+            {f.label}
+          </span>
+          <FieldEditor
+            field={f}
+            value={draft[f.id]}
+            onChange={(v) => onChange({ ...draft, [f.id]: v })}
+          />
+        </label>
+      ))}
+    </div>
+  );
+}
+
+function CardShell({
   title,
-  projectId,
-  sectionId,
+  accent,
+  editing,
+  updating,
+  onEdit,
+  onCancel,
+  onReady,
+  readyBusy,
   children,
 }: {
   title: string;
-  projectId: string;
-  sectionId: string;
+  accent?: boolean;
+  editing: boolean;
+  updating: boolean;
+  onEdit: () => void;
+  onCancel: () => void;
+  onReady: () => void;
+  readyBusy: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow">
+    <section
+      className={`rounded-2xl border p-5 card-shadow ${
+        accent
+          ? "border-[var(--accent)]/40 bg-[var(--accent-soft)]"
+          : updating
+          ? "border-[var(--accent)]/30 bg-[var(--surface)] ring-1 ring-[var(--accent)]/20"
+          : "border-[var(--border)] bg-[var(--surface)]"
+      }`}
+    >
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="font-serif text-lg font-medium tracking-tight">{title}</h3>
-        <Link
-          href={`/projects/${projectId}/${sectionId}`}
-          className="inline-flex items-center gap-1 text-xs text-[var(--subtle)] transition hover:text-[var(--foreground)]"
+        <h3
+          className={`font-serif text-lg font-medium tracking-tight ${
+            accent ? "text-[var(--accent)]" : ""
+          }`}
         >
-          <Pencil size={12} /> Edit
-        </Link>
+          {title}
+          {updating && (
+            <span className="ml-2 inline-flex items-center gap-1 align-middle text-[11px] font-sans font-medium text-[var(--accent)]">
+              <Loader2 size={12} className="animate-spin" /> Updating…
+            </span>
+          )}
+        </h3>
+        {editing ? (
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={readyBusy}
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs text-[var(--muted)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+            >
+              <X size={12} /> Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onReady}
+              disabled={readyBusy}
+              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+            >
+              {readyBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+              Ready
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onEdit}
+            disabled={updating}
+            className="inline-flex items-center gap-1 text-xs text-[var(--subtle)] transition hover:text-[var(--foreground)] disabled:opacity-40"
+          >
+            <Pencil size={12} /> Edit
+          </button>
+        )}
       </div>
       {children}
     </section>
@@ -130,7 +362,7 @@ export function ExpressJourney({
   projectId,
   projectName,
   initialState,
-  sections,
+  sections: initialSections,
   approved,
 }: {
   projectId: string;
@@ -141,28 +373,35 @@ export function ExpressJourney({
 }) {
   const router = useRouter();
   const [state, setState] = useState<ExpressStateDto>(initialState);
+  const [sections, setSections] = useState(initialSections);
   const [approving, setApproving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Record<string, unknown>>({});
+  const [readyBusy, setReadyBusy] = useState(false);
+  const [refine, setRefine] = useState<RefineStateDto | null>(null);
   const running = state.status === "running" || state.status === "idle";
+  const refining = refine?.status === "running";
+  const [stopping, setStopping] = useState(false);
 
   // While the pipeline runs, poll for progress; refresh the page data once done.
   useEffect(() => {
-    if (state.status === "done" || state.status === "failed") return;
+    if (state.status === "done" || state.status === "failed" || state.status === "cancelled") return;
     let cancelled = false;
     let timer: number | undefined;
     const poll = async () => {
       try {
-        const res = await fetch(`/api/projects/${projectId}/express`, { cache: "no-store" });
+        const res = await fetch(`/api/projects/${projectId}/express?sections=1`, { cache: "no-store" });
         const data = await res.json();
         if (cancelled) return;
         if (res.ok && data.state) {
           setState(data.state);
+          if (data.sections) setSections(data.sections);
           if (data.state.status === "done") {
             router.refresh();
             return;
           }
           if (data.state.status === "idle" && data.state.done < data.state.total) {
-            // A restart lost the in-memory run — resume it.
             void fetch(`/api/projects/${projectId}/express`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -182,7 +421,95 @@ export function ExpressJourney({
     };
   }, [projectId, router, state.status]);
 
+  // Poll while a Ready cascade rewrites dependent cards.
+  useEffect(() => {
+    if (!refining) return;
+    let cancelled = false;
+    let timer: number | undefined;
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/projects/${projectId}/express?sections=1`, { cache: "no-store" });
+        const data = await res.json();
+        if (cancelled) return;
+        if (res.ok) {
+          if (data.refine) setRefine(data.refine);
+          if (data.sections) setSections(data.sections);
+          if (
+            data.refine?.status === "done" ||
+            data.refine?.status === "failed" ||
+            data.refine?.status === "cancelled"
+          ) {
+            setReadyBusy(false);
+            if (data.refine.status === "failed") {
+              setError(data.refine.error ?? "Couldn't update the rest of the strategy");
+            }
+            if (data.refine.status === "cancelled") {
+              setError("Cascade update stopped. Cards already rewritten are kept.");
+            }
+            return;
+          }
+        }
+      } catch {
+        /* keep polling */
+      }
+      if (!cancelled) timer = window.setTimeout(poll, 2000);
+    };
+    void poll();
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [projectId, refining]);
+
+  function beginEdit(section: ExpressSection) {
+    if (refining || readyBusy) return;
+    setError(null);
+    setEditingId(section.id);
+    setDraft(cloneValue(section.value));
+  }
+
+  function cancelEdit() {
+    if (readyBusy) return;
+    setEditingId(null);
+    setDraft({});
+  }
+
+  async function markReady() {
+    if (!editingId) return;
+    setReadyBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/express`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "ready", sectionId: editingId, value: draft }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Couldn't save your edit");
+      if (data.sections) setSections(data.sections);
+      if (data.refine) setRefine(data.refine);
+      if (data.warning) setError(data.warning);
+      setEditingId(null);
+      setDraft({});
+      // If nothing to cascade, we're done immediately.
+      if (!data.refine || data.refine.status !== "running") {
+        setReadyBusy(false);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't save your edit");
+      setReadyBusy(false);
+    }
+  }
+
   async function approve() {
+    if (refining || editingId) {
+      setError(
+        editingId
+          ? "Mark this card Ready (or Cancel) before approving."
+          : "Still updating strategy cards from your last edit — wait a moment."
+      );
+      return;
+    }
     setApproving(true);
     setError(null);
     try {
@@ -193,26 +520,48 @@ export function ExpressJourney({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Approval failed");
-      router.push(`/projects/${projectId}/design`);
+      router.push(`/projects/${projectId}/studio`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Approval failed");
       setApproving(false);
     }
   }
 
-  if (running || state.status === "failed") {
+  async function stopGeneration() {
+    setStopping(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/express`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not stop generation");
+      if (data.state) setState(data.state);
+      if (data.refine) setRefine(data.refine);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not stop generation");
+    } finally {
+      setStopping(false);
+    }
+  }
+
+  if (running || state.status === "failed" || state.status === "cancelled") {
     const activeStage = stageIndexOf(state.current);
     const pct = state.total > 0 ? Math.round((state.done / state.total) * 100) : 0;
+    const stopped = state.status === "cancelled";
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center px-6 py-16">
         <div className="text-center">
           <Sparkles className="mx-auto animate-pulse text-[var(--accent)]" size={32} />
           <h1 className="mt-4 font-serif text-3xl font-medium tracking-tight">
-            Drafting the {projectName} strategy
+            {stopped ? "Strategy drafting stopped" : `Drafting the ${projectName} strategy`}
           </h1>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Your answers are becoming a complete brand strategy and design plan. This takes a few
-            minutes — you&apos;ll review everything on one page when it&apos;s ready.
+            {stopped
+              ? "You stopped generation. Sections already drafted are kept — resume when you are ready."
+              : "Your answers are becoming a complete brand strategy and design plan. This takes a few minutes — you'll review everything on one page when it's ready."}
           </p>
         </div>
         <div className="mt-8 h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
@@ -224,7 +573,7 @@ export function ExpressJourney({
         <ol className="mt-8 space-y-3">
           {PIPELINE_STAGES.map((stage, i) => {
             const stageDone = activeStage > i;
-            const active = activeStage === i;
+            const active = !stopped && activeStage === i;
             return (
               <li key={stage.label} className="flex items-center gap-3 text-sm">
                 <span
@@ -248,9 +597,42 @@ export function ExpressJourney({
             );
           })}
         </ol>
-        {state.status === "failed" && (
-          <div className="mt-8 rounded-2xl border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-5 py-4 text-sm">
-            <p>{state.error ?? "Strategy drafting failed."}</p>
+        {running && (
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <button
+              type="button"
+              onClick={() => void stopGeneration()}
+              disabled={stopping}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-5 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+            >
+              {stopping ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" /> Stopping…
+                </>
+              ) : (
+                <>
+                  <Square size={12} fill="currentColor" /> Stop generation
+                </>
+              )}
+            </button>
+            <p className="text-xs text-[var(--subtle)]">
+              Stops after the current section finishes. Progress so far is kept.
+            </p>
+          </div>
+        )}
+        {(state.status === "failed" || state.status === "cancelled") && (
+          <div
+            className={`mt-8 rounded-2xl border px-5 py-4 text-sm ${
+              state.status === "failed"
+                ? "border-[var(--danger)]/40 bg-[var(--danger)]/10"
+                : "border-[var(--border-strong)] bg-[var(--surface)]"
+            }`}
+          >
+            <p>
+              {state.status === "failed"
+                ? state.error ?? "Strategy drafting failed."
+                : "Generation stopped. You can resume from where it left off."}
+            </p>
             <button
               onClick={async () => {
                 setState({ ...state, status: "running", error: null });
@@ -287,6 +669,10 @@ export function ExpressJourney({
     "strategic-document.direction",
   ];
 
+  function cardUpdating(id: string) {
+    return refine?.status === "running" && refine.current === id;
+  }
+
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-10 lg:py-14">
       <header className="mb-8">
@@ -297,59 +683,136 @@ export function ExpressJourney({
           {projectName} — strategy &amp; design plan
         </h1>
         <p className="mt-3 text-[var(--muted)]">
-          This is the heart of your brand. Read it, fix anything that&apos;s off with Edit, then
-          approve to open the Design Studio, where these decisions become your visual brand.
+          Read each card. Hit <span className="font-medium text-[var(--foreground)]">Edit</span> to
+          fix wording right here, then{" "}
+          <span className="font-medium text-[var(--foreground)]">Ready</span> — the rest of the
+          strategy updates from your change. When you approve, you go to the{" "}
+          <span className="font-medium text-[var(--foreground)]">Logo Workshop</span> next (Design
+          Studio unlocks after you approve a logo).
         </p>
       </header>
 
+      {refining && (
+        <div className="mb-5 flex items-center gap-3 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-4 py-3 text-sm">
+          <Loader2 size={16} className="shrink-0 animate-spin text-[var(--accent)]" />
+          <div>
+            <div className="font-medium">Updating the strategy from your edit</div>
+            <div className="text-[var(--muted)]">
+              {refine.currentName
+                ? `Rewriting ${refine.currentName}… (${refine.done}/${refine.total})`
+                : `Applying your change… (${refine.done}/${refine.total})`}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-5">
         {concept?.value && (
-          <section className="rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] p-6">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)]">
-                Brand concept
-              </div>
-              <Link
-                href={`/projects/${projectId}/concept`}
-                className="inline-flex items-center gap-1 text-xs text-[var(--subtle)] transition hover:text-[var(--foreground)]"
-              >
-                <Pencil size={12} /> Edit
-              </Link>
-            </div>
-            <h2 className="font-serif text-2xl font-medium tracking-tight">
-              {String(concept.value["statement"] ?? "")}
-            </h2>
-            {typeof concept.value["description"] === "string" && (
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">{concept.value["description"]}</p>
+          <CardShell
+            title="Brand concept"
+            accent
+            editing={editingId === "concept"}
+            updating={cardUpdating("concept")}
+            onEdit={() => beginEdit(concept)}
+            onCancel={cancelEdit}
+            onReady={markReady}
+            readyBusy={readyBusy && editingId === "concept"}
+          >
+            {editingId === "concept" ? (
+              <SectionEditorInline
+                section={concept}
+                draft={draft}
+                onChange={setDraft}
+                compactFields={["statement", "description", "distillation"]}
+              />
+            ) : (
+              <>
+                <h2 className="font-serif text-2xl font-medium tracking-tight">
+                  {String(concept.value["statement"] ?? "")}
+                </h2>
+                {typeof concept.value["description"] === "string" && (
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
+                    {concept.value["description"]}
+                  </p>
+                )}
+              </>
             )}
-          </section>
+          </CardShell>
         )}
 
         <div className="grid gap-5 sm:grid-cols-2">
           {briefIds.map((id) => {
             const s = sections[id];
-            if (!s?.value) return null;
+            if (!s?.value && editingId !== id) return null;
+            if (!s) return null;
             return (
-              <Card key={id} title={s.name} projectId={projectId} sectionId={id}>
-                <ValueBlock section={s} />
-              </Card>
+              <CardShell
+                key={id}
+                title={s.name}
+                editing={editingId === id}
+                updating={cardUpdating(id)}
+                onEdit={() => beginEdit(s)}
+                onCancel={cancelEdit}
+                onReady={markReady}
+                readyBusy={readyBusy && editingId === id}
+              >
+                {editingId === id ? (
+                  <SectionEditorInline section={s} draft={draft} onChange={setDraft} />
+                ) : (
+                  <ValueBlock section={s} />
+                )}
+              </CardShell>
             );
           })}
         </div>
 
         {manifesto?.value && (
-          <Card title="Manifesto" projectId={projectId} sectionId="manifesto">
-            <ValueBlock section={manifesto} compactFields={["text"]} />
-          </Card>
+          <CardShell
+            title="Manifesto"
+            editing={editingId === "manifesto"}
+            updating={cardUpdating("manifesto")}
+            onEdit={() => beginEdit(manifesto)}
+            onCancel={cancelEdit}
+            onReady={markReady}
+            readyBusy={readyBusy && editingId === "manifesto"}
+          >
+            {editingId === "manifesto" ? (
+              <SectionEditorInline
+                section={manifesto}
+                draft={draft}
+                onChange={setDraft}
+                compactFields={["text"]}
+              />
+            ) : (
+              <ValueBlock section={manifesto} compactFields={["text"]} />
+            )}
+          </CardShell>
         )}
 
         {designPlan?.value && (
-          <Card title="Design plan — what the Studio will create" projectId={projectId} sectionId="design-plan">
-            <ValueBlock
-              section={designPlan}
-              compactFields={["visual-identity", "verbal-identity", "deliverables", "execution-order"]}
-            />
-          </Card>
+          <CardShell
+            title="Design plan — what the Studio will create"
+            editing={editingId === "design-plan"}
+            updating={cardUpdating("design-plan")}
+            onEdit={() => beginEdit(designPlan)}
+            onCancel={cancelEdit}
+            onReady={markReady}
+            readyBusy={readyBusy && editingId === "design-plan"}
+          >
+            {editingId === "design-plan" ? (
+              <SectionEditorInline
+                section={designPlan}
+                draft={draft}
+                onChange={setDraft}
+                compactFields={["visual-identity", "verbal-identity", "deliverables", "execution-order"]}
+              />
+            ) : (
+              <ValueBlock
+                section={designPlan}
+                compactFields={["visual-identity", "verbal-identity", "deliverables", "execution-order"]}
+              />
+            )}
+          </CardShell>
         )}
 
         <details className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] card-shadow">
@@ -360,28 +823,61 @@ export function ExpressJourney({
           <div className="space-y-6 border-t border-[var(--border)] p-5">
             {detailIds.map((id) => {
               const s = sections[id];
-              if (!s?.value) return null;
+              if (!s?.value && editingId !== id) return null;
+              if (!s) return null;
               return (
                 <div key={id}>
                   <div className="mb-2 flex items-center justify-between gap-3">
-                    <h3 className="font-serif text-lg font-medium tracking-tight">{s.name}</h3>
-                    <Link
-                      href={`/projects/${projectId}/${id}`}
-                      className="inline-flex items-center gap-1 text-xs text-[var(--subtle)] transition hover:text-[var(--foreground)]"
-                    >
-                      <Pencil size={12} /> Edit
-                    </Link>
+                    <h3 className="font-serif text-lg font-medium tracking-tight">
+                      {s.name}
+                      {cardUpdating(id) && (
+                        <span className="ml-2 inline-flex items-center gap-1 align-middle text-[11px] font-sans font-medium text-[var(--accent)]">
+                          <Loader2 size={12} className="animate-spin" /> Updating…
+                        </span>
+                      )}
+                    </h3>
+                    {editingId === id ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          disabled={readyBusy}
+                          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs text-[var(--muted)] transition hover:bg-[var(--surface-2)]"
+                        >
+                          <X size={12} /> Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={markReady}
+                          disabled={readyBusy}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                        >
+                          {readyBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                          Ready
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => beginEdit(s)}
+                        disabled={refining}
+                        className="inline-flex items-center gap-1 text-xs text-[var(--subtle)] transition hover:text-[var(--foreground)] disabled:opacity-40"
+                      >
+                        <Pencil size={12} /> Edit
+                      </button>
+                    )}
                   </div>
-                  <ValueBlock section={s} />
+                  {editingId === id ? (
+                    <SectionEditorInline section={s} draft={draft} onChange={setDraft} />
+                  ) : (
+                    <ValueBlock section={s} />
+                  )}
                 </div>
               );
             })}
             <p className="text-xs text-[var(--subtle)]">
-              Want to go deeper? Every underlying step stays editable in the{" "}
-              <Link href={`/projects/${projectId}`} className="underline underline-offset-2">
-                full workspace
-              </Link>
-              .
+              The full strategy is compiled behind these cards. Stay on this page to edit — the
+              advanced workspace is only if you need every underlying step.
             </p>
           </div>
         </details>
@@ -390,16 +886,19 @@ export function ExpressJourney({
       {error && <p className="mt-6 text-sm text-[var(--danger)]">{error}</p>}
 
       <div className="sticky bottom-0 mt-8 flex items-center justify-between gap-3 border-t border-[var(--border)] bg-[var(--background)] py-4">
-        <Link href={`/projects/${projectId}`} className="text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]">
+        <Link
+          href={`/projects/${projectId}`}
+          className="text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
+        >
           Open the full workspace instead
         </Link>
         <button
           onClick={approve}
-          disabled={approving}
+          disabled={approving || refining || Boolean(editingId)}
           className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {approving ? <Loader2 size={15} className="animate-spin" /> : approved ? <Check size={15} /> : null}
-          {approved ? "Re-approve & open the Design Studio" : "Approve & open the Design Studio"}
+          {approved ? "Re-approve & open the Logo Workshop" : "Approve & open the Logo Workshop"}
           <ArrowRight size={15} />
         </button>
       </div>

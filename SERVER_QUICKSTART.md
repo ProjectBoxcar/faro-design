@@ -23,6 +23,7 @@ cd "F:\Faro Design"
 Both scripts will:
 - Install dependencies if needed
 - Run database migrations if needed
+- **Auto-start Open Design daemon** (port 7456) for Logo Workshop + Design Studio
 - Display all available access URLs
 - Start the development server on port 3100
 
@@ -36,8 +37,13 @@ If you prefer manual control:
 cd "F:\Faro Design\app"
 npm install              # First time only
 npm run db:migrate       # First time only
-npm run dev              # Start server
+npm run dev              # Starts Open Design (if needed) + Brand App
 ```
+
+- `npm run dev` — full stack (OD + Faro)
+- `npm run dev:app-only` — Faro only (no graphics engine)
+- `npm run od:ensure` — start Open Design daemon only
+
 
 ## Access URLs
 

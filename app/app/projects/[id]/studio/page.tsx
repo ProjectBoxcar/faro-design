@@ -39,11 +39,12 @@ export default async function StudioHub({ params }: { params: Promise<{ id: stri
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-12 lg:py-12">
       <div className="mb-8">
-        <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">Studio</h1>
+        <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">Logo Workshop</h1>
         <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">
-          Where your strategy becomes the actual brand. The AI designs candidates and a separate
-          AI critic filters the weak ones — but{" "}
-          <strong className="text-[var(--foreground)]">nothing becomes part of your brand until you approve it</strong>.
+          First visual step after strategy: design and approve your logo here. Design Studio comes
+          next for color, type, and mockups — it will use this approved mark, not invent a new one.
+          The AI proposes candidates and a critic filters weak ones, but{" "}
+          <strong className="text-[var(--foreground)]">nothing is final until you approve it</strong>.
         </p>
       </div>
 
@@ -88,24 +89,40 @@ export default async function StudioHub({ params }: { params: Promise<{ id: stri
         </div>
       </Link>
 
-      <div className="mt-8">
-        <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
-          Coming next
-        </h3>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {upcoming.map((u) => (
-            <div
-              key={u.name}
-              className="flex items-center gap-3 rounded-2xl border border-dashed border-[var(--border)] p-4 text-sm text-[var(--subtle)]"
-            >
-              <u.icon size={16} />
-              <span>
-                {u.name} <span className="text-xs">— {u.note}</span>
-              </span>
-            </div>
-          ))}
+      {approved ? (
+        <div className="mt-8 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-6">
+          <h3 className="font-serif text-xl font-medium tracking-tight">Logo approved</h3>
+          <p className="mt-1.5 text-sm text-[var(--muted)]">
+            Next: Design Studio builds color, typography, components, and mockups around this mark —
+            it will not invent a new logo.
+          </p>
+          <Link
+            href={`/projects/${id}/design`}
+            className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+          >
+            Continue to Design Studio <ArrowRight size={16} />
+          </Link>
         </div>
-      </div>
+      ) : (
+        <div className="mt-8">
+          <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
+            After the logo
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {upcoming.map((u) => (
+              <div
+                key={u.name}
+                className="flex items-center gap-3 rounded-2xl border border-dashed border-[var(--border)] p-4 text-sm text-[var(--subtle)]"
+              >
+                <u.icon size={16} />
+                <span>
+                  {u.name} <span className="text-xs">— {u.note}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

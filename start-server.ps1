@@ -53,7 +53,7 @@ try {
     # Tailscale might not be installed or running
 }
 
-Write-Host "Starting Brand App development server..." -ForegroundColor Green
+Write-Host "Starting full stack (Open Design + Brand App)..." -ForegroundColor Green
 Write-Host ""
 Write-Host "Access URLs:" -ForegroundColor Cyan
 Write-Host "  Localhost:     http://$localhostIP`:3100" -ForegroundColor White
@@ -65,9 +65,10 @@ if ($tailscaleIP) {
 } else {
     Write-Host "  Tailscale:     Not detected (ensure Tailscale is running)" -ForegroundColor DarkGray
 }
+Write-Host "  Open Design:   http://127.0.0.1:7456  (auto-started for graphics)" -ForegroundColor White
 Write-Host ""
-Write-Host "Press Ctrl+C to stop the server" -ForegroundColor Yellow
+Write-Host "Press Ctrl+C to stop Brand App (Open Design daemon may keep running)" -ForegroundColor Yellow
 Write-Host ""
 
-# Start the dev server
+# npm run dev → starts OD daemon if needed, then Next.js on :3100
 npm run dev

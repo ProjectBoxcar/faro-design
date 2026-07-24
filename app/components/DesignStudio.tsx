@@ -37,7 +37,7 @@ const KIND_META: Record<
     label: "Brand Identity System",
     shortLabel: "Identity",
     icon: <Palette size={18} />,
-    description: "Colors, typography, logo, and component rules a developer can use.",
+    description: "Colors, typography, and components around your approved workshop logo.",
     cta: "Create 3 brand proposals",
   },
   landing_page: {
@@ -97,7 +97,9 @@ export function DesignStudio({
   const previewFrameRef = useRef<HTMLIFrameElement>(null);
   const [assets, setAssets] = useState<AssetRow[]>(initialAssets);
   const [loading, setLoading] = useState<GenerationState>(() =>
-    initialJob ? { kind: initialJob.kind, stage: "generating", jobId: initialJob.id } : null
+    initialJob && (initialJob.status === "queued" || initialJob.status === "running")
+      ? { kind: initialJob.kind, stage: "generating", jobId: initialJob.id }
+      : null
   );
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [discardingKind, setDiscardingKind] = useState<AssetRow["kind"] | null>(null);
@@ -108,6 +110,7 @@ export function DesignStudio({
   const [origin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
   const [previewSection, setPreviewSection] = useState<IdentityPreviewSection>("overview");
   const [error, setError] = useState<string | null>(null);
+  const [stopping, setStopping] = useState(false);
   const [previewAssetId, setPreviewAssetId] = useState<string | null>(() =>
     initialAssets.find((asset) => asset.kind === "design_system" && asset.selected)?.id
       ?? initialAssets.find((asset) => asset.selected)?.id
@@ -207,8 +210,10 @@ export function DesignStudio({
           return;
         }
         if (job.status === "failed") {
-          setError(job.error ?? "Design generation failed");
+          const stopped = /stopped/i.test(job.error ?? "");
+          setError(stopped ? null : (job.error ?? "Design generation failed"));
           setLoading(null);
+          setStopping(false);
           router.refresh();
           return;
         }
@@ -244,6 +249,27 @@ export function DesignStudio({
     } catch (e) {
       setError(e instanceof Error ? e.message : "Mockup generation failed");
       setLoading(null);
+    }
+  }
+
+  async function stopGeneration() {
+    if (!loading?.jobId || stopping) return;
+    setStopping(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/design", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel", projectId, jobId: loading.jobId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not stop generation");
+      setLoading(null);
+      setStopping(false);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not stop generation");
+      setStopping(false);
     }
   }
 
@@ -337,34 +363,47 @@ export function DesignStudio({
     }
   }
 
+  function removeAssetsFromState(ids: string[]) {
+    const discardedIds = new Set(ids);
+    setAssets((prev) => {
+      const removedSystems = prev.filter(
+        (a) => discardedIds.has(a.id) && a.kind === "design_system"
+      );
+      const next = prev
+        .filter((asset) => !discardedIds.has(asset.id))
+        .map((candidate) =>
+          removedSystems.some((sys) => candidate.design_system_id === sys.id)
+            ? { ...candidate, selected: false }
+            : candidate
+        );
+      if (previewAssetId && discardedIds.has(previewAssetId)) {
+        setPreviewAssetId(next.find((a) => a.selected)?.id ?? next[0]?.id ?? null);
+        setPreviewSection("overview");
+      }
+      return next;
+    });
+  }
+
   async function discardProposal(assetId: string) {
-    const asset = assets.find((candidate) => candidate.id === assetId);
-    const label = asset?.variant ? `proposal ${asset.variant}` : "this proposal";
-    if (!confirm(`Discard ${label}? This cannot be undone.`)) return;
+    if (deletingId || discardingKind) return;
+    const snapshot = assets;
     setDeletingId(assetId);
     setError(null);
+    // Optimistic remove — no browser confirm (those dialogs often get blocked).
+    removeAssetsFromState([assetId]);
     try {
-      const res = await fetch(`/api/design/${assetId}?projectId=${projectId}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Discard failed");
-      setAssets((prev) => {
-        const removed = prev.find((candidate) => candidate.id === assetId);
-        const next = prev
-          .filter((candidate) => candidate.id !== assetId)
-          .map((candidate) =>
-            removed?.kind === "design_system" && candidate.design_system_id === removed.id
-              ? { ...candidate, selected: false }
-              : candidate
-          );
-        if (previewAssetId === assetId) {
-          setPreviewAssetId(next.find((candidate) => candidate.selected)?.id ?? next[0]?.id ?? null);
-          setPreviewSection("overview");
-        }
-        return next;
+      const res = await fetch("/api/design", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ projectId, assetIds: [assetId] }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Delete failed");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Discard failed");
+      setAssets(snapshot);
+      setError(e instanceof Error ? e.message : "Delete failed");
     } finally {
       setDeletingId(null);
     }
@@ -372,27 +411,50 @@ export function DesignStudio({
 
   async function discardUnselected(kind: AssetRow["kind"]) {
     const unselected = byKind[kind].filter((asset) => !asset.selected);
-    if (unselected.length === 0) return;
-    const proposalLabel = `${unselected.length} unselected proposal${unselected.length === 1 ? "" : "s"}`;
-    const outcome = byKind[kind].some((asset) => asset.selected)
-      ? "The final direction will be kept."
-      : "All current proposals will be removed.";
-    if (!confirm(`Discard ${proposalLabel}? ${outcome} This cannot be undone.`)) return;
+    if (unselected.length === 0 || deletingId || discardingKind) return;
+    const snapshot = assets;
     setDiscardingKind(kind);
     setError(null);
+    const ids = unselected.map((asset) => asset.id);
+    removeAssetsFromState(ids);
     try {
-      const res = await fetch(`/api/design?projectId=${projectId}&kind=${kind}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Discard failed");
-      const discardedIds = new Set(unselected.map((asset) => asset.id));
-      setAssets((prev) => prev.filter((asset) => !discardedIds.has(asset.id)));
-      if (previewAssetId && discardedIds.has(previewAssetId)) {
-        setPreviewAssetId(byKind[kind].find((asset) => asset.selected)?.id ?? null);
-        setPreviewSection("overview");
-      }
+      const res = await fetch("/api/design", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ projectId, assetIds: ids }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Delete failed");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Discard failed");
+      setAssets(snapshot);
+      setError(e instanceof Error ? e.message : "Delete failed");
+    } finally {
+      setDiscardingKind(null);
+    }
+  }
+
+  async function discardMany(ids: string[]) {
+    if (ids.length === 0 || deletingId || discardingKind) return;
+    const snapshot = assets;
+    const first = assets.find((a) => a.id === ids[0]);
+    setDiscardingKind(first?.kind ?? "design_system");
+    setError(null);
+    removeAssetsFromState(ids);
+    try {
+      const res = await fetch("/api/design", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ projectId, assetIds: ids }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Delete failed");
+      router.refresh();
+    } catch (e) {
+      setAssets(snapshot);
+      setError(e instanceof Error ? e.message : "Delete failed");
     } finally {
       setDiscardingKind(null);
     }
@@ -506,15 +568,17 @@ export function DesignStudio({
       <div className="mb-8">
         <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">Design Studio</h1>
         <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">
-          Faro read the {projectName} strategic brief and design plan. Compare the three identity
-          proposals, approve one, and the Studio applies it to the mockups your plan calls for.
+          Builds on the logo you approved in the Logo Workshop. Systems must follow your strategy
+          brief only — no invented claims. Compare proposals, delete any you don&apos;t want, pick
+          one, and the Studio applies it to the mockups your plan calls for.
         </p>
       </div>
 
       {!apiKeyConfigured && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
           <AlertCircle size={18} className="mt-0.5 shrink-0" />
-          Add your Anthropic API key in Settings to generate design assets.
+          Graphics run through Open Design. Start the OD daemon (start-open-design.ps1) and keep
+          your Anthropic key in Settings for OD BYOK.
         </div>
       )}
 
@@ -635,6 +699,7 @@ export function DesignStudio({
             onPreview={previewProposal}
             onDiscard={discardProposal}
             onDiscardUnselected={() => discardUnselected("design_system")}
+            onDiscardMany={discardMany}
             unlocked={!generationBlockedReason}
           />
           {/* Application mockups: created automatically after the identity is
@@ -720,7 +785,12 @@ export function DesignStudio({
         {/* Preview */}
         <div className="flex min-h-[60vh] flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow">
           {generationKind ? (
-            <DesignGenerationWindow kind={generationKind} projectName={projectName} />
+            <DesignGenerationWindow
+              kind={generationKind}
+              projectName={projectName}
+              onCancel={loading?.jobId ? () => void stopGeneration() : undefined}
+              cancelling={stopping}
+            />
           ) : previewAsset ? (
             <>
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -755,7 +825,7 @@ export function DesignStudio({
                       </button>
                       <button
                         onClick={() => discardProposal(previewAsset.id)}
-                        disabled={Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind)}
+                        disabled={Boolean(deletingId) || Boolean(discardingKind)}
                         className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--muted)] transition hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {deletingId === previewAsset.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
@@ -779,7 +849,7 @@ export function DesignStudio({
                   {previewAsset.selected && (
                     <button
                       onClick={() => discardProposal(previewAsset.id)}
-                      disabled={Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind)}
+                      disabled={Boolean(deletingId) || Boolean(discardingKind)}
                       className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] text-[var(--muted)] transition hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
                       aria-label="Delete selected proposal"
                     >
@@ -859,6 +929,7 @@ function PipelineStep({
   onPreview,
   onDiscard,
   onDiscardUnselected,
+  onDiscardMany,
   unlocked,
 }: {
   kind: AssetRow["kind"];
@@ -875,12 +946,51 @@ function PipelineStep({
   onPreview: (id: string) => void;
   onDiscard: (id: string) => void;
   onDiscardUnselected: () => void;
+  onDiscardMany: (ids: string[]) => void;
   unlocked: boolean;
 }) {
+  const [marked, setMarked] = useState<Set<string>>(new Set());
   const isGenerating = loading?.kind === kind && loading.stage === "generating";
   const isDiscarding = discardingKind === kind;
-  const isBusy = Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind);
+  // Generation must not lock delete — previously a stuck/restarting job set
+  // `loading` and disabled every Trash control across the studio.
+  const isDeleting = Boolean(deletingId) || Boolean(discardingKind);
+  const isBusy = isGenerating || isDeleting;
   const unselectedCount = proposals.filter((asset) => !asset.selected).length;
+  const markedCount = [...marked].filter((id) => proposals.some((p) => p.id === id)).length;
+
+  // Drop marks for proposals that no longer exist after regenerate/delete.
+  useEffect(() => {
+    const ids = new Set(proposals.map((p) => p.id));
+    setMarked((prev) => {
+      const next = new Set([...prev].filter((id) => ids.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [proposals]);
+
+  function toggleMark(id: string) {
+    setMarked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleMarkAll() {
+    if (markedCount === proposals.length) {
+      setMarked(new Set());
+      return;
+    }
+    setMarked(new Set(proposals.map((p) => p.id)));
+  }
+
+  async function deleteMarked() {
+    const ids = [...marked].filter((id) => proposals.some((p) => p.id === id));
+    if (ids.length === 0) return;
+    onDiscardMany(ids);
+    setMarked(new Set());
+  }
 
   return (
     <section
@@ -909,11 +1019,32 @@ function PipelineStep({
           {isGenerating ? <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Sparkles size={16} />}
           {isGenerating ? "Generating 3 proposals..." : proposals.length > 0 ? "Regenerate proposals" : meta.cta}
         </button>
+        {proposals.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={toggleMarkAll}
+              disabled={isDeleting}
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--muted)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+            >
+              {markedCount === proposals.length ? "Clear selection" : "Select all"}
+            </button>
+            <button
+              type="button"
+              onClick={deleteMarked}
+              disabled={isDeleting || markedCount === 0}
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full border border-[var(--danger)]/30 bg-[var(--danger)]/5 px-3 py-2 text-xs font-medium text-[var(--danger)] transition hover:border-[var(--danger)]/50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Trash2 size={14} />
+              Delete selected ({markedCount})
+            </button>
+          </div>
+        )}
         {unselectedCount > 0 && (
           <button
             type="button"
             onClick={onDiscardUnselected}
-            disabled={isBusy}
+            disabled={isDeleting}
             className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[var(--border)] px-4 py-2 text-xs font-medium text-[var(--muted)] transition hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isDiscarding ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
@@ -933,15 +1064,33 @@ function PipelineStep({
           {proposals.map((asset) => {
             const isSelected = asset.selected;
             const isPreviewed = asset.id === previewAssetId;
+            const isMarked = marked.has(asset.id);
             return (
               <li
                 key={asset.id}
                 className={`group flex items-center gap-1 rounded-xl border px-1 py-1 transition ${
                   isPreviewed
                     ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                    : isMarked
+                    ? "border-[var(--danger)]/30 bg-[var(--danger)]/5"
                     : "border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]"
                 }`}
               >
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={isMarked}
+                  aria-label={`Select proposal ${asset.variant ?? ""} for deletion`}
+                  onClick={() => toggleMark(asset.id)}
+                  disabled={isDeleting}
+                  className={`ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
+                    isMarked
+                      ? "border-[var(--danger)] bg-[var(--danger)] text-white"
+                      : "border-[var(--border-strong)] text-transparent hover:border-[var(--muted)]"
+                  }`}
+                >
+                  <Check size={12} strokeWidth={3} />
+                </button>
                 <button
                   onClick={() => onPreview(asset.id)}
                   aria-pressed={isPreviewed}
@@ -980,12 +1129,13 @@ function PipelineStep({
                 <button
                   type="button"
                   onClick={() => onDiscard(asset.id)}
-                  disabled={isBusy}
-                  className="rounded-full p-1.5 text-[var(--muted)] transition hover:text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
-                  aria-label={`Discard proposal ${asset.variant ?? ""}`}
-                  title="Discard proposal"
+                  disabled={isDeleting}
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-1.5 text-xs font-medium text-[var(--danger)]/80 transition hover:bg-[var(--danger)]/10 hover:text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label={`Delete proposal ${asset.variant ?? ""}`}
+                  title="Delete proposal"
                 >
                   {deletingId === asset.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                  <span className="hidden sm:inline">Delete</span>
                 </button>
               </li>
             );

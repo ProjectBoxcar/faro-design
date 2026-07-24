@@ -4,14 +4,14 @@ import { listAssets as listDesignAssets } from "@/lib/design";
 import { methodology } from "@/lib/methodology";
 import {
   reviewGroups,
-  reviewGroupProgress,
-  currentReviewGroupId,
-  reviewProgress,
+  journeyGroupProgress,
+  journeyProgress,
+  firstIncompleteReviewGroup,
   type StatusMap,
 } from "@/lib/flow";
 import { ProjectSidebar, type SidebarPhase, type SidebarAssetStudio } from "@/components/ProjectSidebar";
 import { ProjectMobileBar } from "@/components/ProjectMobileBar";
-import { studioBlockedReason } from "@/lib/studio";
+import { designStudioBlockedReason, hasApprovedLogo, studioBlockedReason } from "@/lib/studio";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +27,26 @@ export default async function ProjectLayout({
   if (!project) notFound();
 
   const statusMap: StatusMap = new Map(getSections(id).map((r) => [r.section_key, r.status]));
-  const overall = reviewProgress(statusMap);
-  const current = currentReviewGroupId(statusMap);
+  // Sidebar progress counts drafted content (express pipeline) not only
+  // "complete" — otherwise Design Studio can open while Progress stuck ~30%.
+  const overall = journeyProgress(statusMap);
+  const nextReviewGroup = firstIncompleteReviewGroup(statusMap);
   const designAssets = listDesignAssets(id);
   const identitySelected = designAssets.some((asset) => asset.kind === "design_system" && asset.selected);
+  // Order after strategy: Logo Workshop first, then Design Studio.
+  const logoWorkshopBlocked = studioBlockedReason(id, "logo");
+  const logoWorkshopUnlocked = !logoWorkshopBlocked;
+  const designStudioBlocked = designStudioBlockedReason(id);
+  const designStudioUnlocked = !designStudioBlocked;
+  const logoApproved = hasApprovedLogo(id);
+
   const studioSteps = [
-    { id: "identity-system", name: "Brand Identity System", kind: "design_system" as const, unlocked: true },
+    {
+      id: "identity-system",
+      name: "Brand Identity System",
+      kind: "design_system" as const,
+      unlocked: designStudioUnlocked,
+    },
     { id: "landing-page", name: "Landing Page", kind: "landing_page" as const, unlocked: identitySelected },
     { id: "brand-deck", name: "Brand Deck", kind: "deck" as const, unlocked: identitySelected },
   ].map((step) => {
@@ -50,21 +64,22 @@ export default async function ProjectLayout({
         : "locked" as const,
     };
   });
-  // The sidebar follows one journey: methodology review and brief first, then
-  // the generated artifact studio as the final stage.
+  // When logo workshop (or later) is open, stop highlighting early strategy steps.
+  const pastStrategy = logoWorkshopUnlocked;
   const groupById = new Map(reviewGroups().map((g) => [g.id, g]));
   const phases: SidebarPhase[] = methodology.phases
     .map((phase) => {
       const groups = phase.pillars
         .filter((p) => groupById.has(p.id))
         .map((p) => {
-          const pr = reviewGroupProgress(p.id, statusMap);
+          const pr = journeyGroupProgress(p.id, statusMap);
+          const isCurrent = !pastStrategy && p.id === nextReviewGroup;
           return {
             id: p.id,
             name: groupById.get(p.id)!.name,
             done: pr.done,
             total: pr.total,
-            isCurrent: p.id === current,
+            isCurrent,
           };
         });
       const done = groups.reduce((sum, g) => sum + g.done, 0);
@@ -80,17 +95,24 @@ export default async function ProjectLayout({
     })
     .filter((p) => p.groups.length > 0);
 
-  // Studio (phase 2): locked until the strategy it builds on is finished.
-  // Strategy-completeness only — the logo's naming gate is shown in the Studio.
-  const studioBlocked = studioBlockedReason(id, "palette");
   const approvedAssets = listStudioAssets(id).filter((asset) => asset.status === "approved").length;
   const assetStudio: SidebarAssetStudio = {
-    locked: Boolean(studioBlocked) && approvedAssets === 0,
-    hint: studioBlocked
-      ? "Unlocks when your strategy is done"
-      : approvedAssets > 0
-        ? `${approvedAssets} asset${approvedAssets === 1 ? "" : "s"} approved`
-        : "Turn strategy into your brand",
+    locked: !logoWorkshopUnlocked,
+    hint: logoWorkshopBlocked
+      ? "Unlocks when strategy is ready"
+      : logoApproved
+        ? "Logo approved — next: Design Studio"
+        : approvedAssets > 0
+          ? `${approvedAssets} logo candidate${approvedAssets === 1 ? "" : "s"} in play`
+          : "Next: design and approve your logo",
+  };
+  const designStudio: SidebarAssetStudio = {
+    locked: !designStudioUnlocked,
+    hint: designStudioBlocked
+      ? logoWorkshopUnlocked
+        ? "Unlocks when you approve a logo"
+        : "Finish strategy, then the Logo Workshop"
+      : "Color, type, components & mockups",
   };
 
   return (
@@ -104,13 +126,15 @@ export default async function ProjectLayout({
         phases={phases}
         studioSteps={studioSteps}
         assetStudio={assetStudio}
+        designStudio={designStudio}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <ProjectMobileBar
           projectId={id}
           projectName={project.name}
           overall={overall}
-          assetStudioUnlocked={!assetStudio.locked}
+          assetStudioUnlocked={logoWorkshopUnlocked}
+          designStudioUnlocked={designStudioUnlocked}
         />
         <main className="flex-1">{children}</main>
       </div>

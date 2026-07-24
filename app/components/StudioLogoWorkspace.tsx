@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { BadgeCheck, Loader2, Sparkles, Trash2, Undo2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { ArrowRight, BadgeCheck, Loader2, Sparkles, Square, Trash2, Undo2 } from "lucide-react";
 import type { AssetPayload, EvalScore } from "@/lib/db/types";
 
 export type WorkspaceAsset = {
@@ -33,10 +34,26 @@ export function StudioLogoWorkspace({
   const [busy, setBusy] = useState<string | null>(null); // action id or "generate"
   const [error, setError] = useState<string | null>(null);
   const [lastDiscarded, setLastDiscarded] = useState(0);
+  const [stopping, setStopping] = useState(false);
+  const nextCtaRef = useRef<HTMLDivElement | null>(null);
+  const wasApproved = useRef(initialAssets.some((a) => a.status === "approved"));
+  const abortRef = useRef<AbortController | null>(null);
 
   const live = assets.filter((a) => a.status !== "discarded");
   const discarded = assets.filter((a) => a.status === "discarded");
   const approved = live.find((a) => a.status === "approved");
+
+  // After a fresh approval, bring the next step into view (user is often mid-page).
+  useEffect(() => {
+    if (approved && !wasApproved.current) {
+      wasApproved.current = true;
+      // Sticky bar is always visible; also scroll the top banner into view gently.
+      window.requestAnimationFrame(() => {
+        nextCtaRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    }
+    if (!approved) wasApproved.current = false;
+  }, [approved]);
 
   // Google Fonts used by any candidate's lettering — loaded live for preview.
   const fontLinks = useMemo(() => {
@@ -50,16 +67,25 @@ export function StudioLogoWorkspace({
   }, [assets]);
 
   async function act(body: Record<string, string>, busyKey: string) {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setBusy(busyKey);
     setError(null);
+    setStopping(false);
     try {
       const res = await fetch("/api/studio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId, ...body }),
+        signal: controller.signal,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Something went wrong");
+      const data = await res.json().catch(() => ({}));
+      if (controller.signal.aborted) return;
+      if (!res.ok) {
+        if (data.cancelled || data.error === "Generation stopped.") return;
+        throw new Error(data.error ?? "Something went wrong");
+      }
       if (typeof data.discarded === "number") setLastDiscarded(data.discarded);
       const ws = data.workspace;
       setAssets(
@@ -75,10 +101,31 @@ export function StudioLogoWorkspace({
         }))
       );
     } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      if (e instanceof Error && e.name === "AbortError") return;
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
+      if (abortRef.current === controller) abortRef.current = null;
       setBusy(null);
+      setStopping(false);
     }
+  }
+
+  async function stopGeneration() {
+    if (busy !== "generate" || stopping) return;
+    setStopping(true);
+    try {
+      await fetch("/api/studio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel", projectId }),
+      });
+    } catch {
+      /* best-effort server cancel */
+    }
+    abortRef.current?.abort();
+    setBusy(null);
+    setStopping(false);
   }
 
   if (initialBlocked) {
@@ -99,8 +146,8 @@ export function StudioLogoWorkspace({
         <div>
           <h1 className="font-serif text-3xl font-medium tracking-tight">Logo — “{name}”</h1>
           <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">
-            Candidates below survived a skeptical AI critic; weak ones were discarded before you saw
-            them. Pick the direction that feels right —{" "}
+            You get three proposals, each scored by a skeptical AI critic (scores are advice, not a
+            veto). Pick the direction that feels right —{" "}
             <strong className="text-[var(--foreground)]">only your approval makes it real</strong>.
           </p>
         </div>
@@ -126,11 +173,49 @@ export function StudioLogoWorkspace({
           {error}
         </div>
       )}
-      {lastDiscarded > 0 && (
+      {lastDiscarded > 0 && !approved && (
         <p className="mb-6 text-xs text-[var(--subtle)]">
-          The critic discarded {lastDiscarded} candidate{lastDiscarded === 1 ? "" : "s"} that didn&apos;t
-          hold up — you only see the survivors.
+          The critic flagged {lastDiscarded} of these as weak — still shown so you can judge; open
+          scores on a card for details.
         </p>
+      )}
+
+      {live.length > 0 && !approved && (
+        <div className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3.5 text-sm leading-relaxed text-[var(--muted)]">
+          <p className="font-medium text-[var(--foreground)]">A note on these logo proposals</p>
+          <p className="mt-1.5">
+            This app is strongest at building a full strategy and design system. Treat these logos as a{" "}
+            <strong className="font-medium text-[var(--foreground)]">solid baseline to brief a designer</strong>
+            — a starting mark to refine with a human, not a finished brand identity. As stronger
+            design AI arrives, this workshop will get more capable; until then, use them as direction,
+            not the final word.
+          </p>
+        </div>
+      )}
+
+      {approved && (
+        <div
+          ref={nextCtaRef}
+          className="mb-8 rounded-2xl border border-[var(--accent)]/35 bg-[var(--accent)]/5 p-5 sm:p-6"
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--ok)]">
+                <BadgeCheck size={16} /> Logo approved — “{approved.label}”
+              </div>
+              <p className="mt-1.5 max-w-xl text-sm text-[var(--muted)]">
+                Next: Design Studio builds color, type, components, and mockups around this mark. It
+                will not invent a new logo.
+              </p>
+            </div>
+            <Link
+              href={`/projects/${projectId}/design`}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+            >
+              Continue to Design Studio <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
       )}
 
       {live.length === 0 && !busy && (
@@ -140,12 +225,15 @@ export function StudioLogoWorkspace({
         </div>
       )}
 
-      {busy === "generate" && <GenerationProgress />}
+      {busy === "generate" && (
+        <GenerationProgress onCancel={() => void stopGeneration()} cancelling={stopping} />
+      )}
 
       <div className="space-y-6">
         {live.map((a) => (
           <CandidateCard
             key={a.id}
+            projectId={projectId}
             asset={a}
             name={name ?? ""}
             busy={busy}
@@ -177,12 +265,39 @@ export function StudioLogoWorkspace({
           </div>
         </details>
       )}
+
+      {/* Always-visible next step after approval — user is often mid-list when they approve. */}
+      {approved && (
+        <div className="sticky bottom-0 z-20 -mx-5 mt-10 border-t border-[var(--border)] bg-[var(--background)]/95 px-5 py-4 backdrop-blur-md lg:-mx-12 lg:px-12">
+          <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 text-sm">
+              <span className="font-medium text-[var(--ok)]">Logo ready</span>
+              <span className="text-[var(--muted)]">
+                {" "}
+                — “{approved.label}” is approved. Continue when you are.
+              </span>
+            </div>
+            <Link
+              href={`/projects/${projectId}/design`}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--accent-hover)]"
+            >
+              Continue to Design Studio <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // The 2-minute generation wait, narrated: skeleton cards plus honest stage text.
-function GenerationProgress() {
+function GenerationProgress({
+  onCancel,
+  cancelling,
+}: {
+  onCancel?: () => void;
+  cancelling?: boolean;
+}) {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setElapsed((e) => e + 1), 1000);
@@ -196,9 +311,29 @@ function GenerationProgress() {
         : "The skeptical critic is scoring them against your strategy…";
   return (
     <div className="mb-6 space-y-6">
-      <p className="flex items-center gap-2 text-sm text-[var(--muted)]">
-        <Loader2 size={15} className="animate-spin" /> {stage}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="flex items-center gap-2 text-sm text-[var(--muted)]">
+          <Loader2 size={15} className="animate-spin" /> {stage}
+        </p>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={cancelling}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+          >
+            {cancelling ? (
+              <>
+                <Loader2 size={14} className="animate-spin" /> Stopping…
+              </>
+            ) : (
+              <>
+                <Square size={12} fill="currentColor" /> Stop generation
+              </>
+            )}
+          </button>
+        )}
+      </div>
       {[0, 1, 2].map((i) => (
         <div key={i} className="animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
           <div className="mb-4 h-5 w-44 rounded bg-[var(--surface-2)]" />
@@ -274,6 +409,7 @@ function ContextStrip({ svg, svgDark, name }: { svg: string; svgDark: string; na
 }
 
 function CandidateCard({
+  projectId,
   asset,
   name,
   busy,
@@ -284,6 +420,7 @@ function CandidateCard({
   onVariations,
   onDiscard,
 }: {
+  projectId: string;
   asset: WorkspaceAsset;
   name: string;
   busy: string | null;
@@ -449,6 +586,12 @@ function CandidateCard({
               {asset.approvedAt ? ` · ${new Date(asset.approvedAt).toLocaleDateString()}` : ""} — this is
               your logo
             </p>
+            <Link
+              href={`/projects/${projectId}/design`}
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+            >
+              Next: Design Studio <ArrowRight size={15} />
+            </Link>
             <button
               onClick={onRevoke}
               disabled={isBusy}

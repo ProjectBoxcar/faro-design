@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3100",
+    "dev": "node scripts/dev-with-od.mjs",
+    "dev:app-only": "next dev -p 3100",
+    "od:ensure": "node scripts/ensure-open-design.mjs --wait",
     "build": "next build",
     "start": "next start -p 3100",
     "lint": "eslint",

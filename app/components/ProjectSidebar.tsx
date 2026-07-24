@@ -71,6 +71,7 @@ export function ProjectSidebar({
   phases,
   studioSteps,
   assetStudio,
+  designStudio,
 }: {
   projectId: string;
   projectName: string;
@@ -80,6 +81,7 @@ export function ProjectSidebar({
   phases: SidebarPhase[];
   studioSteps: SidebarStudioStep[];
   assetStudio: SidebarAssetStudio;
+  designStudio: SidebarAssetStudio;
 }) {
   // Highlight only the path actually being viewed; the hub falls back to the
   // computed "work on this next" methodology group.
@@ -115,7 +117,7 @@ export function ProjectSidebar({
           <p className="mt-1 text-xs text-[var(--subtle)]">Greenfield — audit skipped</p>
         )}
         <div className="mt-4">
-          <div className="mb-1 text-xs text-[var(--subtle)]">Progress</div>
+          <div className="mb-1 text-xs text-[var(--subtle)]">Strategy built</div>
           <ProgressBar done={overall.done} total={overall.total} showPercent />
         </div>
       </div>
@@ -144,7 +146,7 @@ export function ProjectSidebar({
 
         <div className="mx-2.5 my-4 border-t border-[var(--border)]" />
         <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
-          Asset workshop
+          Next after strategy
         </div>
         <Link
           href={`/projects/${projectId}/studio`}
@@ -171,50 +173,61 @@ export function ProjectSidebar({
 
         <div className="mx-2.5 my-4 border-t border-[var(--border)]" />
         <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
-          Final stage
+          Then
         </div>
-        <div className={`rounded-xl ${studioActive ? "bg-[var(--accent-soft)]" : ""}`}>
+        <div className={`rounded-xl ${studioActive && !designStudio.locked ? "bg-[var(--accent-soft)]" : ""}`}>
           <Link
             href={`/projects/${projectId}/design`}
+            aria-disabled={designStudio.locked}
             aria-current={studioActive ? "page" : undefined}
-            className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition hover:bg-[var(--surface-2)]"
+            className={`flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition ${
+              designStudio.locked
+                ? "pointer-events-none opacity-50"
+                : "hover:bg-[var(--surface-2)]"
+            }`}
           >
             <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-              studioActive ? "bg-[var(--accent)] text-white" : "bg-[var(--surface-2)] text-[var(--muted)]"
+              studioActive && !designStudio.locked
+                ? "bg-[var(--accent)] text-white"
+                : "bg-[var(--surface-2)] text-[var(--muted)]"
             }`}>
-              <Sparkles size={13} />
+              {designStudio.locked ? <LockKeyhole size={11} /> : <Sparkles size={13} />}
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium">Design Studio</span>
               <span className="mt-0.5 block truncate text-[11px] text-[var(--subtle)]">
-                Turn the approved brief into assets
+                {designStudio.hint}
               </span>
             </span>
           </Link>
-          <ol aria-label="Design Studio steps" className="mb-3 ml-[1.55rem] space-y-0.5 border-l border-[var(--border)] pb-1 pl-2">
-            {studioSteps.map((step) => (
-              <li key={step.id}>
-                <Link
-                  href={`/projects/${projectId}/design#${step.id}`}
-                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-[var(--surface-2)]"
-                >
-                  <StudioStepStatus status={step.status} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] text-[var(--muted)]">{step.name}</span>
-                    <span className="block truncate text-[10px] text-[var(--subtle)]">
-                      {step.status === "selected"
-                        ? "Final selected"
-                        : step.status === "review"
-                        ? `${step.proposals} proposal${step.proposals === 1 ? "" : "s"} to review`
-                        : step.status === "locked"
-                        ? "Select an identity first"
-                        : "Not started"}
+          {!designStudio.locked && (
+            <ol aria-label="Design Studio steps" className="mb-3 ml-[1.55rem] space-y-0.5 border-l border-[var(--border)] pb-1 pl-2">
+              {studioSteps.map((step) => (
+                <li key={step.id}>
+                  <Link
+                    href={`/projects/${projectId}/design#${step.id}`}
+                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-[var(--surface-2)]"
+                  >
+                    <StudioStepStatus status={step.status} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13px] text-[var(--muted)]">{step.name}</span>
+                      <span className="block truncate text-[10px] text-[var(--subtle)]">
+                        {step.status === "selected"
+                          ? "Final selected"
+                          : step.status === "review"
+                          ? `${step.proposals} proposal${step.proposals === 1 ? "" : "s"} to review`
+                          : step.status === "locked"
+                          ? step.id === "identity-system"
+                            ? "Approve a logo first"
+                            : "Select an identity first"
+                          : "Not started"}
+                      </span>
                     </span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ol>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
       </nav>
 

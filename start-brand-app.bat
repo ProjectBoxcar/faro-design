@@ -51,14 +51,15 @@ if not exist "data\brand.db" (
 REM Get network information for display
 set LOCALHOST_IP=127.0.0.1
 
-echo Starting Brand App development server...
+echo Starting full stack (Open Design + Brand App)...
 echo.
 echo Access URLs:
 echo   Localhost:     http://%LOCALHOST_IP%:3100
 echo   Local Network: Check your IP with ipconfig
 echo   Tailscale:     Check your IP with tailscale ip -4
+echo   Open Design:   http://127.0.0.1:7456  (auto-started for graphics)
 echo.
-echo Press Ctrl+C to stop the server
+echo Press Ctrl+C to stop Brand App (Open Design daemon may keep running)
 echo.
 
 powershell -NoProfile -Command "try { $response = Invoke-WebRequest -Uri 'http://127.0.0.1:3100' -UseBasicParsing -TimeoutSec 3; if ($response.StatusCode -eq 200) { exit 0 } } catch { if ($_.Exception.Response) { exit 2 } }; if (Get-NetTCPConnection -LocalPort 3100 -State Listen -ErrorAction SilentlyContinue) { exit 2 }; exit 1" >nul 2>&1

@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { getProject } from "@/lib/queries";
 import { buildBriefContext, listAssets } from "@/lib/design";
 import { designSystemBlockedReason } from "@/lib/design-gates";
-import { apiKeyStatus } from "@/lib/settings";
+import { hasApprovedLogo } from "@/lib/studio";
+import { designApiKeyStatus } from "@/lib/settings";
 import { DesignStudio } from "@/components/DesignStudio";
 import { getActiveDesignJob, serializeDesignJob, startDesignJob } from "@/lib/design-jobs";
 import { viabilityActionBlockedReason } from "@/lib/project-gates";
@@ -19,7 +20,7 @@ export default async function DesignPage({
   if (!project) notFound();
 
   const assets = listAssets(id);
-  const keyStatus = apiKeyStatus();
+  const openDesign = designApiKeyStatus();
   const activeJob = getActiveDesignJob(id);
   if (activeJob) void startDesignJob(activeJob.id);
 
@@ -32,9 +33,11 @@ export default async function DesignPage({
       initialShareToken={project.share_token}
       generationBlockedReason={
         viabilityActionBlockedReason(project, "design")
-          ?? designSystemBlockedReason(buildBriefContext(id))
+          ?? designSystemBlockedReason(buildBriefContext(id), {
+            hasApprovedLogo: hasApprovedLogo(id),
+          })
       }
-      apiKeyConfigured={keyStatus.configured}
+      apiKeyConfigured={openDesign.configured}
     />
   );
 }

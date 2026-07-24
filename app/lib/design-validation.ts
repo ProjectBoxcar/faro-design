@@ -49,7 +49,8 @@ export function generatedArtifactIssues(kind: AssetKind, html: string): string[]
     for (const section of ["logo", "color", "type", "components"]) {
       if (!hasId(source, section)) issues.push(`missing #${section} section`);
     }
-    if (!/<svg\b/i.test(source)) issues.push("missing embedded SVG logo");
+    // Logo section must still show the workshop-approved mark (as SVG), not invent a new one.
+    if (!/<svg\b/i.test(source)) issues.push("missing embedded approved SVG logo");
   }
 
   if (kind === "landing_page") {

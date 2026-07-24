@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, Settings, Sparkles } from "lucide-react";
+import { ArrowLeft, Settings, Sparkles, PenTool } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
 
 // Mobile-only sticky top bar: frosted, with a context-aware back button (out to
@@ -12,11 +12,13 @@ export function ProjectMobileBar({
   projectName,
   overall,
   assetStudioUnlocked,
+  designStudioUnlocked,
 }: {
   projectId: string;
   projectName: string;
   overall: { done: number; total: number };
   assetStudioUnlocked?: boolean;
+  designStudioUnlocked?: boolean;
 }) {
   const path = usePathname();
   const onHub = path === `/projects/${projectId}`;
@@ -40,26 +42,28 @@ export function ProjectMobileBar({
           <ArrowLeft size={18} />
         </Link>
         <span className="flex-1 truncate text-sm font-medium">{projectName}</span>
-        {assetStudioUnlocked && (
+        {assetStudioUnlocked && !designStudioUnlocked && (
           <Link
             href={`/projects/${projectId}/studio`}
             className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition active:bg-[var(--accent-hover)]"
           >
-            <Sparkles size={13} /> Studio
+            <PenTool size={13} /> Logo
           </Link>
         )}
-        <Link
-          href={`/projects/${projectId}/design`}
-          aria-label="Design Studio"
-          aria-current={path === `/projects/${projectId}/design` ? "page" : undefined}
-          className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition active:bg-[var(--surface-2)] ${
-            path === `/projects/${projectId}/design`
-              ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-              : "text-[var(--muted)]"
-          }`}
-        >
-          <Sparkles size={17} />
-        </Link>
+        {designStudioUnlocked && (
+          <Link
+            href={`/projects/${projectId}/design`}
+            aria-label="Design Studio"
+            aria-current={path === `/projects/${projectId}/design` ? "page" : undefined}
+            className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition active:bg-[var(--surface-2)] ${
+              path === `/projects/${projectId}/design`
+                ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                : "text-[var(--muted)]"
+            }`}
+          >
+            <Sparkles size={17} />
+          </Link>
+        )}
         <Link
           href="/settings"
           aria-label="Settings"
