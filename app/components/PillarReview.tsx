@@ -182,9 +182,41 @@ export function PillarReview({
   }
 
   const anyGenerating = states.some((s) => s.generating);
+  // Progress among steps that auto-drafted (empty on open).
+  const generatingCount = states.filter((s) => s.generating).length;
+  const autoDraftStarted = steps.filter(
+    (step, i) => step.autoDraft && !hasContent(step.initialValue)
+  ).length;
+  const autoDraftDone = Math.max(0, autoDraftStarted - generatingCount);
+  const pillarPct =
+    autoDraftStarted > 0 ? Math.round((autoDraftDone / autoDraftStarted) * 100) : 0;
 
   return (
     <div>
+      {anyGenerating && autoDraftStarted > 0 && (
+        <div className="mb-8 rounded-2xl border border-[var(--designer)]/30 bg-[var(--accent-soft)] px-4 py-3">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="flex items-center gap-2 text-[var(--designer)]">
+              <Loader2 size={15} className="animate-spin" />
+              Drafting this pillar…
+            </span>
+            <span className="font-semibold tabular-nums text-[var(--designer)]" aria-live="polite">
+              {pillarPct}%
+            </span>
+          </div>
+          <div className="mt-2 flex items-center gap-3">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/50 dark:bg-black/20">
+              <div
+                className="h-full rounded-full bg-[var(--designer)] transition-all duration-500"
+                style={{ width: `${pillarPct}%` }}
+              />
+            </div>
+            <span className="text-xs tabular-nums text-[var(--muted)]">
+              {autoDraftDone}/{autoDraftStarted}
+            </span>
+          </div>
+        </div>
+      )}
       <div className="space-y-10">
         {steps.map((step, i) => {
           const s = states[i];

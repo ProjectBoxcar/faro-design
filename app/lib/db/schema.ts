@@ -242,3 +242,38 @@ export const assets = sqliteTable(
   },
   (t) => [index("assets_project_idx").on(t.project_id)]
 );
+
+// Cross-project learning: outcomes the owner approved, used to steer future
+// strategy / logo / design generation (app memory — not model fine-tuning).
+export const brand_memory = sqliteTable(
+  "brand_memory",
+  {
+    id: text("id").primaryKey(),
+    // Source project (kept even if project later archived; no hard FK cascade so
+    // learnings survive accidental project deletes if we ever soft-delete).
+    project_id: text("project_id"),
+    project_name: text("project_name"),
+    // Which engine should read this learning.
+    engine: text("engine", { enum: ["strategy", "logo", "design", "all"] })
+      .notNull()
+      .default("all"),
+    // What kind of signal this is.
+    kind: text("kind", {
+      enum: ["strategy_outcome", "logo_preference", "design_preference", "taste", "package"],
+    }).notNull(),
+    title: text("title").notNull(),
+    // Short natural-language summary injected into prompts.
+    body: text("body").notNull(),
+    // Optional structured extras (labels, hexes, verdicts…).
+    meta: text("meta", { mode: "json" }).$type<Record<string, unknown>>().default({}),
+    // Higher = more important when ranking (recent package = high).
+    weight: integer("weight").notNull().default(1),
+    created_at: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index("brand_memory_engine_idx").on(t.engine),
+    index("brand_memory_project_idx").on(t.project_id),
+  ]
+);

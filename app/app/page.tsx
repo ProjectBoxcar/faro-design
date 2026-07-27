@@ -41,40 +41,51 @@ export default function Home() {
 
   const cards = projects.map((p) => {
     const map: StatusMap = new Map(getSections(p.id).map((r) => [r.section_key, r.status]));
-    const steps: JourneyStep[] = methodology.phases.map((phase) => {
-      const ids = requiredByPhase.get(phase.id) ?? [];
-      // Design phase is optional artifact work — show as a destination point.
-      if (phase.id === "design") {
-        const designOpen =
-          p.current_phase === "design" ||
-          p.current_phase === "finished" ||
-          Boolean(p.published_at);
-        return {
-          id: phase.id,
-          label: phase.name,
-          short: PHASE_SHORT[phase.id] ?? phase.name,
-          done: designOpen ? 1 : 0,
-          total: 1,
-        };
-      }
-      return {
-        id: phase.id,
-        label: phase.name,
-        short: PHASE_SHORT[phase.id] ?? phase.name,
-        done: ids.filter((id) => isFilled(map.get(id))).length,
-        total: ids.length,
-      };
-    });
-
     const strategyIds = [...requiredByPhase.entries()]
       .filter(([phaseId]) => phaseId !== "design")
       .flatMap(([, ids]) => ids);
     const strategyFilled = strategyIds.filter((id) => isFilled(map.get(id))).length;
     const strategyComplete = strategyIds.filter((id) => isComplete(map.get(id))).length;
     const designPlan = map.get("design-plan");
-    const expressReady = isFilled(designPlan) && strategyComplete < strategyIds.length;
     const logoWorkshopReady = !studioBlockedReason(p.id, "logo");
     const logoApproved = hasApprovedLogo(p.id);
+    // Strategy is "done" when required sections are filled or the owner has
+    // already moved on (logo workshop / publish / design phase). Optional
+    // Reality steps (packages, channels) never block this.
+    const strategyJourneyDone =
+      Boolean(p.published_at) ||
+      p.current_phase === "design" ||
+      p.current_phase === "finished" ||
+      logoWorkshopReady ||
+      logoApproved ||
+      (strategyIds.length > 0 && strategyFilled >= strategyIds.length);
+    const expressReady = isFilled(designPlan) && !strategyJourneyDone;
+    const designJourneyDone =
+      p.current_phase === "finished" ||
+      (Boolean(p.published_at) && logoApproved);
+
+    const steps: JourneyStep[] = methodology.phases.map((phase) => {
+      const ids = requiredByPhase.get(phase.id) ?? [];
+      // Design phase is optional artifact work — show as a destination point.
+      if (phase.id === "design") {
+        return {
+          id: phase.id,
+          label: phase.name,
+          short: PHASE_SHORT[phase.id] ?? phase.name,
+          done: designJourneyDone ? 1 : 0,
+          total: 1,
+        };
+      }
+      const filled = ids.filter((id) => isFilled(map.get(id))).length;
+      return {
+        id: phase.id,
+        label: phase.name,
+        short: PHASE_SHORT[phase.id] ?? phase.name,
+        // Force full fill when the strategy journey has been completed in practice.
+        done: strategyJourneyDone ? ids.length : filled,
+        total: ids.length,
+      };
+    });
 
     return {
       id: p.id,

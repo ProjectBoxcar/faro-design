@@ -56,6 +56,20 @@ export function expressSectionIds(): string[] {
     .map((s) => s.id);
 }
 
+/** Required Reality/Identity owner-input sections (must exist before synthesis). */
+export function requiredOwnerInputIds(): string[] {
+  return flowSteps()
+    .map((s) => getSection(s.sectionId))
+    .filter(
+      (s): s is NonNullable<typeof s> =>
+        Boolean(s) &&
+        !s!.optional &&
+        s!.kind === "input" &&
+        (s!.id.startsWith("reality.") || s!.id.startsWith("identity."))
+    )
+    .map((s) => s.id);
+}
+
 const runs = new Map<
   string,
   { state: ExpressState; promise: Promise<void>; cancelled: boolean }
@@ -215,6 +229,31 @@ export function startExpress(projectId: string): ExpressState {
   runs.set(projectId, entry);
 
   const promise = (async () => {
+    // 0) Guarantee every required Reality/Identity input exists before synthesis.
+    // Quick Start should have filled these; if any are still empty, draft them
+    // from the owner's words already on file so the journey never stalls.
+    const ownerInputs = requiredOwnerInputIds();
+    for (const id of ownerInputs) {
+      throwIfExpressCancelled(projectId);
+      if (filledKeys(projectId).has(id)) continue;
+      state.current = id;
+      state.currentName = getSection(id)?.name ?? id;
+      try {
+        const result = await generateWithRetry(projectId, id, () =>
+          throwIfExpressCancelled(projectId)
+        );
+        saveSection({
+          projectId,
+          key: id,
+          value: result.values as unknown as SectionValue,
+          status: "draft",
+          aiGenerated: true,
+        });
+      } catch (e) {
+        console.warn(`[express] could not backfill owner input ${id}:`, e);
+      }
+    }
+
     // The journey listing is not strictly topological (a section may read a
     // sibling listed after it), so run passes: each pass drafts every section
     // whose inputs exist, until all are done or a pass makes no progress.
@@ -261,6 +300,20 @@ export function startExpress(projectId: string): ExpressState {
     state.current = null;
     state.currentName = null;
     state.status = "done";
+    // Mark every drafted strategy step complete so the journey track (and
+    // handover path) shows full completion after the first-questions pipeline.
+    try {
+      const { completeSectionsWithContent } = await import("@/lib/queries");
+      const { flowSteps } = await import("@/lib/flow");
+      completeSectionsWithContent(
+        projectId,
+        flowSteps().map((s) => s.sectionId)
+      );
+      // Also complete every Reality/Identity input that was drafted.
+      completeSectionsWithContent(projectId, requiredOwnerInputIds());
+    } catch (e) {
+      console.warn("[express] complete-sections pass failed:", e);
+    }
     // The strategy is drafted — evaluate viability in the background so the
     // verdict is ready by the time the owner approves and opens the Studio.
     void maybeRunViabilityGate(projectId).catch((e) => console.error("[viability] failed:", e));

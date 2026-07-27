@@ -15,6 +15,7 @@ type LaneStatus = {
 export type SettingsInitial = {
   strategy: LaneStatus;
   openDesign: LaneStatus;
+  brandMemory?: { total: number; byEngine: Record<string, number> };
   // Back-compat flat fields
   configured?: boolean;
   source?: "settings" | "env" | null;
@@ -201,11 +202,12 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
 
       {/* Open Design lane */}
       <section className="card-shadow rounded-2xl border border-[var(--accent)]/30 bg-[var(--surface)] p-6">
-        <h2 className="font-serif text-xl font-medium tracking-tight">2. Open Design AI (graphics)</h2>
+        <h2 className="font-serif text-xl font-medium tracking-tight">2. Logo AI (OpenAI)</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          <strong className="text-[var(--foreground)]">Required for all graphic work</strong> — Logo
-          Workshop, Design Studio identity systems, landing pages, and decks. Never uses the strategy
-          key above.
+          <strong className="text-[var(--foreground)]">Logo Workshop only</strong> — OpenAI (gpt-4o)
+          with optional Gemini fallback via <code className="text-xs">GEMINI_API_KEY</code>. Design
+          Studio identity systems and mockups do <em>not</em> use this key — they run through Open
+          Design + Anthropic only.
         </p>
 
         <div className="mt-4 mb-4 flex items-center gap-2 text-sm">
@@ -215,10 +217,10 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
           />
           {openDesign.configured ? (
             <span>
-              <span className="font-medium">Open Design connected</span>{" "}
+              <span className="font-medium">Graphics AI connected</span>{" "}
               <span className="text-[var(--muted)]">
-                ({openDesign.source === "env" ? "env" : "settings"} · {openDesign.provider} ·{" "}
-                {openDesign.model})
+                ({openDesign.source === "env" ? "env" : openDesign.source === "strategy" ? "strategy key" : "settings"} ·{" "}
+                {openDesign.provider} · {openDesign.model})
               </span>
             </span>
           ) : (
@@ -232,22 +234,24 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
           <div>
             <label className="block text-sm font-medium">Provider</label>
             <p className="mt-0.5 text-xs text-[var(--subtle)]">
-              Open Design Cloud / any OpenAI-compatible design endpoint, or Anthropic if that&apos;s
-              how you power Open Design.
+              Use <strong className="text-[var(--foreground)]">OpenAI</strong> for logos. Choose
+              Anthropic here only if this field stores the OD BYOK key (not used for logo generation).
             </p>
             <select
               value={designProvider}
               onChange={(e) => setDesignProvider(e.target.value as AiProvider)}
               className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3 py-2.5 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
             >
-              <option value="openai-compatible">OpenAI-compatible (Open Design Cloud, etc.)</option>
-              <option value="anthropic">Anthropic</option>
+              <option value="openai-compatible">OpenAI (gpt-4o) — Logo Workshop</option>
+              <option value="anthropic">Anthropic key (OD BYOK for Design Studio)</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium">Open Design API key</label>
+            <label className="block text-sm font-medium">Graphics API key</label>
             <p className="mt-0.5 text-xs text-[var(--subtle)]">
-              Env alternative: <code className="text-[var(--foreground)]">OPEN_DESIGN_API_KEY</code>
+              OpenAI: <code className="text-[var(--foreground)]">sk-…</code> · Env:{" "}
+              <code className="text-[var(--foreground)]">OPEN_DESIGN_API_KEY</code> or{" "}
+              <code className="text-[var(--foreground)]">OPENAI_API_KEY</code>
             </p>
             <div className="relative mt-2">
               <KeyRound
@@ -258,7 +262,7 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
                 type="password"
                 value={designKey}
                 onChange={(e) => setDesignKey(e.target.value)}
-                placeholder={openDesign.configured ? "Paste a new key to replace it" : "sk-… or od-…"}
+                placeholder={openDesign.configured ? "Paste a new key to replace it" : "sk-proj-… or sk-…"}
                 autoComplete="off"
                 className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] py-2.5 pl-9 pr-3 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
               />
@@ -268,13 +272,14 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
             <div>
               <label className="block text-sm font-medium">Base URL</label>
               <p className="mt-0.5 text-xs text-[var(--subtle)]">
-                Env: <code className="text-[var(--foreground)]">OPEN_DESIGN_BASE_URL</code>
+                Leave blank for OpenAI. Env:{" "}
+                <code className="text-[var(--foreground)]">OPEN_DESIGN_BASE_URL</code>
               </p>
               <input
                 type="url"
                 value={designBaseUrl}
                 onChange={(e) => setDesignBaseUrl(e.target.value)}
-                placeholder="https://…/v1"
+                placeholder="https://api.openai.com/v1"
                 className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3 py-2.5 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
               />
             </div>
@@ -282,13 +287,14 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
           <div>
             <label className="block text-sm font-medium">Model</label>
             <p className="mt-0.5 text-xs text-[var(--subtle)]">
-              Env: <code className="text-[var(--foreground)]">OPEN_DESIGN_MODEL</code>
+              Logos: <code className="text-[var(--foreground)]">gpt-4o</code> recommended. Env:{" "}
+              <code className="text-[var(--foreground)]">OPEN_DESIGN_MODEL</code>
             </p>
             <input
               type="text"
               value={designModel}
               onChange={(e) => setDesignModel(e.target.value)}
-              placeholder="model id for Open Design"
+              placeholder={designProvider === "openai-compatible" ? "gpt-4o" : "claude-opus-4-8"}
               className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3 py-2.5 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
             />
           </div>
@@ -324,9 +330,40 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
         </div>
       )}
 
-      <p className="text-xs text-[var(--subtle)]">
-        Keys are stored locally in this app&apos;s database (never committed to git). Strategy and
-        Open Design lanes are separate on purpose — graphics never reuse the strategy API key.
+      <section className="card-shadow mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+        <h2 className="font-serif text-xl font-medium tracking-tight">3. Brand memory</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          Faro learns from projects you finish — approved strategy, logos, design systems, and full
+          packages. Those outcomes gently guide the next project. The cloud model is not fine-tuned;
+          this app stores preferences locally and feeds them into prompts.
+        </p>
+        <div className="mt-4 rounded-xl bg-[var(--surface-2)] px-4 py-3 text-sm">
+          <p className="font-medium text-[var(--foreground)]">
+            {initial.brandMemory?.total
+              ? `${initial.brandMemory.total} learning${initial.brandMemory.total === 1 ? "" : "s"} stored`
+              : "No learnings yet"}
+          </p>
+          {initial.brandMemory && initial.brandMemory.total > 0 ? (
+            <p className="mt-1 text-xs text-[var(--subtle)]">
+              Strategy {initial.brandMemory.byEngine.strategy ?? 0} · Logo{" "}
+              {initial.brandMemory.byEngine.logo ?? 0} · Design{" "}
+              {initial.brandMemory.byEngine.design ?? 0} · Shared{" "}
+              {initial.brandMemory.byEngine.all ?? 0}
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-[var(--subtle)]">
+              Approve a strategy, logo, or publish a Brand Handover to start building memory.
+            </p>
+          )}
+        </div>
+      </section>
+
+      <p className="mt-6 text-xs text-[var(--subtle)]">
+        Keys stay local (never git). Engines: <strong>Strategy</strong> = Anthropic/GPT above ·{" "}
+        <strong>Logos</strong> = OpenAI (this section) → Gemini fallback ·{" "}
+        <strong>Design Studio</strong> = Open Design daemon + Anthropic only (strategy Anthropic key
+        or Anthropic graphics key). Gemini: <code className="text-[var(--foreground)]">GEMINI_API_KEY</code>{" "}
+        in <code className="text-[var(--foreground)]">.env.local</code>.
       </p>
     </div>
   );

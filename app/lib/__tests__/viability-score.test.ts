@@ -34,6 +34,15 @@ describe("scoreViabilityVerdict", () => {
     expect(scoreViabilityVerdict(scored, true)).toBe("caveat");
   });
 
+  it("does not hard-fail greenfield brands lacking recurring sales", () => {
+    const scored = [
+      crit({ criterion: "Recurring sales exist", type: "non-negotiable", answer: "no" }),
+      crit({ criterion: "Budget is available", type: "non-negotiable", answer: "yes" }),
+    ];
+    expect(scoreViabilityVerdict(scored, { greenfield: true })).toBe("caveat");
+    expect(scoreViabilityVerdict(scored, { personal: false, greenfield: false })).toBe("fail");
+  });
+
   it("returns caveat for non-blocking non-negotiable failures", () => {
     const scored = [
       crit({ criterion: "Team is ready", type: "non-negotiable", answer: "no" }),

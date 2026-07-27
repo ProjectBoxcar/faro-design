@@ -28,6 +28,9 @@ const GenerateSchema = z.object({
   count: z.number().int().min(1).max(6).optional(),
   designSystemId: z.string().min(1).optional(),
   variant: z.string().min(1).max(5).optional(),
+  /** Owner notes when improving a liked identity proposal. */
+  feedback: z.string().max(2000).optional(),
+  refineFromAssetId: z.string().min(1).optional(),
 });
 
 const CancelJobSchema = z.object({
@@ -55,10 +58,18 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error:
-          "No Anthropic key for Open Design BYOK — save it in Settings. Design Studio runs through the OD daemon only.",
+          "Design Studio requires Open Design + an Anthropic key (BYOK). Save Anthropic in Strategy Settings, start the OD daemon (port 7456). Logos use OpenAI/Gemini separately — they do not power identity systems or mockups.",
       },
       { status: 400 }
     );
+  }
+
+  // Bring OD up if it died after app boot (Windows restarts, manual stop).
+  const { ensureOpenDesignDaemon, openDesignNotRunningMessage } = await import(
+    "@/lib/open-design-ensure"
+  );
+  if (!(await ensureOpenDesignDaemon())) {
+    return NextResponse.json({ error: openDesignNotRunningMessage() }, { status: 503 });
   }
 
   const parsed = GenerateSchema.safeParse(body);
@@ -66,7 +77,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const { projectId, kind, count = 1, designSystemId, variant } = parsed.data;
+  const { projectId, kind, count = 1, designSystemId, variant, feedback, refineFromAssetId } =
+    parsed.data;
 
   const project = getProject(projectId);
   if (!project) {
@@ -95,7 +107,20 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const job = createDesignJob({ projectId, kind, count, designSystemId });
+    if (refineFromAssetId && kind !== "design_system") {
+      return NextResponse.json(
+        { error: "Improve with feedback is available for Brand Identity System proposals." },
+        { status: 400 }
+      );
+    }
+    const job = createDesignJob({
+      projectId,
+      kind,
+      count,
+      designSystemId,
+      feedback,
+      refineFromAssetId,
+    });
     return NextResponse.json({ job: serializeDesignJob(job) }, { status: 202 });
   }
 

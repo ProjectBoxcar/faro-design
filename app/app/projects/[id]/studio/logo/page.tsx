@@ -14,16 +14,22 @@ export default async function LogoWorkspacePage({ params }: { params: Promise<{ 
 
   const ws = logoWorkspace(id);
   // Serialize for the client component: dates → ISO, evaluation → verdict+scores only.
-  const assets: WorkspaceAsset[] = ws.assets.map((a) => ({
-    id: a.id,
-    label: a.label,
-    direction: a.direction,
-    status: a.status,
-    payload: a.payload ?? {},
-    approvedAt: a.approved_at ? a.approved_at.toISOString() : null,
-    verdict: a.evaluation?.verdict ?? null,
-    scores: a.evaluation?.scores ?? [],
-  }));
+  const assets: WorkspaceAsset[] = ws.assets.map((a) => {
+    const payload = a.payload ?? {};
+    const tokens = payload.tokens ?? {};
+    return {
+      id: a.id,
+      label: a.label,
+      direction: a.direction,
+      status: a.status,
+      payload,
+      approvedAt: a.approved_at ? a.approved_at.toISOString() : null,
+      verdict: a.evaluation?.verdict ?? null,
+      scores: a.evaluation?.scores ?? [],
+      refinedFrom: typeof tokens.refinedFrom === "string" ? tokens.refinedFrom : null,
+      refinedFromLabel: typeof tokens.refinedFromLabel === "string" ? tokens.refinedFromLabel : null,
+    };
+  });
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-12 lg:py-12">

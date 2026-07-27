@@ -8,7 +8,7 @@ import { getSectionRow, getProject } from "@/lib/queries";
 import { designSystemPrompt, landingPagePrompt, brandDeckPrompt } from "@/lib/design-prompts";
 import { designSystemBlockedReason, artifactBlockedReason } from "@/lib/design-gates";
 import { isNearDuplicateProposal, proposalSimilarity } from "@/lib/design-similarity";
-import { generatedArtifactIssues } from "@/lib/design-validation";
+import { generatedArtifactIssues, normalizeGeneratedHtml } from "@/lib/design-validation";
 import { getApprovedLogo } from "@/lib/studio";
 import type { BriefContext } from "@/lib/design-gates";
 import type { AssetKind } from "@/lib/db/types";
@@ -147,12 +147,31 @@ function stringifyContext(ctx: BriefContext): string {
   return lines.join("\n\n");
 }
 
-async function callAi(prompt: string): Promise<string> {
-  // Graphics only — Open Design lane. Never the strategy Anthropic/GPT key.
+async function callAi(
+  prompt: string,
+  maxTokens = 16_000,
+  projectId?: string
+): Promise<string> {
+  // Design Studio ONLY — Open Design daemon. Never OpenAI/Gemini/logo path.
+  let memory = "";
+  if (projectId) {
+    try {
+      const { formatMemoryForPrompt } = await import("@/lib/brand-memory");
+      memory = formatMemoryForPrompt("design", { excludeProjectId: projectId, limit: 5 });
+    } catch {
+      /* optional */
+    }
+  }
+  const system = [
+    "You are a senior brand designer (Open Design pipeline) translating a finished Finisterra strategy brief into real design artifacts. The strategy brief is the sole source of brand meaning — never invent claims, features, audiences, or stories not present there. Be concrete and decisive. Avoid generic AI-speak and placeholder copy. Output must be a single HTML file starting with <!DOCTYPE html>. Keep markup tight — no filler sections.",
+    memory,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
   const { text } = await generateDesignText({
-    maxTokens: 32000,
-    system:
-      "You are a senior brand designer (Open Design pipeline) translating a finished Finisterra strategy brief into real design artifacts. The strategy brief is the sole source of brand meaning — never invent claims, features, audiences, or stories not present there. Be concrete and decisive. Avoid generic AI-speak and placeholder copy. Output must be a single HTML file starting with <!DOCTYPE html>.",
+    maxTokens,
+    system,
     messages: [{ role: "user", content: prompt }],
   });
   return text;
@@ -164,6 +183,11 @@ function variantLabel(index: number): string {
   return String.fromCharCode(65 + index); // A, B, C...
 }
 
+export type DesignRefineOptions = {
+  feedback?: string;
+  baseHtml?: string;
+};
+
 async function generateSingleAsset(
   projectId: string,
   kind: AssetKind,
@@ -173,7 +197,8 @@ async function generateSingleAsset(
   designSystemHtml?: string,
   designSystemId?: string,
   priorHtml: string[] = [],
-  approvedLogoSvg?: string
+  approvedLogoSvg?: string,
+  refine?: DesignRefineOptions | null
 ): Promise<AssetRow> {
   let prompt: string;
   let name: string;
@@ -182,7 +207,7 @@ async function generateSingleAsset(
     if (!approvedLogoSvg) {
       throw new Error("Approve a logo in the Logo Workshop before generating identity systems.");
     }
-    prompt = designSystemPrompt(variant, brief, approvedLogoSvg);
+    prompt = designSystemPrompt(variant, brief, approvedLogoSvg, refine);
     name = `${projectName} — Identity System ${variant}`;
   } else if (kind === "landing_page") {
     prompt = landingPagePrompt(variant, brief, designSystemHtml ?? "");
@@ -192,29 +217,55 @@ async function generateSingleAsset(
     name = `${projectName} — Brand Deck ${variant}`;
   }
 
+  // Identity systems need headroom for full HTML; mockups a bit less.
+  const maxTokens = kind === "design_system" ? 24_000 : 16_000;
+
   let html = "";
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const retryDirection = attempt === 0
-      ? ""
-      : "\n\nRETRY REQUIRED: The previous result failed the distinctness or technical delivery contract. Rebuild from a blank composition, follow every required hook and offline constraint exactly, and preserve this proposal's strategy and creative thesis.";
-    html = await callAi(prompt + retryDirection);
+  let lastIssues: string[] = [];
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const issueHint =
+      lastIssues.length > 0
+        ? `\n\nPREVIOUS ATTEMPT FAILED VALIDATION:\n- ${lastIssues.join("\n- ")}\nFix every issue listed. No markdown fences. No external URLs/fonts/CDNs.`
+        : "";
+    const retryDirection =
+      attempt === 0
+        ? ""
+        : `\n\nRETRY REQUIRED: Rebuild as one complete offline HTML document starting with <!DOCTYPE html> and ending with </html>. Follow every required hook and offline constraint exactly. Preserve this proposal's strategy and creative thesis.${issueHint}`;
+    const raw = await callAi(prompt + retryDirection, maxTokens, projectId);
+    if (!raw?.trim()) {
+      lastIssues = ["empty model response"];
+      console.warn(`[design] Proposal ${kind}/${variant} empty response (attempt ${attempt + 1})`);
+      continue;
+    }
+    // Normalize markdown wrappers, incomplete docs, external assets, missing shells.
+    html = normalizeGeneratedHtml(raw, kind, { approvedLogoSvg });
     const closest = priorHtml.reduce(
       (highest, existing) => Math.max(highest, proposalSimilarity(html, existing)),
       0
     );
     const duplicate = priorHtml.some((existing) => isNearDuplicateProposal(html, existing));
     const validationIssues = generatedArtifactIssues(kind, html);
+    lastIssues = [
+      ...(duplicate ? [`similarity ${closest.toFixed(3)}`] : []),
+      ...validationIssues,
+    ];
     if (!duplicate && validationIssues.length === 0) break;
     console.warn(
-      `[design] Proposal ${kind}/${variant} rejected: ${[
-        duplicate ? `similarity ${closest.toFixed(3)}` : "",
-        ...validationIssues,
-      ].filter(Boolean).join("; ")}`
+      `[design] Proposal ${kind}/${variant} rejected (attempt ${attempt + 1}): ${lastIssues.join("; ")}`
     );
-    html = "";
+    // Last attempt: keep a real document if it is not a near-duplicate of a prior proposal.
+    if (attempt === 2 && !duplicate && html.length > 1500 && /<!doctype html>/i.test(html)) {
+      console.warn(
+        `[design] Proposal ${kind}/${variant} accepted with remaining issues: ${lastIssues.join("; ")}`
+      );
+      break;
+    }
+    if (attempt < 2) html = "";
   }
-  if (!html) {
-    throw new Error(`Faro could not create a distinct proposal ${variant}. Generate the set again.`);
+  if (!html?.trim()) {
+    throw new Error(
+      `Faro could not create a distinct proposal ${variant}. ${lastIssues.join("; ") || "Generate the set again."}`
+    );
   }
 
   const id = nanoid();
@@ -254,6 +305,7 @@ async function generateProposalSet({
   designSystemId,
   approvedLogoSvg,
   onAsset,
+  refine,
 }: {
   projectId: string;
   kind: "design_system" | "landing_page" | "deck";
@@ -264,17 +316,26 @@ async function generateProposalSet({
   designSystemId?: string;
   approvedLogoSvg?: string;
   onAsset?: (asset: AssetRow) => void;
+  refine?: DesignRefineOptions | null;
 }): Promise<AssetRow[]> {
   const existing = listProposals(projectId, kind);
-  const previousIds = existing.filter((asset) => !asset.selected).map((asset) => asset.id);
-  const protectedHtml = existing.flatMap((asset) => asset.selected && asset.html ? [asset.html] : []);
+  // When refining a liked proposal, keep all existing (including base) so the owner can compare.
+  const previousIds = refine
+    ? []
+    : existing.filter((asset) => !asset.selected).map((asset) => asset.id);
+  const protectedHtml = existing.flatMap((asset) =>
+    asset.selected && asset.html ? [asset.html] : []
+  );
+  if (refine?.baseHtml) protectedHtml.push(refine.baseHtml);
   const results: AssetRow[] = [];
   try {
+    // Sequential on purpose: each proposal sees prior HTML so directions stay
+    // distinct and strategy-grounded (parallel batches tended to clone).
     for (let index = 0; index < count; index++) {
-      const variant = variantLabel(index);
+      const variant = refine ? `R${index + 1}` : variantLabel(index);
       const priorHtml = [
         ...protectedHtml,
-        ...results.flatMap((asset) => asset.html ? [asset.html] : []),
+        ...results.flatMap((asset) => (asset.html ? [asset.html] : [])),
       ];
       const asset = await generateSingleAsset(
         projectId,
@@ -285,15 +346,19 @@ async function generateProposalSet({
         designSystemHtml,
         designSystemId,
         priorHtml,
-        approvedLogoSvg
+        approvedLogoSvg,
+        refine
       );
       results.push(asset);
       onAsset?.(asset);
     }
-    removeAssetRows(projectId, previousIds);
+    if (previousIds.length > 0) removeAssetRows(projectId, previousIds);
     return results;
   } catch (error) {
-    removeAssetRows(projectId, results.map((asset) => asset.id));
+    removeAssetRows(
+      projectId,
+      results.map((asset) => asset.id)
+    );
     throw error;
   }
 }
@@ -301,7 +366,8 @@ async function generateProposalSet({
 export async function generateDesignSystemProposals(
   projectId: string,
   count = 3,
-  onAsset?: (asset: AssetRow) => void
+  onAsset?: (asset: AssetRow) => void,
+  refine?: DesignRefineOptions | null
 ): Promise<AssetRow[]> {
   const ctx = buildBriefContext(projectId);
   const approvedLogo = getApprovedLogo(projectId);
@@ -319,6 +385,7 @@ export async function generateDesignSystemProposals(
     projectName: ctx.name,
     approvedLogoSvg: logoSvg,
     onAsset,
+    refine,
   });
 }
 
@@ -473,6 +540,7 @@ export function getSelectedAsset(projectId: string, kind: AssetKind): AssetRow |
 export function selectAsset(projectId: string, assetId: string): AssetRow {
   const asset = getAsset(projectId, assetId);
   if (!asset) throw new Error("Asset not found");
+  // Learning capture runs after select completes (see end of function).
   const previousSelected = getSelectedAsset(projectId, asset.kind);
 
   db.update(assets)
@@ -497,7 +565,19 @@ export function selectAsset(projectId: string, assetId: string): AssetRow {
     .where(and(eq(assets.project_id, projectId), eq(assets.id, assetId)))
     .run();
 
-  return db.select().from(assets).where(eq(assets.id, assetId)).get()!;
+  const selected = db.select().from(assets).where(eq(assets.id, assetId)).get()!;
+  if (
+    selected.kind === "design_system" ||
+    selected.kind === "landing_page" ||
+    selected.kind === "deck"
+  ) {
+    void import("@/lib/brand-memory")
+      .then(({ recordDesignLearning }) =>
+        recordDesignLearning(projectId, assetId, selected.kind as "design_system" | "landing_page" | "deck")
+      )
+      .catch((e) => console.warn("[brand-memory] design learn failed:", e));
+  }
+  return selected;
 }
 
 export function updateAssetStatus(assetId: string, status: AssetRow["status"]): void {

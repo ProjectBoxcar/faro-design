@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { hasOpenDesignKey } from "@/lib/ai";
+import { hasLogoKey } from "@/lib/ai";
 import {
   getProject,
   chooseStudioAsset,
@@ -20,7 +20,13 @@ export const maxDuration = 300;
 
 const Schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("generate"), projectId: z.string().min(1) }),
-  z.object({ action: z.literal("variations"), projectId: z.string().min(1), assetId: z.string().min(1) }),
+  z.object({
+    action: z.literal("variations"),
+    projectId: z.string().min(1),
+    assetId: z.string().min(1),
+    /** Owner notes to steer refinements of a liked direction. */
+    feedback: z.string().max(2000).optional(),
+  }),
   z.object({ action: z.literal("cancel"), projectId: z.string().min(1) }),
   z.object({ action: z.literal("choose"), projectId: z.string().min(1), assetId: z.string().min(1) }),
   // "approve" is the human gate — this endpoint is only ever reached by the
@@ -53,18 +59,19 @@ export async function POST(req: Request) {
     switch (input.action) {
       case "generate":
       case "variations": {
-        if (!hasOpenDesignKey()) {
+        if (!hasLogoKey()) {
           return NextResponse.json(
             {
               error:
-                "No Anthropic key for Open Design BYOK — save it in Settings. Logos run through the OD daemon only.",
+                "No logo AI key — save an OpenAI API key in Settings (graphics → OpenAI-compatible).",
             },
             { status: 400 }
           );
         }
         const result = await generateLogoCandidates(
           input.projectId,
-          input.action === "variations" ? input.assetId : undefined
+          input.action === "variations" ? input.assetId : undefined,
+          input.action === "variations" ? input.feedback?.trim() || undefined : undefined
         );
         return NextResponse.json({ discarded: result.discarded, workspace: logoWorkspace(input.projectId) });
       }

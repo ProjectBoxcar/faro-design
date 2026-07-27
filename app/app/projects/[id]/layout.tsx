@@ -115,6 +115,25 @@ export default async function ProjectLayout({
       : "Color, type, components & mockups",
   };
 
+  const identityOk = designAssets.some((a) => a.kind === "design_system" && a.selected);
+  const landingOk = designAssets.some(
+    (a) => a.kind === "landing_page" && a.selected && a.design_system_id
+  );
+  const deckOk = designAssets.some((a) => a.kind === "deck" && a.selected && a.design_system_id);
+  const handoverReady = identityOk && landingOk && deckOk;
+  const brandHandover = {
+    // Always openable once Design Studio is unlocked — page shows checklist if incomplete.
+    locked: !designStudioUnlocked,
+    ready: handoverReady,
+    hint: !designStudioUnlocked
+      ? "Unlocks after you approve a logo"
+      : handoverReady
+        ? project.share_token
+          ? "Open package · published"
+          : "Open final package"
+        : "Open checklist · finish finals",
+  };
+
   return (
     <div className="flex min-h-screen">
       <ProjectSidebar
@@ -127,6 +146,7 @@ export default async function ProjectLayout({
         studioSteps={studioSteps}
         assetStudio={assetStudio}
         designStudio={designStudio}
+        brandHandover={brandHandover}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <ProjectMobileBar

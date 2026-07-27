@@ -12,6 +12,8 @@ const Schema = z.object({
   projectId: z.string().min(1),
   key: z.string().min(1),
   value: z.record(z.string(), z.unknown()).optional(),
+  /** "polish" = improve owner's current text; default drafts from notes/context. */
+  mode: z.enum(["draft", "polish"]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -42,7 +44,12 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await generateSection(parsed.data.projectId, parsed.data.key, parsed.data.value ?? {});
+    const result = await generateSection(
+      parsed.data.projectId,
+      parsed.data.key,
+      parsed.data.value ?? {},
+      parsed.data.mode ?? "draft"
+    );
     // Record provenance: what was generated, from which model + upstream steps.
     const generationId = nanoid();
     db.insert(ai_generations)

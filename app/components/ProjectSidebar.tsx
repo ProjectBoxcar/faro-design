@@ -11,6 +11,7 @@ import {
   FileText,
   Lightbulb,
   LockKeyhole,
+  PackageCheck,
   Palette,
   Settings,
   Sparkles,
@@ -50,6 +51,13 @@ export type SidebarAssetStudio = {
   hint: string;
 };
 
+/** Final shareable brand package (publish + download). */
+export type SidebarHandover = {
+  locked: boolean;
+  ready: boolean;
+  hint: string;
+};
+
 // Per-phase presentation: an icon so the rail is scannable and a short hint
 // that accurately describes the methodology work behind each phase.
 const PHASE_META: Record<string, { icon: LucideIcon; label?: string; hint: string }> = {
@@ -72,6 +80,7 @@ export function ProjectSidebar({
   studioSteps,
   assetStudio,
   designStudio,
+  brandHandover,
 }: {
   projectId: string;
   projectName: string;
@@ -82,12 +91,14 @@ export function ProjectSidebar({
   studioSteps: SidebarStudioStep[];
   assetStudio: SidebarAssetStudio;
   designStudio: SidebarAssetStudio;
+  brandHandover: SidebarHandover;
 }) {
   // Highlight only the path actually being viewed; the hub falls back to the
   // computed "work on this next" methodology group.
   const pathname = usePathname();
   const routeParams = useParams<{ group?: string }>();
   const studioActive = pathname === `/projects/${projectId}/design`;
+  const handoverActive = pathname === `/projects/${projectId}/handover`;
   const assetStudioActive = pathname.startsWith(`/projects/${projectId}/studio`);
   const onHub = pathname === `/projects/${projectId}`;
   const viewedGroup = pathname.startsWith(`/projects/${projectId}/review/`) && routeParams?.group
@@ -229,6 +240,53 @@ export function ProjectSidebar({
             </ol>
           )}
         </div>
+
+        <div className="mx-2.5 my-4 border-t border-[var(--border)]" />
+        <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
+          Finish
+        </div>
+        <Link
+          href={
+            brandHandover.locked
+              ? `/projects/${projectId}/design`
+              : `/projects/${projectId}/handover`
+          }
+          aria-current={handoverActive ? "page" : undefined}
+          title={
+            brandHandover.locked
+              ? brandHandover.hint
+              : "Open Brand Handover — final package"
+          }
+          className={`flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition hover:bg-[var(--surface-2)] ${
+            handoverActive ? "bg-[var(--surface-2)]" : ""
+          } ${brandHandover.locked ? "opacity-60" : ""}`}
+        >
+          <span
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+              handoverActive
+                ? "bg-[var(--accent)] text-white"
+                : brandHandover.ready
+                ? "bg-[var(--foreground)] text-white"
+                : brandHandover.locked
+                ? "bg-[var(--surface-2)] text-[var(--muted)]"
+                : "border border-[var(--border-strong)] bg-transparent text-[var(--muted)]"
+            }`}
+          >
+            {brandHandover.locked ? (
+              <LockKeyhole size={11} />
+            ) : brandHandover.ready ? (
+              <Check size={13} strokeWidth={3} />
+            ) : (
+              <PackageCheck size={13} />
+            )}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium">Brand Handover</span>
+            <span className="mt-0.5 block truncate text-[11px] text-[var(--subtle)]">
+              {brandHandover.hint}
+            </span>
+          </span>
+        </Link>
       </nav>
 
       <div className="border-t border-[var(--border)] p-3">

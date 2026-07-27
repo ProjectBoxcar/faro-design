@@ -16,25 +16,40 @@ export type CriterionScore = {
 
 export type ViabilityVerdict = "pass" | "caveat" | "fail";
 
+export type ViabilityScoreOptions = {
+  /** Founder building their own brand — commercial blockers become caveats. */
+  personal?: boolean;
+  /** Pre-revenue / not-yet-launched brand — same soft path (no hard-fail on sales/budget). */
+  greenfield?: boolean;
+};
+
 /**
  * Deterministic verdict from scored criteria.
- * - fail: non-negotiable blocking criterion is "no" (unless personal project)
- * - caveat: other non-negotiable "no", or warning risk signals "yes"
+ * - fail: blocking commercial non-negotiable is "no" (client engagements only)
+ * - caveat: other non-negotiable "no", soft commercial blockers, or risk warnings
  * - pass: otherwise
+ *
+ * Second arg may be `personal: boolean` (legacy) or `{ personal, greenfield }`.
+ * Greenfield brands must not hard-fail solely because they lack recurring sales yet.
  */
 export function scoreViabilityVerdict(
   scored: CriterionScore[],
-  personal: boolean
+  personalOrOpts: boolean | ViabilityScoreOptions = false
 ): ViabilityVerdict {
-  const failed =
-    !personal &&
+  const opts: ViabilityScoreOptions =
+    typeof personalOrOpts === "boolean" ? { personal: personalOrOpts } : personalOrOpts;
+  // Personal + greenfield: surface commercial gaps as caveats, never a hard stop.
+  const softCommercial = Boolean(opts.personal || opts.greenfield);
+
+  const hardFail =
+    !softCommercial &&
     scored.some(
       (s) =>
         s.type === "non-negotiable" &&
         s.answer === "no" &&
         BLOCKING.some((rx) => rx.test(s.criterion))
     );
-  if (failed) return "fail";
+  if (hardFail) return "fail";
 
   const caveats = scored.some(
     (s) =>

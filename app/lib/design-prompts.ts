@@ -68,29 +68,53 @@ export function variantCreativeDirection(kind: DesignPromptKind, variant: string
   return CREATIVE_DIRECTIONS[kind][variant] ?? CREATIVE_DIRECTIONS[kind].A;
 }
 
-export function designSystemPrompt(variant: string, brief: string, approvedLogoSvg: string): string {
+export function designSystemPrompt(
+  variant: string,
+  brief: string,
+  approvedLogoSvg: string,
+  refine?: { baseHtml?: string; feedback?: string } | null
+): string {
+  const refineBlock =
+    refine?.baseHtml || refine?.feedback
+      ? [
+          "",
+          "MODE: IMPROVE AN EXISTING IDENTITY PROPOSAL THE OWNER LIKED.",
+          "Keep the same strategic meaning and approved logo. Produce a refined full HTML system — not a brand-new unrelated direction.",
+          refine?.feedback
+            ? `OWNER FEEDBACK (highest priority after strategy + logo — apply these changes):\n${refine.feedback}`
+            : "No free-text feedback — refine craft, hierarchy, and clarity while staying on this direction.",
+          refine?.baseHtml
+            ? `BASE PROPOSAL HTML (preserve what works; improve against feedback):\n${refine.baseHtml.slice(0, 12000)}`
+            : "",
+          "Every refinement must clearly respond to the owner feedback when provided.",
+          "",
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : "";
+
   return [
     `You are writing a complete visual brand design system handover for a developer. This is proposal "${variant}".`,
     "",
     "This identity system is the CORE brand deliverable AFTER the logo has already been approved in the Logo Workshop.",
-    "Read the brand strategy below — especially concept, brief findings, personality, tone, promise, design taste, and Design Plan — and cover palette, typography, system elements, and directions for photography, iconography, and illustration only where the plan asks for them.",
+    "Read the brand strategy below — especially concept, brief findings, personality, tone, promise, design taste, and Design Plan — and cover palette, typography, icons, UI components, and (when the plan asks) photography/illustration direction.",
     "",
     BRIEF_FIDELITY_RULES,
     "",
     "CRITICAL — LOGO RULE (non-negotiable):",
     "- The logo was already designed and approved in the Logo Workshop. You MUST NOT invent, redraw, redesign, or replace it.",
     "- Embed the exact approved SVG below (you may wrap it for clearspace demos, but do not change paths/shapes).",
-    "- Build color, type, and components so they SUPPORT this mark — never a competing mark.",
+    "- Build color, type, icons, and components so they SUPPORT this mark — never a competing mark.",
     "",
     "APPROVED LOGO SVG (embed this verbatim in the #logo section):",
     approvedLogoSvg,
-    "",
+    refineBlock,
     "Output MUST be a single, self-contained HTML file (not markdown) with all CSS in a <style> tag and no external dependencies. It will be opened directly in a browser by the designer and the developer.",
     "",
     "Critical preview behavior:",
     "- Build one continuous, native-size vertical guide. Never shrink, scale, zoom, or fit the whole page into a mock browser or device frame.",
-    "- Use these exact section ids: logo, color, type, components. Category navigation may use normal anchor links to those ids only.",
-    "- Clicking Logo, Colors, Type, or Components must only scroll to that section. Do not use tabs, modals, iframes, cloned page previews, or JavaScript view switching for primary navigation.",
+    "- Use these exact section ids: logo, color, type, icons, components. Category navigation may use normal anchor links to those ids only.",
+    "- Clicking Logo, Colors, Type, Icons, or Components must only scroll to that section. Do not use tabs, modals, iframes, cloned page previews, or JavaScript view switching for primary navigation.",
     "- Do not apply transform: scale(), zoom, or layout transforms to html, body, main, or the complete guide.",
     "- Include a standard viewport meta tag: width=device-width, initial-scale=1.",
     "",
@@ -103,16 +127,24 @@ export function designSystemPrompt(variant: string, brief: string, approvedLogoS
     "- A color palette section with live swatches, hex codes, OKLch values where possible, and exact usage rules (primary, accent, surface, text, muted, success, danger). Show contrast pairs. Colors must feel consistent with the brief's emotional territory and design taste.",
     "- A typography section showing the display and body fonts at all scale sizes (hero, h1, h2, h3, body, small, caption), with line heights, weights, and a type specimen paragraph using brief-aligned sample copy only.",
     "- A spacing / elevation section with the full token scale (4px base), max-width, container padding, border-radius tokens, and shadow scale.",
-    "- A components section with rendered, interactive examples of: primary button, secondary button, ghost button, input, card, badge, link. Show hover/focus states.",
-    "- A 'Do & Don't' section with visual examples for logo usage (using the approved mark), color misuse, and typography misuse.",
+    "- A REQUIRED #icons section with a real icon system — not a text note saying 'use icons later':",
+    "  * Draw 10–14 original icons as INLINE SVG (path/line/circle/rect only). No emoji, no icon fonts, no external SVG URLs, no Lucide/Font Awesome/CDN.",
+    "  * Include both product/UI icons (e.g. home, search, user, settings, check, close, arrow, mail, calendar, plus) AND 2–4 icons that reflect the brand's domain from the strategy (not generic filler).",
+    "  * One coherent geometric language: same stroke width (or same fill weight), corner treatment, and optical size — harmonize with the approved logo's geometry without copying its paths.",
+    "  * Show each icon at 24px and 32px in monochrome and primary brand color; label every icon.",
+    "  * Document rules: min size, stroke/fill, when to use monochrome vs brand color, do/don't for over-detail.",
+    "  * Icons must be visible in the HTML output (rendered <svg> elements), not described in prose only.",
+    "- A #components section with rendered, interactive examples of: primary button, secondary button, ghost button, input, card, badge, link. Prefer buttons that include an icon from #icons. Show hover/focus states.",
+    "- A 'Do & Don't' section with visual examples for logo usage (using the approved mark), color misuse, typography misuse, and icon misuse.",
     "- A responsive behavior section with breakpoints and rules.",
-    "- An 'Agent Prompt Guide' section telling any future AI how to use this system and to never invent claims beyond the brief.",
+    "- An 'Agent Prompt Guide' section telling any future AI how to use this system (including the icon set) and to never invent claims beyond the brief.",
     "- A footer with the generation credit 'Generated by Brand App'.",
     "",
     "Design quality requirements:",
     "- Brief fidelity beats decorative inventiveness. If a choice is not grounded in the strategy, do not make it.",
     "- All colors and spacing must use CSS custom properties (e.g. --color-primary, --spacing-lg).",
     "- Use system font stacks only. Do not load Google Fonts, CDNs, remote images, external scripts, stylesheets, or any other network resource. The file must work fully offline.",
+    "- Icons and decorative marks must be inline SVG or pure CSS — never remote images.",
     "- The page must be responsive and look excellent on desktop and acceptable on mobile.",
     "- Include subtle micro-interactions: hover states, smooth transitions, maybe a dark-mode toggle or theme switch.",
     "- Include @media (prefers-reduced-motion: reduce) support.",

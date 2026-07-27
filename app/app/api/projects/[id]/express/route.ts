@@ -167,8 +167,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       { status: 409 }
     );
   }
+  // Complete every methodology step that has content — including Reality inputs
+  // filled at Quick Start so the journey shows Strategy → Handover complete.
   completeSectionsWithContent(id, flowSteps().map((s) => s.sectionId));
   const token = publishProject(id);
   await maybeRunViabilityGate(id).catch((e) => console.error("[viability] failed:", e));
+  try {
+    const { recordStrategyLearning } = await import("@/lib/brand-memory");
+    recordStrategyLearning(id);
+  } catch (e) {
+    console.warn("[brand-memory] strategy learn failed:", e);
+  }
   return NextResponse.json({ token });
 }

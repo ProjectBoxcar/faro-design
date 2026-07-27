@@ -107,12 +107,17 @@ function buildStaticSystem(): string {
   ].join("\n\n");
 }
 
+export type GenerateMode = "draft" | "polish";
+
 // Turn the owner's rough notes for one section into clear, well-articulated
 // brand-strategy content, grounded in the methodology + any upstream steps.
+// mode "polish": improve the owner's current wording in place — never revert to
+// a prior AI draft or regenerate solely from upstream context.
 export async function generateSection(
   projectId: string,
   sectionKey: string,
-  rough: Record<string, unknown>
+  rough: Record<string, unknown>,
+  mode: GenerateMode = "draft"
 ): Promise<GenerateResult> {
   const section = getSection(sectionKey);
   if (!section) throw new Error(`Unknown section: ${sectionKey}`);
@@ -189,10 +194,34 @@ export async function generateSection(
     parts.push(`IT SHOULD ANSWER:\n${section.triggerQuestions.map((q) => `- ${q}`).join("\n")}`);
   if (upstream) parts.push(`CONTEXT FROM EARLIER STEPS (build on this, stay consistent):\n${upstream}`);
   if (strictness) parts.push(strictness);
+  try {
+    const { formatMemoryForPrompt } = await import("@/lib/brand-memory");
+    const memory = formatMemoryForPrompt("strategy", {
+      excludeProjectId: projectId,
+      limit: 6,
+    });
+    if (memory) parts.push(memory);
+  } catch {
+    /* memory optional */
+  }
   parts.push(`FIELDS TO FILL (your JSON keys are these ids):\n${fieldSpec || "(none)"}`);
-  parts.push(
-    `THE OWNER'S ROUGH NOTES (improve these into finished content; if a field is empty, draft it from the context above):\n${JSON.stringify(rough ?? {}, null, 2)}`
-  );
+  if (mode === "polish") {
+    parts.push(
+      [
+        "MODE: POLISH THE OWNER'S CURRENT EDIT.",
+        "The JSON below is what the owner just typed or revised. It is the SOURCE OF TRUTH.",
+        "Improve grammar, clarity, rhythm, and professional polish while preserving their meaning, facts, names, numbers, and intent.",
+        "Do NOT ignore their wording to invent a fresh version from upstream context.",
+        "Do NOT revert to an earlier AI draft if it conflicts with what they wrote.",
+        "Only fill empty fields from context; every non-empty field must stay recognizably theirs — just better written.",
+        `THE OWNER'S CURRENT TEXT (polish this — do not replace with unrelated content):\n${JSON.stringify(rough ?? {}, null, 2)}`,
+      ].join("\n")
+    );
+  } else {
+    parts.push(
+      `THE OWNER'S ROUGH NOTES (improve these into finished content; if a field is empty, draft it from the context above):\n${JSON.stringify(rough ?? {}, null, 2)}`
+    );
+  }
   parts.push("Return the JSON object now.");
 
   // Mechanical derivation (e.g. survey questions) uses Haiku; flagship synthesis uses the default (Opus).

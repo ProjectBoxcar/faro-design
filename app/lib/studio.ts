@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { ai_generations } from "@/lib/db/schema";
-import { generateDesignText, hasOpenDesignKey, MODELS } from "@/lib/ai";
+import { generateLogoText, hasLogoKey, MODELS } from "@/lib/ai";
 
 import { extractJson } from "@/lib/json";
 import {
@@ -177,14 +177,16 @@ export function cancelLogoGeneration(projectId: string): void {
 // Generate wordmark candidates, score them with a separate skeptical judge,
 // auto-discard fails, and store the survivors as "candidate" assets.
 // `variationsOf` narrows generation to variations of one existing candidate.
+// `feedback` is optional owner guidance when refining a liked direction.
 export async function generateLogoCandidates(
   projectId: string,
-  variationsOf?: string
+  variationsOf?: string,
+  feedback?: string
 ): Promise<StudioGenerateResult> {
   const runId = nextLogoRunId++;
   logoRunIds.set(projectId, runId);
   try {
-    return await generateLogoCandidatesInner(projectId, variationsOf, runId);
+    return await generateLogoCandidatesInner(projectId, variationsOf, feedback, runId);
   } finally {
     if (logoRunIds.get(projectId) === runId) logoRunIds.delete(projectId);
     cancelledLogoRunIds.delete(runId);
@@ -194,37 +196,61 @@ export async function generateLogoCandidates(
 async function generateLogoCandidatesInner(
   projectId: string,
   variationsOf: string | undefined,
+  feedback: string | undefined,
   runId: number
 ): Promise<StudioGenerateResult> {
   const blocked = studioBlockedReason(projectId, "logo");
   if (blocked) throw new Error(blocked);
 
-  if (!hasOpenDesignKey()) {
+  if (!hasLogoKey()) {
     throw new Error(
-      "No Anthropic key for Open Design BYOK — save it in Settings. Logos run through the OD daemon only."
+      "No logo AI key — save an OpenAI API key in Settings under graphics (OpenAI-compatible)."
     );
   }
 
   const name = clearedName(projectId)!;
   const { context, reads } = strategyContext(projectId);
   const hexes = strategyHexes(projectId);
-  // Open Design lane model only (never strategy Settings model).
-  const model = MODELS.design;
+  // Graphics lane model (OpenAI gpt-4o by default for logos).
+  const model = MODELS.logo;
+
+  let memoryBlock = "";
+  try {
+    const { formatMemoryForPrompt } = await import("@/lib/brand-memory");
+    memoryBlock = formatMemoryForPrompt("logo", { excludeProjectId: projectId, limit: 5 });
+  } catch {
+    /* optional */
+  }
 
   const system = `You are a senior brand designer executing a strategy that is already decided.
 Never invent strategy — every choice must trace to the brief you are given.
 Respond with ONLY one JSON object, no prose or code fences.
 
 THE STRATEGY:
-${context}`;
+${context}${memoryBlock ? `\n\n${memoryBlock}` : ""}`;
 
   const base = variationsOf ? getStudioAsset(variationsOf) : undefined;
   if (variationsOf && (!base || base.project_id !== projectId)) throw new Error("Unknown asset");
 
+  const ownerFeedback = feedback?.trim();
   const task = base
-    ? `The owner chose this direction and wants EXACTLY 3 refined variations of it — same idea, meaningfully
-different executions (weight, spacing, mark treatment, lockup):
-${JSON.stringify({ label: base.label, direction: base.direction, svg: base.payload?.svg })}`
+    ? [
+        `The owner likes this logo direction and wants EXACTLY 3 refined variations of it — keep the same core idea and name treatment, but explore meaningfully different executions (weight, spacing, mark treatment, lockup).`,
+        `BASE DIRECTION (preserve this identity; refine, do not invent a new brand mark):`,
+        JSON.stringify({
+          label: base.label,
+          direction: base.direction,
+          svg: base.payload?.svg,
+          svgOnDark: base.payload?.svgOnDark,
+        }),
+        ownerFeedback
+          ? [
+              `OWNER FEEDBACK (highest priority after strategy — apply these changes while keeping the liked direction):`,
+              ownerFeedback,
+              `Every variation must clearly respond to this feedback. Do not ignore it or regenerate unrelated marks.`,
+            ].join("\n")
+          : `No specific feedback — refine weight, spacing, and mark craft while staying on this direction.`,
+      ].join("\n")
     : `Design EXACTLY 3 wordmark candidates for the name "${name}". The three must explore genuinely
 different directions, not variations of one idea. Return three complete candidates — no fewer.`;
 
@@ -250,7 +276,7 @@ Return EXACTLY 3 candidates:
       attempt === 0
         ? ""
         : `\n\nRETRY: The previous response had ${candidates.length} usable candidate(s). Return EXACTLY 3 complete candidates this time.`;
-    const result = await generateDesignText({
+    const result = await generateLogoText({
       model,
       maxTokens: 9000,
       system,
@@ -297,7 +323,7 @@ Candidates:
 ${JSON.stringify(candidates.map((c) => ({ label: c.label, direction: c.direction, svg: c.svg })))}
 Return: {"scores":[{"label","criteria":[{"criterion","result","note"}],"verdict","summary"}]}`;
 
-  const { text: judgeText } = await generateDesignText({
+  const { text: judgeText } = await generateLogoText({
     model,
     maxTokens: 4096,
     system: judgeSystem,
@@ -337,7 +363,16 @@ Return: {"scores":[{"label","criteria":[{"criterion","result","note"}],"verdict"
       payload: {
         svg: sanitizeStudioSvg(c.svg),
         svgOnDark: c.svgOnDark ? sanitizeStudioSvg(c.svgOnDark) : undefined,
-        tokens: { fonts: (c.fonts ?? []).slice(0, 4) },
+        tokens: {
+          fonts: (c.fonts ?? []).slice(0, 4),
+          ...(base
+            ? {
+                refinedFrom: base.id,
+                refinedFromLabel: base.label,
+                ...(ownerFeedback ? { feedback: ownerFeedback.slice(0, 500) } : {}),
+              }
+            : {}),
+        },
       },
       evaluationId: evaluation.id,
       status: "candidate",

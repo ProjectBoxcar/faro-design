@@ -23,6 +23,11 @@ export type DesignJobRow = typeof design_jobs.$inferSelect;
 const activeRuns = new Map<string, Promise<void>>();
 /** Jobs the owner asked to stop — checked between proposal steps. */
 const cancelledJobs = new Set<string>();
+/** Optional improve-with-feedback meta (not in SQLite schema). */
+const jobRefineMeta = new Map<
+  string,
+  { feedback?: string; baseHtml?: string; baseAssetId?: string }
+>();
 
 class DesignGenerationCancelled extends Error {
   constructor() {
@@ -99,6 +104,9 @@ export function createDesignJob(input: {
   kind: DesignJobKind;
   count: number;
   designSystemId?: string;
+  /** Owner notes when refining a liked identity proposal. */
+  feedback?: string;
+  refineFromAssetId?: string;
 }): DesignJobRow {
   const project = getProject(input.projectId);
   if (!project) throw new Error("Project not found");
@@ -134,6 +142,18 @@ export function createDesignJob(input: {
       asset_ids: [],
     })
     .run();
+
+  if (input.feedback?.trim() || input.refineFromAssetId) {
+    const base = input.refineFromAssetId
+      ? getAsset(input.projectId, input.refineFromAssetId)
+      : null;
+    jobRefineMeta.set(id, {
+      feedback: input.feedback?.trim() || undefined,
+      baseHtml: base?.html ?? undefined,
+      baseAssetId: base?.id,
+    });
+  }
+
   void startDesignJob(id);
   return db.select().from(design_jobs).where(eq(design_jobs.id, id)).get()!;
 }
@@ -188,7 +208,16 @@ export function startDesignJob(jobId: string): Promise<void> {
 
     let generated: AssetRow[];
     if (latest.kind === "design_system") {
-      generated = await generateDesignSystemProposals(latest.project_id, latest.count, onAsset);
+      const refine = jobRefineMeta.get(jobId);
+      generated = await generateDesignSystemProposals(
+        latest.project_id,
+        latest.count,
+        onAsset,
+        refine
+          ? { feedback: refine.feedback, baseHtml: refine.baseHtml }
+          : null
+      );
+      jobRefineMeta.delete(jobId);
     } else if (latest.kind === "mockups") {
       if (!latest.design_system_id) throw new Error("A final Brand Identity System is required.");
       generated = await generateApplicationMockups(latest.project_id, latest.design_system_id, onAsset);

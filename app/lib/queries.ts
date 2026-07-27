@@ -311,6 +311,13 @@ export function approveStudioAsset(projectId: string, id: string): void {
     .run();
   db.update(studio_assets).set({ status: "approved", approved_at: new Date() }).where(eq(studio_assets.id, id)).run();
   db.update(projects).set({ updated_at: new Date() }).where(eq(projects.id, projectId)).run();
+  // Cross-project learning: remember what the owner approved.
+  try {
+    const { recordLogoLearning } = require("@/lib/brand-memory") as typeof import("@/lib/brand-memory");
+    recordLogoLearning(projectId, id);
+  } catch (e) {
+    console.warn("[brand-memory] logo learn failed:", e);
+  }
 }
 
 export function revokeStudioAssetApproval(projectId: string, id: string): void {

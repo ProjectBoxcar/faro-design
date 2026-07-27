@@ -7,6 +7,35 @@ import { Sparkles, Trash2, Check, X, RotateCw, Loader2 } from "lucide-react";
 
 type Value = Record<string, unknown>;
 
+/** Soft percent while a single section is drafting (caps until the response lands). */
+function InlineAiProgress() {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const t = window.setInterval(() => setElapsed((e) => e + 1), 500);
+    return () => window.clearInterval(t);
+  }, []);
+  const seconds = elapsed / 2;
+  const pct = Math.min(92, Math.max(3, Math.round((1 - Math.exp(-seconds / 12)) * 92)));
+  return (
+    <div className="mb-6 rounded-lg border border-[var(--designer)]/40 bg-[var(--accent-soft)] p-4 text-sm">
+      <div className="flex items-center gap-3">
+        <Loader2 size={18} className="shrink-0 animate-spin text-[var(--designer)]" />
+        <span className="font-medium text-[var(--designer)]">Writing this with AI</span>
+        <span className="ml-auto shrink-0 font-semibold tabular-nums text-[var(--designer)]" aria-live="polite">
+          {pct}%
+        </span>
+      </div>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/50 dark:bg-black/20">
+        <div
+          className="h-full rounded-full bg-[var(--designer)] transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <p className="mt-2 text-xs text-[var(--muted)]">This can take a few seconds.</p>
+    </div>
+  );
+}
+
 export function SectionEditor({
   projectId,
   section,
@@ -277,18 +306,7 @@ export function SectionEditor({
   return (
     <div>
       {/* One clear "AI is working" signal — covers both auto-draft-on-open and manual (re)writes. */}
-      {(autoDrafting || generating) && (
-        <div className="mb-6 flex items-center gap-3 rounded-lg border border-[var(--designer)]/40 bg-[var(--accent-soft)] p-4 text-sm">
-          <Loader2 size={18} className="shrink-0 animate-spin text-[var(--designer)]" />
-          <span className="font-medium text-[var(--designer)]">Writing this with AI</span>
-          <span className="inline-flex gap-0.5 text-[var(--designer)]" aria-hidden="true">
-            <span className="animate-bounce">.</span>
-            <span className="animate-bounce" style={{ animationDelay: "0.15s" }}>.</span>
-            <span className="animate-bounce" style={{ animationDelay: "0.3s" }}>.</span>
-          </span>
-          <span className="ml-1 text-[var(--muted)]">This can take a few seconds.</span>
-        </div>
-      )}
+      {(autoDrafting || generating) && <InlineAiProgress />}
 
       {/* Single AI box: review notice with an inline rewrite, or a compact "draft it" prompt. */}
       {!autoDrafting && !generating && !proposal &&

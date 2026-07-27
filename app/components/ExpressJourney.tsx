@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Loader2, Pencil, Sparkles, Square, X } from "lucide-react";
@@ -249,12 +249,12 @@ function FieldEditor({
 function SectionEditorInline({
   section,
   draft,
-  onChange,
+  onFieldChange,
   compactFields,
 }: {
   section: ExpressSection;
   draft: Record<string, unknown>;
-  onChange: (next: Record<string, unknown>) => void;
+  onFieldChange: (fieldId: string, value: unknown) => void;
   compactFields?: string[];
 }) {
   const fields = compactFields
@@ -270,11 +270,24 @@ function SectionEditorInline({
           <FieldEditor
             field={f}
             value={draft[f.id]}
-            onChange={(v) => onChange({ ...draft, [f.id]: v })}
+            onChange={(v) => onFieldChange(f.id, v)}
           />
         </label>
       ))}
     </div>
+  );
+}
+
+/** Shared hint under Rewrite with AI. */
+function RewriteHint({ saving }: { saving?: boolean }) {
+  return (
+    <p className="mt-1.5 max-w-xs text-right text-[11px] leading-snug text-[var(--subtle)]">
+      Improves <span className="text-[var(--muted)]">your</span> edits with clearer wording — keeps
+      your meaning, not the old AI draft.
+      {saving ? (
+        <span className="mt-0.5 block text-[10px] text-[var(--subtle)]">Saving your text…</span>
+      ) : null}
+    </p>
   );
 }
 
@@ -286,7 +299,10 @@ function CardShell({
   onEdit,
   onCancel,
   onReady,
+  onRewrite,
   readyBusy,
+  rewriteBusy,
+  draftSaving,
   children,
 }: {
   title: string;
@@ -296,9 +312,13 @@ function CardShell({
   onEdit: () => void;
   onCancel: () => void;
   onReady: () => void;
+  onRewrite: () => void;
   readyBusy: boolean;
+  rewriteBusy: boolean;
+  draftSaving?: boolean;
   children: React.ReactNode;
 }) {
+  const editLocked = readyBusy || rewriteBusy;
   return (
     <section
       className={`rounded-2xl border p-5 card-shadow ${
@@ -323,24 +343,40 @@ function CardShell({
           )}
         </h3>
         {editing ? (
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={readyBusy}
-              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs text-[var(--muted)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
-            >
-              <X size={12} /> Cancel
-            </button>
-            <button
-              type="button"
-              onClick={onReady}
-              disabled={readyBusy}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
-            >
-              {readyBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-              Ready
-            </button>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={editLocked}
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs text-[var(--muted)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+              >
+                <X size={12} /> Cancel
+              </button>
+              <button
+                type="button"
+                onClick={onRewrite}
+                disabled={editLocked}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+              >
+                {rewriteBusy ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  <Sparkles size={12} />
+                )}
+                {rewriteBusy ? "Rewriting…" : "Rewrite with AI"}
+              </button>
+              <button
+                type="button"
+                onClick={onReady}
+                disabled={editLocked}
+                className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+              >
+                {readyBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                Ready
+              </button>
+            </div>
+            <RewriteHint saving={draftSaving} />
           </div>
         ) : (
           <button
@@ -378,11 +414,86 @@ export function ExpressJourney({
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record<string, unknown>>({});
+  const draftRef = useRef<Record<string, unknown>>({});
+  const saveSeqRef = useRef(0);
+  const saveAbortRef = useRef<AbortController | null>(null);
   const [readyBusy, setReadyBusy] = useState(false);
+  const [rewriteBusy, setRewriteBusy] = useState(false);
+  const [draftSaving, setDraftSaving] = useState(false);
   const [refine, setRefine] = useState<RefineStateDto | null>(null);
   const running = state.status === "running" || state.status === "idle";
   const refining = refine?.status === "running";
   const [stopping, setStopping] = useState(false);
+
+  // Always keep a ref of the latest draft so Rewrite / autosave never use a stale closure.
+  useEffect(() => {
+    draftRef.current = draft;
+  }, [draft]);
+
+  function updateDraftField(fieldId: string, value: unknown) {
+    setDraft((prev) => {
+      const next = { ...prev, [fieldId]: value };
+      draftRef.current = next;
+      return next;
+    });
+  }
+
+  /** Persist the current edit to the DB (owner-owned draft). Cancels any in-flight save. */
+  async function persistDraft(
+    sectionId: string,
+    value: Record<string, unknown>
+  ): Promise<boolean> {
+    const seq = ++saveSeqRef.current;
+    saveAbortRef.current?.abort();
+    const ac = new AbortController();
+    saveAbortRef.current = ac;
+    try {
+      const res = await fetch("/api/sections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: ac.signal,
+        body: JSON.stringify({
+          projectId,
+          key: sectionId,
+          value,
+          status: "draft",
+          aiGenerated: false,
+        }),
+      });
+      if (!res.ok) return false;
+      // Ignore out-of-order responses so an older save can't overwrite newer text in the UI.
+      if (seq !== saveSeqRef.current) return true;
+      setSections((prev) => {
+        const existing = prev[sectionId];
+        if (!existing) return prev;
+        return { ...prev, [sectionId]: { ...existing, value: { ...value } } };
+      });
+      return true;
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return true;
+      return false;
+    }
+  }
+
+  // Autosave while editing so Rewrite always polishes the owner's latest text.
+  // Paused during rewrite so we never cancel the flush that Rewrite just sent.
+  useEffect(() => {
+    if (!editingId || rewriteBusy) return;
+    let cancelled = false;
+    setDraftSaving(true);
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        // Always read the ref at flush time — not the draft from this effect's closure.
+        await persistDraft(editingId, { ...draftRef.current });
+        if (!cancelled) setDraftSaving(false);
+      })();
+    }, 450);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft, editingId, projectId, rewriteBusy]);
 
   // While the pipeline runs, poll for progress; refresh the page data once done.
   useEffect(() => {
@@ -462,27 +573,83 @@ export function ExpressJourney({
   }, [projectId, refining]);
 
   function beginEdit(section: ExpressSection) {
-    if (refining || readyBusy) return;
+    if (refining || readyBusy || rewriteBusy) return;
     setError(null);
+    const initial = cloneValue(section.value);
+    draftRef.current = initial;
+    setDraft(initial);
     setEditingId(section.id);
-    setDraft(cloneValue(section.value));
   }
 
   function cancelEdit() {
-    if (readyBusy) return;
+    if (readyBusy || rewriteBusy) return;
+    // Edits are already autosaved — leave them in place, just exit edit mode.
+    const id = editingId;
+    const current = draftRef.current;
+    if (id) {
+      setSections((prev) => {
+        const existing = prev[id];
+        if (!existing) return prev;
+        return { ...prev, [id]: { ...existing, value: { ...current } } };
+      });
+    }
     setEditingId(null);
     setDraft({});
+    draftRef.current = {};
+    setDraftSaving(false);
+  }
+
+  /** Polish the owner's current edit in place — does not cascade until Ready. */
+  async function rewriteWithAi() {
+    if (!editingId || readyBusy || rewriteBusy) return;
+    setRewriteBusy(true);
+    setError(null);
+    try {
+      // Flush the latest keystrokes before polish so we never send a stale draft.
+      const latest = { ...draftRef.current };
+      const saved = await persistDraft(editingId, latest);
+      if (!saved) {
+        // Still attempt polish with in-memory text even if the network save failed.
+        console.warn("[express] draft save failed before rewrite; polishing in-memory text");
+      }
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          key: editingId,
+          value: latest,
+          mode: "polish",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Couldn't rewrite this card");
+      const values = data.values as Record<string, unknown> | undefined;
+      if (!values || Object.keys(values).length === 0) {
+        throw new Error("The AI didn't return usable wording. Try again or edit manually.");
+      }
+      // Prefer AI polish of fields it returned, keep any fields the model omitted.
+      const polished = { ...latest, ...values };
+      draftRef.current = polished;
+      setDraft(polished);
+      await persistDraft(editingId, polished);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't rewrite this card");
+    } finally {
+      setRewriteBusy(false);
+    }
   }
 
   async function markReady() {
-    if (!editingId) return;
+    if (!editingId || rewriteBusy) return;
     setReadyBusy(true);
     setError(null);
     try {
+      const latest = { ...draftRef.current };
       const res = await fetch(`/api/projects/${projectId}/express`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "ready", sectionId: editingId, value: draft }),
+        body: JSON.stringify({ action: "ready", sectionId: editingId, value: latest }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Couldn't save your edit");
@@ -564,12 +731,24 @@ export function ExpressJourney({
               : "Your answers are becoming a complete brand strategy and design plan. This takes a few minutes — you'll review everything on one page when it's ready."}
           </p>
         </div>
-        <div className="mt-8 h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
-          <div
-            className="h-full rounded-full bg-[var(--accent)] transition-all duration-700"
-            style={{ width: `${pct}%` }}
-          />
+        <div className="mt-8 flex items-center gap-3">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
+            <div
+              className="h-full rounded-full bg-[var(--accent)] transition-all duration-700"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <span
+            className="shrink-0 text-sm font-semibold tabular-nums text-[var(--foreground)]"
+            aria-live="polite"
+          >
+            {pct}%
+          </span>
         </div>
+        <p className="mt-2 text-center text-xs text-[var(--subtle)]">
+          {state.done} of {state.total} sections
+          {state.currentName && !stopped ? ` · ${state.currentName}` : ""}
+        </p>
         <ol className="mt-8 space-y-3">
           {PIPELINE_STAGES.map((stage, i) => {
             const stageDone = activeStage > i;
@@ -684,24 +863,43 @@ export function ExpressJourney({
         </h1>
         <p className="mt-3 text-[var(--muted)]">
           Read each card. Hit <span className="font-medium text-[var(--foreground)]">Edit</span> to
-          fix wording right here, then{" "}
-          <span className="font-medium text-[var(--foreground)]">Ready</span> — the rest of the
-          strategy updates from your change. When you approve, you go to the{" "}
+          fix wording,{" "}
+          <span className="font-medium text-[var(--foreground)]">Rewrite with AI</span> to polish
+          your draft, then <span className="font-medium text-[var(--foreground)]">Ready</span> — the
+          rest of the strategy updates from your change. When you approve, you go to the{" "}
           <span className="font-medium text-[var(--foreground)]">Logo Workshop</span> next (Design
           Studio unlocks after you approve a logo).
         </p>
       </header>
 
-      {refining && (
-        <div className="mb-5 flex items-center gap-3 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-4 py-3 text-sm">
-          <Loader2 size={16} className="shrink-0 animate-spin text-[var(--accent)]" />
-          <div>
-            <div className="font-medium">Updating the strategy from your edit</div>
-            <div className="text-[var(--muted)]">
-              {refine.currentName
-                ? `Rewriting ${refine.currentName}… (${refine.done}/${refine.total})`
-                : `Applying your change… (${refine.done}/${refine.total})`}
+      {refining && refine && (
+        <div className="mb-5 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-4 py-3 text-sm">
+          <div className="flex items-center gap-3">
+            <Loader2 size={16} className="shrink-0 animate-spin text-[var(--accent)]" />
+            <div className="min-w-0 flex-1">
+              <div className="font-medium">Updating the strategy from your edit</div>
+              <div className="text-[var(--muted)]">
+                {refine.currentName
+                  ? `Rewriting ${refine.currentName}…`
+                  : "Applying your change…"}
+              </div>
             </div>
+            <span className="shrink-0 text-sm font-semibold tabular-nums text-[var(--accent)]">
+              {refine.total > 0 ? Math.round((refine.done / refine.total) * 100) : 0}%
+            </span>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
+              <div
+                className="h-full rounded-full bg-[var(--accent)] transition-all duration-500"
+                style={{
+                  width: `${refine.total > 0 ? Math.round((refine.done / refine.total) * 100) : 0}%`,
+                }}
+              />
+            </div>
+            <span className="shrink-0 text-xs tabular-nums text-[var(--subtle)]">
+              {refine.done}/{refine.total}
+            </span>
           </div>
         </div>
       )}
@@ -716,13 +914,16 @@ export function ExpressJourney({
             onEdit={() => beginEdit(concept)}
             onCancel={cancelEdit}
             onReady={markReady}
+            onRewrite={() => void rewriteWithAi()}
             readyBusy={readyBusy && editingId === "concept"}
+            rewriteBusy={rewriteBusy && editingId === "concept"}
+            draftSaving={draftSaving && editingId === "concept"}
           >
             {editingId === "concept" ? (
               <SectionEditorInline
                 section={concept}
                 draft={draft}
-                onChange={setDraft}
+                onFieldChange={updateDraftField}
                 compactFields={["statement", "description", "distillation"]}
               />
             ) : (
@@ -754,10 +955,13 @@ export function ExpressJourney({
                 onEdit={() => beginEdit(s)}
                 onCancel={cancelEdit}
                 onReady={markReady}
+                onRewrite={() => void rewriteWithAi()}
                 readyBusy={readyBusy && editingId === id}
+                rewriteBusy={rewriteBusy && editingId === id}
+                draftSaving={draftSaving && editingId === id}
               >
                 {editingId === id ? (
-                  <SectionEditorInline section={s} draft={draft} onChange={setDraft} />
+                  <SectionEditorInline section={s} draft={draft} onFieldChange={updateDraftField} />
                 ) : (
                   <ValueBlock section={s} />
                 )}
@@ -774,13 +978,16 @@ export function ExpressJourney({
             onEdit={() => beginEdit(manifesto)}
             onCancel={cancelEdit}
             onReady={markReady}
+            onRewrite={() => void rewriteWithAi()}
             readyBusy={readyBusy && editingId === "manifesto"}
+            rewriteBusy={rewriteBusy && editingId === "manifesto"}
+            draftSaving={draftSaving && editingId === "manifesto"}
           >
             {editingId === "manifesto" ? (
               <SectionEditorInline
                 section={manifesto}
                 draft={draft}
-                onChange={setDraft}
+                onFieldChange={updateDraftField}
                 compactFields={["text"]}
               />
             ) : (
@@ -797,13 +1004,16 @@ export function ExpressJourney({
             onEdit={() => beginEdit(designPlan)}
             onCancel={cancelEdit}
             onReady={markReady}
+            onRewrite={() => void rewriteWithAi()}
             readyBusy={readyBusy && editingId === "design-plan"}
+            rewriteBusy={rewriteBusy && editingId === "design-plan"}
+            draftSaving={draftSaving && editingId === "design-plan"}
           >
             {editingId === "design-plan" ? (
               <SectionEditorInline
                 section={designPlan}
                 draft={draft}
-                onChange={setDraft}
+                onFieldChange={updateDraftField}
                 compactFields={["visual-identity", "verbal-identity", "deliverables", "execution-order"]}
               />
             ) : (
@@ -837,24 +1047,40 @@ export function ExpressJourney({
                       )}
                     </h3>
                     {editingId === id ? (
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={cancelEdit}
-                          disabled={readyBusy}
-                          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs text-[var(--muted)] transition hover:bg-[var(--surface-2)]"
-                        >
-                          <X size={12} /> Cancel
-                        </button>
-                        <button
-                          type="button"
-                          onClick={markReady}
-                          disabled={readyBusy}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
-                        >
-                          {readyBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                          Ready
-                        </button>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            disabled={readyBusy || rewriteBusy}
+                            className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs text-[var(--muted)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+                          >
+                            <X size={12} /> Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void rewriteWithAi()}
+                            disabled={readyBusy || rewriteBusy}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+                          >
+                            {rewriteBusy ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <Sparkles size={12} />
+                            )}
+                            {rewriteBusy ? "Rewriting…" : "Rewrite with AI"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={markReady}
+                            disabled={readyBusy || rewriteBusy}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                          >
+                            {readyBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                            Ready
+                          </button>
+                        </div>
+                        <RewriteHint saving={draftSaving && editingId === id} />
                       </div>
                     ) : (
                       <button
@@ -868,7 +1094,7 @@ export function ExpressJourney({
                     )}
                   </div>
                   {editingId === id ? (
-                    <SectionEditorInline section={s} draft={draft} onChange={setDraft} />
+                    <SectionEditorInline section={s} draft={draft} onFieldChange={updateDraftField} />
                   ) : (
                     <ValueBlock section={s} />
                   )}
@@ -894,7 +1120,7 @@ export function ExpressJourney({
         </Link>
         <button
           onClick={approve}
-          disabled={approving || refining || Boolean(editingId)}
+          disabled={approving || refining || Boolean(editingId) || rewriteBusy}
           className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {approving ? <Loader2 size={15} className="animate-spin" /> : approved ? <Check size={15} /> : null}

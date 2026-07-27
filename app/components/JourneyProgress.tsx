@@ -51,7 +51,7 @@ export function JourneyProgress({
                   <div
                     className={`h-0.5 flex-1 rounded-full ${
                       steps[i - 1] && steps[i - 1].total > 0 && steps[i - 1].done >= steps[i - 1].total
-                        ? "bg-[var(--accent)]"
+                        ? "bg-[var(--foreground)]"
                         : "bg-[var(--border-strong)]"
                     }`}
                   />
@@ -59,11 +59,11 @@ export function JourneyProgress({
                 <span
                   className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${
                     complete
-                      ? "bg-[var(--accent)] text-white"
+                      ? "bg-[var(--foreground)] text-white"
                       : isCurrent && !locked
-                      ? "border-2 border-[var(--accent)] bg-[var(--surface)] text-[var(--accent)]"
+                      ? "border-2 border-[var(--foreground)] bg-[var(--surface)] text-[var(--foreground)]"
                       : locked
-                      ? "border border-[var(--border-strong)] bg-[var(--surface-2)] text-[var(--subtle)]"
+                      ? "border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--subtle)]"
                       : "border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--muted)]"
                   }`}
                   title={
@@ -71,13 +71,18 @@ export function JourneyProgress({
                       ? `${step.label}: ${Math.min(step.done, step.total)}/${step.total}`
                       : step.label
                   }
+                  aria-label={
+                    complete
+                      ? `${step.label}: complete`
+                      : `${step.label}: incomplete${step.total > 0 ? ` (${Math.min(step.done, step.total)} of ${step.total})` : ""}`
+                  }
                 >
-                  {complete ? <Check size={12} strokeWidth={3} /> : i + 1}
+                  {complete ? <Check size={12} strokeWidth={3} /> : null}
                 </span>
                 {i < steps.length - 1 && (
                   <div
                     className={`h-0.5 flex-1 rounded-full ${
-                      complete ? "bg-[var(--accent)]" : "bg-[var(--border-strong)]"
+                      complete ? "bg-[var(--foreground)]" : "bg-[var(--border-strong)]"
                     }`}
                   />
                 )}
@@ -100,7 +105,7 @@ export function JourneyProgress({
       <div className="mt-3 flex items-center gap-2">
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
           <div
-            className="h-full rounded-full bg-[var(--accent)] transition-all duration-500"
+            className="h-full rounded-full bg-[var(--foreground)] transition-all duration-500"
             style={{ width: `${pct}%` }}
           />
         </div>

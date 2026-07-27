@@ -7,6 +7,7 @@ import { designApiKeyStatus } from "@/lib/settings";
 import { DesignStudio } from "@/components/DesignStudio";
 import { getActiveDesignJob, serializeDesignJob, startDesignJob } from "@/lib/design-jobs";
 import { viabilityActionBlockedReason } from "@/lib/project-gates";
+import { ensureOpenDesignDaemon } from "@/lib/open-design-ensure";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,9 @@ export default async function DesignPage({
   const { id } = await params;
   const project = getProject(id);
   if (!project) notFound();
+
+  // Best-effort: wake OD when the owner opens Design Studio.
+  void ensureOpenDesignDaemon().catch(() => undefined);
 
   const assets = listAssets(id);
   const openDesign = designApiKeyStatus();

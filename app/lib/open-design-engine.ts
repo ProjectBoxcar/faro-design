@@ -51,14 +51,23 @@ export type OpenDesignGenerateResult = {
 export async function generateViaOpenDesign(
   params: OpenDesignGenerateParams
 ): Promise<OpenDesignGenerateResult> {
-  const up = await isOpenDesignDaemonUp();
+  // Auto-start OD if it died after `npm run dev` (common on Windows restarts).
+  let up = await isOpenDesignDaemonUp();
   if (!up) {
-    throw new Error(
-      `Open Design daemon is not running at ${DEFAULT_URL}. ` +
-        `Start it from external/open-design-origin/open-design-main ` +
-        `(e.g. node apps/daemon/dist/cli.js --port 7456 --host 127.0.0.1 --no-open). ` +
-        `Faro will not generate logos or design systems without Open Design.`
-    );
+    try {
+      const { ensureOpenDesignDaemon, openDesignNotRunningMessage } = await import(
+        "@/lib/open-design-ensure"
+      );
+      up = await ensureOpenDesignDaemon();
+      if (!up) throw new Error(openDesignNotRunningMessage());
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new Error(
+        msg.includes("Open Design")
+          ? msg
+          : `Open Design daemon is not running at ${DEFAULT_URL}. ${msg}`
+      );
+    }
   }
   if (!params.apiKey?.trim()) {
     throw new Error(
@@ -94,6 +103,26 @@ export async function generateViaOpenDesign(
   return { text: text.trim(), model: params.model, engine: "open-design-daemon" };
 }
 
+/** Pull text from common OD / Anthropic stream payload shapes. */
+function pieceFromStreamJson(json: Record<string, unknown>): string {
+  if (typeof json.delta === "string") return json.delta;
+  if (typeof json.text === "string") return json.text;
+  if (typeof json.content === "string") return json.content;
+  // Anthropic-style nested: { type, delta: { type, text } }
+  const nested = json.delta;
+  if (nested && typeof nested === "object") {
+    const d = nested as Record<string, unknown>;
+    if (typeof d.text === "string") return d.text;
+    if (typeof d.partial_json === "string") return d.partial_json;
+  }
+  if (Array.isArray(json.content)) {
+    return (json.content as { text?: string }[])
+      .map((c) => (typeof c?.text === "string" ? c.text : ""))
+      .join("");
+  }
+  return "";
+}
+
 /** Parse OD SSE stream (event: delta / data: {"delta":"..."}). */
 async function collectSseText(res: Response): Promise<string> {
   if (!res.body) {
@@ -124,21 +153,18 @@ async function collectSseText(res: Response): Promise<string> {
         const payload = line.slice(5).trim();
         if (!payload || payload === "[DONE]") continue;
         try {
-          const json = JSON.parse(payload) as {
-            delta?: string;
-            text?: string;
-            content?: string;
-            error?: string;
-            message?: string;
-          };
+          const json = JSON.parse(payload) as Record<string, unknown>;
           if (json.error || (eventName === "error" && json.message)) {
-            throw new Error(json.error ?? json.message ?? "Open Design stream error");
+            throw new Error(
+              String(json.error ?? json.message ?? "Open Design stream error")
+            );
           }
-          const piece = json.delta ?? json.text ?? json.content ?? "";
+          const piece = pieceFromStreamJson(json);
           if (piece) out += piece;
         } catch (e) {
           if (e instanceof Error && e.message.startsWith("Open Design")) throw e;
-          // non-JSON data lines ignored
+          // Plain-text data lines (rare)
+          if (payload && !payload.startsWith("{")) out += payload;
         }
         eventName = "";
       }
@@ -159,10 +185,10 @@ function extractDeltasFromSseBuffer(raw: string): string {
     const payload = line.slice(5).trim();
     if (!payload || payload === "[DONE]") continue;
     try {
-      const json = JSON.parse(payload) as { delta?: string; text?: string; content?: string };
-      out += json.delta ?? json.text ?? json.content ?? "";
+      const json = JSON.parse(payload) as Record<string, unknown>;
+      out += pieceFromStreamJson(json);
     } catch {
-      /* ignore */
+      if (payload && !payload.startsWith("{")) out += payload;
     }
   }
   return out;

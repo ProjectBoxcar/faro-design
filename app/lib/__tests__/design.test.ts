@@ -107,7 +107,9 @@ describe("designSystemPrompt", () => {
     expect(prompt).toContain("components");
     expect(prompt).toContain("Do & Don't");
     expect(prompt).toContain("one continuous, native-size vertical guide");
-    expect(prompt).toContain("exact section ids: logo, color, type, components");
+    expect(prompt).toContain("exact section ids: logo, color, type, icons, components");
+    expect(prompt).toContain("REQUIRED #icons section");
+    expect(prompt).toContain("INLINE SVG");
     expect(prompt).toContain("Do not apply transform: scale()");
     expect(prompt).toContain("brief text");
   });

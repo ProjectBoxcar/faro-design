@@ -39,5 +39,11 @@ export async function POST(req: Request) {
   if (!finalDeliverableIssue(listAssets(parsed.data.projectId))) {
     setProjectPhase(parsed.data.projectId, "finished");
   }
+  try {
+    const { recordPackageLearning } = await import("@/lib/brand-memory");
+    recordPackageLearning(parsed.data.projectId);
+  } catch (e) {
+    console.warn("[brand-memory] package learn failed:", e);
+  }
   return NextResponse.json({ token });
 }

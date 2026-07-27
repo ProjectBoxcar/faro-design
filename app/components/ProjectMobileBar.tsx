@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, Settings, Sparkles, PenTool } from "lucide-react";
+import { ArrowLeft, Settings, Sparkles, PenTool, PackageCheck } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
 
 // Mobile-only sticky top bar: frosted, with a context-aware back button (out to
@@ -51,18 +51,32 @@ export function ProjectMobileBar({
           </Link>
         )}
         {designStudioUnlocked && (
-          <Link
-            href={`/projects/${projectId}/design`}
-            aria-label="Design Studio"
-            aria-current={path === `/projects/${projectId}/design` ? "page" : undefined}
-            className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition active:bg-[var(--surface-2)] ${
-              path === `/projects/${projectId}/design`
-                ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-                : "text-[var(--muted)]"
-            }`}
-          >
-            <Sparkles size={17} />
-          </Link>
+          <>
+            <Link
+              href={`/projects/${projectId}/design`}
+              aria-label="Design Studio"
+              aria-current={path === `/projects/${projectId}/design` ? "page" : undefined}
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition active:bg-[var(--surface-2)] ${
+                path === `/projects/${projectId}/design`
+                  ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                  : "text-[var(--muted)]"
+              }`}
+            >
+              <Sparkles size={17} />
+            </Link>
+            <Link
+              href={`/projects/${projectId}/handover`}
+              aria-label="Brand Handover"
+              aria-current={path === `/projects/${projectId}/handover` ? "page" : undefined}
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition active:bg-[var(--surface-2)] ${
+                path === `/projects/${projectId}/handover`
+                  ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                  : "text-[var(--muted)]"
+              }`}
+            >
+              <PackageCheck size={16} />
+            </Link>
+          </>
         )}
         <Link
           href="/settings"

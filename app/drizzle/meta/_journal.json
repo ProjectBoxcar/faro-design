@@ -71,6 +71,13 @@
       "when": 1784900000000,
       "tag": "0009_open_design_lane",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1785100000000,
+      "tag": "0010_brand_memory",
+      "breakpoints": true
     }
   ]
 }

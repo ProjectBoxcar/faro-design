@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, Sparkles, Trash2 } from "lucide-react";
+import { ArrowRight, Check, Trash2 } from "lucide-react";
 import { DeleteProjectButton } from "@/components/DeleteProjectButton";
 import { JourneyProgress, type JourneyStep } from "@/components/JourneyProgress";
 
@@ -187,7 +187,7 @@ export function ProjectList({ projects }: { projects: ProjectCardData[] }) {
             p.logoWorkshopReady;
           const draftedReady =
             !strategyDone && p.strategyTotal > 0 && p.strategyFilled >= p.strategyTotal;
-          // Order: strategy → Logo Workshop → Design Studio
+          // Order: strategy → Logo Workshop → Design Studio → Brand Handover
           const continueHref = p.logoApproved
             ? `/projects/${p.id}/design`
             : strategyDone || p.logoWorkshopReady
@@ -196,7 +196,7 @@ export function ProjectList({ projects }: { projects: ProjectCardData[] }) {
             ? `/projects/${p.id}/express`
             : `/projects/${p.id}`;
           const statusLabel = p.logoApproved
-            ? "Logo approved — Design Studio"
+            ? "Logo approved — continue design"
             : strategyDone || p.logoWorkshopReady
             ? "Strategy ready — Logo Workshop"
             : draftedReady
@@ -204,6 +204,13 @@ export function ProjectList({ projects }: { projects: ProjectCardData[] }) {
             : p.strategyFilled > 0
             ? "Strategy in progress"
             : "Not started";
+          const ctaLabel = p.logoApproved
+            ? "Continue"
+            : strategyDone || p.logoWorkshopReady
+            ? "Logo Workshop"
+            : draftedReady
+            ? "Review strategy"
+            : "Continue";
 
           return (
             <li
@@ -259,30 +266,13 @@ export function ProjectList({ projects }: { projects: ProjectCardData[] }) {
 
               <div className="mt-auto flex items-center justify-between gap-2 border-t border-[var(--border)] pt-3">
                 <DeleteProjectButton projectId={p.id} projectName={p.name} variant="icon" />
-                {p.logoApproved ? (
-                  <Link
-                    href={`/projects/${p.id}/design`}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)]"
-                  >
-                    <Sparkles size={12} /> Design Studio
-                  </Link>
-                ) : strategyDone || p.logoWorkshopReady ? (
-                  <Link
-                    href={`/projects/${p.id}/studio`}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)]"
-                  >
-                    Logo Workshop
-                    <ArrowRight size={12} />
-                  </Link>
-                ) : (
-                  <Link
-                    href={continueHref}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)]"
-                  >
-                    {draftedReady ? "Review strategy" : "Continue"}
-                    <ArrowRight size={12} />
-                  </Link>
-                )}
+                <Link
+                  href={continueHref}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)]"
+                >
+                  {ctaLabel}
+                  <ArrowRight size={12} />
+                </Link>
               </div>
             </li>
           );
