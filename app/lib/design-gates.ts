@@ -35,16 +35,24 @@ export type BriefContext = {
   designTaste?: string;
 };
 
-// Step-by-step contract: the Studio only works from a finished strategy. The
-// visual system may not generate until the strategic brief, the brand concept,
-// and the design plan all exist — they are what the proposals are built from.
-export function designSystemBlockedReason(ctx: BriefContext): string | null {
+// Step-by-step contract: Design Studio builds the system after strategy + logo.
+// Strategy essentials must exist; an approved workshop logo is required so
+// proposals never invent a competing mark.
+export function designSystemBlockedReason(
+  ctx: BriefContext,
+  opts?: { hasApprovedLogo?: boolean }
+): string | null {
   const missing: string[] = [];
   if (!ctx.centralPattern && !ctx.mainTension && !ctx.emotionalTerritory) missing.push("the strategic brief");
   if (!ctx.conceptStatement) missing.push("the brand concept");
   if (!ctx.designPlan) missing.push("the design plan");
-  if (missing.length === 0) return null;
-  return `Finish and approve the strategy first — the Studio needs ${missing.join(", ")} before it can design.`;
+  if (missing.length > 0) {
+    return `Finish and approve the strategy first — the Studio needs ${missing.join(", ")} before it can design.`;
+  }
+  if (opts && opts.hasApprovedLogo === false) {
+    return "Approve a logo in the Logo Workshop first — Design Studio builds color, type, and components around that mark.";
+  }
+  return null;
 }
 
 // Landing page and deck are downstream artifacts: they read the generated DESIGN.md

@@ -35,6 +35,7 @@ function toDto(projectId: string, id: string): ExpressSection | null {
       label: f.label,
       type: f.type,
       columns: (f.columns ?? []).map((c) => ({ id: c.id, label: c.label })),
+      options: f.options,
     })),
   };
 }

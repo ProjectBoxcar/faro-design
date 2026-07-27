@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { hasApiKey } from "@/lib/ai";
+import { hasOpenDesignKey } from "@/lib/ai";
 import {
   generateDesignSystem,
   generateLandingPage,
   generateBrandDeck,
   listAssets,
+  deleteAsset,
   deleteProposals,
 } from "@/lib/design";
 import { getProject } from "@/lib/queries";
@@ -13,6 +14,7 @@ import type { AssetKind } from "@/lib/db/types";
 import { buildFaroDeliverable, sanitizeDownloadName } from "@/lib/design-deliverable";
 import { viabilityActionBlockedReason } from "@/lib/project-gates";
 import {
+  cancelDesignJob,
   createDesignJob,
   designJobAssets,
   getDesignJob,
@@ -26,23 +28,57 @@ const GenerateSchema = z.object({
   count: z.number().int().min(1).max(6).optional(),
   designSystemId: z.string().min(1).optional(),
   variant: z.string().min(1).max(5).optional(),
+  /** Owner notes when improving a liked identity proposal. */
+  feedback: z.string().max(2000).optional(),
+  refineFromAssetId: z.string().min(1).optional(),
+});
+
+const CancelJobSchema = z.object({
+  action: z.literal("cancel"),
+  projectId: z.string().min(1),
+  jobId: z.string().min(1),
 });
 
 export async function POST(req: Request) {
-  if (!hasApiKey()) {
+  const body = await req.json().catch(() => null);
+
+  // Cancel does not need OD — only stops an in-memory/DB job.
+  const cancelParsed = CancelJobSchema.safeParse(body);
+  if (cancelParsed.success) {
+    const { projectId, jobId } = cancelParsed.data;
+    if (!getProject(projectId)) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    const job = cancelDesignJob(projectId, jobId);
+    if (!job) return NextResponse.json({ error: "Design job not found" }, { status: 404 });
+    return NextResponse.json({ job: serializeDesignJob(job) });
+  }
+
+  if (!hasOpenDesignKey()) {
     return NextResponse.json(
-      { error: "AI isn't configured yet — add your Anthropic API key in Settings." },
+      {
+        error:
+          "Design Studio requires Open Design + an Anthropic key (BYOK). Save Anthropic in Strategy Settings, start the OD daemon (port 7456). Logos use OpenAI/Gemini separately — they do not power identity systems or mockups.",
+      },
       { status: 400 }
     );
   }
 
-  const body = await req.json().catch(() => null);
+  // Bring OD up if it died after app boot (Windows restarts, manual stop).
+  const { ensureOpenDesignDaemon, openDesignNotRunningMessage } = await import(
+    "@/lib/open-design-ensure"
+  );
+  if (!(await ensureOpenDesignDaemon())) {
+    return NextResponse.json({ error: openDesignNotRunningMessage() }, { status: 503 });
+  }
+
   const parsed = GenerateSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const { projectId, kind, count = 1, designSystemId, variant } = parsed.data;
+  const { projectId, kind, count = 1, designSystemId, variant, feedback, refineFromAssetId } =
+    parsed.data;
 
   const project = getProject(projectId);
   if (!project) {
@@ -71,7 +107,20 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const job = createDesignJob({ projectId, kind, count, designSystemId });
+    if (refineFromAssetId && kind !== "design_system") {
+      return NextResponse.json(
+        { error: "Improve with feedback is available for Brand Identity System proposals." },
+        { status: 400 }
+      );
+    }
+    const job = createDesignJob({
+      projectId,
+      kind,
+      count,
+      designSystemId,
+      feedback,
+      refineFromAssetId,
+    });
     return NextResponse.json({ job: serializeDesignJob(job) }, { status: 202 });
   }
 
@@ -186,14 +235,39 @@ export async function GET(req: Request) {
   return NextResponse.json({ assets });
 }
 
-const DiscardSchema = z.object({
+const DiscardByKindSchema = z.object({
   projectId: z.string().min(1),
   kind: z.enum(["design_system", "landing_page", "deck"]),
 });
 
+const DiscardByIdsSchema = z.object({
+  projectId: z.string().min(1),
+  assetIds: z.array(z.string().min(1)).min(1).max(50),
+});
+
 export async function DELETE(req: Request) {
+  // Bulk delete by id list (JSON body) — preferred path for multi-select.
+  const contentType = req.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    const body = await req.json().catch(() => null);
+    const byIds = DiscardByIdsSchema.safeParse(body);
+    if (byIds.success) {
+      const { projectId, assetIds } = byIds.data;
+      if (!getProject(projectId)) {
+        return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      }
+      let discarded = 0;
+      for (const assetId of assetIds) {
+        if (!listAssets(projectId).some((a) => a.id === assetId)) continue;
+        deleteAsset(projectId, assetId);
+        discarded += 1;
+      }
+      return NextResponse.json({ discarded });
+    }
+  }
+
   const { searchParams } = new URL(req.url);
-  const parsed = DiscardSchema.safeParse({
+  const parsed = DiscardByKindSchema.safeParse({
     projectId: searchParams.get("projectId"),
     kind: searchParams.get("kind"),
   });

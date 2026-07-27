@@ -7,22 +7,47 @@ import {
   setAiModel,
   apiKeyStatus,
   getProviderConfig,
+  setDesignApiKey,
+  setDesignProvider,
+  setDesignBaseUrl,
+  setDesignModel,
+  designApiKeyStatus,
+  getOpenDesignConfig,
 } from "@/lib/settings";
 import type { AiProvider } from "@/lib/db/types";
 import { publicProviderConfig } from "@/lib/settings-public";
 
 const SaveSchema = z.object({
-  apiKey: z.string().optional(), // empty/omitted clears it
+  // Strategy lane
+  apiKey: z.string().optional(),
   provider: z.enum(["anthropic", "openai-compatible"]).optional(),
   baseUrl: z.string().optional(),
   model: z.string().optional(),
+  // Open Design lane (graphics only)
+  designApiKey: z.string().optional(),
+  designProvider: z.enum(["anthropic", "openai-compatible"]).optional(),
+  designBaseUrl: z.string().optional(),
+  designModel: z.string().optional(),
 });
 
-export async function GET() {
-  return NextResponse.json({
+function settingsPayload() {
+  return {
+    strategy: {
+      ...apiKeyStatus(),
+      ...publicProviderConfig(getProviderConfig()),
+    },
+    openDesign: {
+      ...designApiKeyStatus(),
+      ...publicProviderConfig(getOpenDesignConfig()),
+    },
+    // Back-compat for older SettingsForm consumers
     ...apiKeyStatus(),
     ...publicProviderConfig(getProviderConfig()),
-  });
+  };
+}
+
+export async function GET() {
+  return NextResponse.json(settingsPayload());
 }
 
 export async function POST(req: Request) {
@@ -31,31 +56,51 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
-  const { apiKey, provider, baseUrl, model } = parsed.data;
+  const {
+    apiKey,
+    provider,
+    baseUrl,
+    model,
+    designApiKey,
+    designProvider,
+    designBaseUrl,
+    designModel,
+  } = parsed.data;
+
   const key = (apiKey ?? "").trim();
   if (key) {
-    // Accept Anthropic keys (sk-ant-...) and OpenAI-compatible keys (sk-...).
     if (!key.startsWith("sk-")) {
       return NextResponse.json(
         { error: "That doesn't look like an API key (they start with “sk-”)." },
         { status: 400 }
       );
     }
-    setApiKey(key || null);
+    setApiKey(key);
   }
   if (provider) setProvider(provider as AiProvider);
   if (baseUrl !== undefined) setBaseUrl(baseUrl.trim() || null);
   if (model !== undefined) setAiModel(model.trim() || null);
-  return NextResponse.json({
-    ...apiKeyStatus(),
-    ...publicProviderConfig(getProviderConfig()),
-  });
+
+  const dKey = (designApiKey ?? "").trim();
+  if (dKey) {
+    if (!dKey.startsWith("sk-") && !dKey.startsWith("od-")) {
+      // Allow sk-… and open-design-style od-… keys
+      return NextResponse.json(
+        { error: "Open Design API key should start with “sk-” or “od-”." },
+        { status: 400 }
+      );
+    }
+    setDesignApiKey(dKey);
+  }
+  if (designProvider) setDesignProvider(designProvider as AiProvider);
+  if (designBaseUrl !== undefined) setDesignBaseUrl(designBaseUrl.trim() || null);
+  if (designModel !== undefined) setDesignModel(designModel.trim() || null);
+
+  return NextResponse.json(settingsPayload());
 }
 
 export async function DELETE() {
   setApiKey(null);
-  return NextResponse.json({
-    ...apiKeyStatus(),
-    ...publicProviderConfig(getProviderConfig()),
-  });
+  setDesignApiKey(null);
+  return NextResponse.json(settingsPayload());
 }

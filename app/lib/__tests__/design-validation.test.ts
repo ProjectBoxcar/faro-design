@@ -1,12 +1,51 @@
 import { describe, expect, it } from "vitest";
-import { externalResourceUrls, generatedArtifactIssues } from "@/lib/design-validation";
+import {
+  externalResourceUrls,
+  generatedArtifactIssues,
+  normalizeGeneratedHtml,
+} from "@/lib/design-validation";
 
 const base = (body: string) => `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width"><style>@media(prefers-reduced-motion:reduce){*{animation:none}}</style></head><body>${body}</body></html>`;
+const sixIcons = Array.from({ length: 6 }, (_, i) => `<svg viewBox="0 0 24 24"><circle r="${i + 2}"/></svg>`).join("");
+const identityBody = `<section id="logo"><svg></svg></section><section id="color"></section><section id="type"></section><section id="icons">${sixIcons}</section><section id="components"></section>`;
+
+describe("normalizeGeneratedHtml", () => {
+  it("unwraps markdown fences and strips external fonts", () => {
+    const raw = `Here you go:\n\`\`\`html\n<!DOCTYPE html><html><head><link href="https://fonts.googleapis.com/css?family=X"><style></style></head><body>${identityBody}</body></html>\n\`\`\`\nThanks!`;
+    const html = normalizeGeneratedHtml(raw, "design_system");
+    expect(html.startsWith("<!DOCTYPE html>")).toBe(true);
+    expect(html).not.toContain("fonts.googleapis");
+    expect(generatedArtifactIssues("design_system", html)).toEqual([]);
+  });
+
+  it("closes truncated documents and injects missing section ids", () => {
+    const raw =
+      "<!DOCTYPE html><html><head></head><body><h1>System A</h1><section id=\"logo\"><svg></svg></section>";
+    const html = normalizeGeneratedHtml(raw, "design_system", {
+      approvedLogoSvg: '<svg viewBox="0 0 10 10"><circle r="4"/></svg>',
+    });
+    expect(html).toMatch(/<\/html>$/i);
+    expect(html).toContain('id="color"');
+    expect(html).toContain('id="type"');
+    expect(html).toContain('id="icons"');
+    expect(html).toContain('id="components"');
+    expect(html).toMatch(/prefers-reduced-motion/);
+  });
+});
 
 describe("generatedArtifactIssues", () => {
   it("accepts a complete offline identity artifact", () => {
-    const html = base('<section id="logo"><svg></svg></section><section id="color"></section><section id="type"></section><section id="components"></section>');
+    const html = base(identityBody);
     expect(generatedArtifactIssues("design_system", html)).toEqual([]);
+  });
+
+  it("rejects icons section without enough inline SVGs", () => {
+    const html = base(
+      '<section id="logo"><svg></svg></section><section id="color"></section><section id="type"></section><section id="icons"><p>Use icons later</p></section><section id="components"></section>'
+    );
+    expect(generatedArtifactIssues("design_system", html)).toContain(
+      "icons section must include at least 6 inline SVG icons"
+    );
   });
 
   it("detects missing landing-page behavior", () => {

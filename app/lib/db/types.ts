@@ -31,5 +31,11 @@ export type AiProvider = "anthropic" | "openai-compatible";
 export type AssetPayload = {
   svg?: string;
   svgOnDark?: string;
-  tokens?: Record<string, unknown>;
+  tokens?: Record<string, unknown> & {
+    fonts?: string[];
+    /** When set, this mark is a refinement of another studio asset. */
+    refinedFrom?: string;
+    refinedFromLabel?: string;
+    feedback?: string;
+  };
 };

@@ -116,12 +116,18 @@ async function runViabilityGate(projectId: string): Promise<void> {
   // they approve creative direction and fund the work by definition, so the
   // agency-screening criteria about decision-makers and budget are met.
   const ownerLed = !project.client_name;
+  const greenfield = Boolean(project.greenfield);
   const prompt = [
     `You are applying the Finisterra methodology's internal viability gate to the brand project "${project.name}".`,
     `Answer each criterion strictly yes or no based ONLY on the owner's answers below. If the answers don't address a criterion, infer conservatively and say so in the note.`,
     ...(ownerLed
       ? [
           `NOTE: This project is OWNER-LED — the founder is building their own brand directly in this tool. The person answering IS the decision-maker who approves creative direction, and by running the project themselves they have committed its budget. Answer those criteria "yes" unless the answers state otherwise.`,
+        ]
+      : []),
+    ...(greenfield
+      ? [
+          `NOTE: This is a GREENFIELD brand — not yet launched or still pre-revenue. "Recurring sales exist" should be "no" with a note that the brand is greenfield (that is expected, not a red flag). Do not invent existing revenue.`,
         ]
       : []),
     `CRITERIA:\n${criteriaList}`,
@@ -151,7 +157,10 @@ async function runViabilityGate(projectId: string): Promise<void> {
     };
   });
 
-  const verdict = scoreViabilityVerdict(scored, Boolean(project.personal));
+  const verdict = scoreViabilityVerdict(scored, {
+    personal: Boolean(project.personal),
+    greenfield: Boolean(project.greenfield),
+  });
 
   const scores: EvalScore[] = scored.map((s, i) => ({
     key: `criterion-${i + 1}`,
@@ -169,16 +178,22 @@ async function runViabilityGate(projectId: string): Promise<void> {
     key: GATE_KEY,
     value: {
       criteria: scored.map((s) => {
+        const softCommercial = project.personal || project.greenfield;
         const waived =
-          project.personal &&
+          softCommercial &&
           s.type === "non-negotiable" &&
           s.answer === "no" &&
           /recurring sales|budget/i.test(s.criterion);
+        const waiverLabel = project.personal
+          ? "Not blocking — personal project. "
+          : project.greenfield
+            ? "Not blocking — greenfield brand (expected pre-revenue gap). "
+            : "";
         return {
           criterion: s.criterion,
           type: s.type,
           answer: s.answer,
-          implication: (waived ? "Not blocking — personal project. " : "") + (s.note || s.implication),
+          implication: (waived ? waiverLabel : "") + (s.note || s.implication),
         };
       }),
     },

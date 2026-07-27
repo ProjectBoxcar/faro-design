@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
@@ -13,8 +14,10 @@ import {
   Check,
   AlertCircle,
   PackageCheck,
-  ExternalLink,
   Copy,
+  MessageSquarePlus,
+  X,
+  ExternalLink,
 } from "lucide-react";
 import type { AssetRow } from "@/lib/design";
 import {
@@ -37,7 +40,7 @@ const KIND_META: Record<
     label: "Brand Identity System",
     shortLabel: "Identity",
     icon: <Palette size={18} />,
-    description: "Colors, typography, logo, and component rules a developer can use.",
+    description: "Colors, typography, and components around your approved workshop logo.",
     cta: "Create 3 brand proposals",
   },
   landing_page: {
@@ -97,17 +100,24 @@ export function DesignStudio({
   const previewFrameRef = useRef<HTMLIFrameElement>(null);
   const [assets, setAssets] = useState<AssetRow[]>(initialAssets);
   const [loading, setLoading] = useState<GenerationState>(() =>
-    initialJob ? { kind: initialJob.kind, stage: "generating", jobId: initialJob.id } : null
+    initialJob && (initialJob.status === "queued" || initialJob.status === "running")
+      ? { kind: initialJob.kind, stage: "generating", jobId: initialJob.id }
+      : null
   );
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [discardingKind, setDiscardingKind] = useState<AssetRow["kind"] | null>(null);
   const [creatingDeliverable, setCreatingDeliverable] = useState(false);
-  const [shareToken, setShareToken] = useState(initialShareToken);
-  const [publishingPackage, setPublishingPackage] = useState(false);
+  const shareToken = initialShareToken;
   const [packageLinkCopied, setPackageLinkCopied] = useState(false);
   const [origin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
   const [previewSection, setPreviewSection] = useState<IdentityPreviewSection>("overview");
   const [error, setError] = useState<string | null>(null);
+  const [stopping, setStopping] = useState(false);
+  const [jobProgress, setJobProgress] = useState<{ done: number; total: number }>(() =>
+    initialJob && (initialJob.status === "queued" || initialJob.status === "running")
+      ? { done: initialJob.asset_ids?.length ?? 0, total: initialJob.count ?? 0 }
+      : { done: 0, total: 0 }
+  );
   const [previewAssetId, setPreviewAssetId] = useState<string | null>(() =>
     initialAssets.find((asset) => asset.kind === "design_system" && asset.selected)?.id
       ?? initialAssets.find((asset) => asset.selected)?.id
@@ -185,6 +195,10 @@ export function DesignStudio({
         if (!res.ok) throw new Error(data.error ?? "Could not check design generation");
         const job: DesignJobState = data.job;
         if (cancelled) return;
+        setJobProgress({
+          done: job.asset_ids?.length ?? 0,
+          total: job.count ?? 0,
+        });
         if (job.status === "complete") {
           const generated: AssetRow[] = data.assets;
           setAssets((previous) =>
@@ -203,12 +217,16 @@ export function DesignStudio({
           setPreviewAssetId(generated[0]?.id ?? null);
           setPreviewSection("overview");
           setLoading(null);
+          setJobProgress({ done: 0, total: 0 });
           router.refresh();
           return;
         }
         if (job.status === "failed") {
-          setError(job.error ?? "Design generation failed");
+          const stopped = /stopped/i.test(job.error ?? "");
+          setError(stopped ? null : (job.error ?? "Design generation failed"));
           setLoading(null);
+          setJobProgress({ done: 0, total: 0 });
+          setStopping(false);
           router.refresh();
           return;
         }
@@ -229,6 +247,7 @@ export function DesignStudio({
   // order and selected automatically — they are applications, not new choices.
   async function generateMockups(designSystemId: string) {
     setLoading({ kind: "mockups", stage: "generating" });
+    setJobProgress({ done: 0, total: 0 });
     setError(null);
     try {
       const res = await fetch("/api/design", {
@@ -240,16 +259,50 @@ export function DesignStudio({
       if (!res.ok) throw new Error(data.error ?? "Mockup generation failed");
       const job: DesignJobState | undefined = data.job;
       if (!job) throw new Error("Mockup generation did not start correctly");
+      setJobProgress({ done: job.asset_ids?.length ?? 0, total: job.count ?? 2 });
       setLoading({ kind: "mockups", stage: "generating", jobId: job.id });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Mockup generation failed");
       setLoading(null);
+      setJobProgress({ done: 0, total: 0 });
     }
   }
 
-  async function generateProposals(kind: AssetRow["kind"]) {
+  async function stopGeneration() {
+    if (!loading?.jobId || stopping) return;
+    setStopping(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/design", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel", projectId, jobId: loading.jobId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not stop generation");
+      const wasMockups = loading.kind === "mockups";
+      setLoading(null);
+      setJobProgress({ done: 0, total: 0 });
+      setStopping(false);
+      if (wasMockups) {
+        setError(null);
+        // Soft guidance — not an error. Identity selection is kept.
+      }
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not stop generation");
+      setStopping(false);
+    }
+  }
+
+  async function generateProposals(
+    kind: AssetRow["kind"],
+    opts?: { feedback?: string; refineFromAssetId?: string }
+  ) {
     if (!apiKeyConfigured) {
-      setError("Add your Anthropic API key in Settings first.");
+      setError(
+        "Design Studio needs Open Design + Anthropic. Save an Anthropic key in Settings and start the OD daemon."
+      );
       return;
     }
     if (generationBlockedReason) {
@@ -257,6 +310,7 @@ export function DesignStudio({
       return;
     }
     setLoading({ kind, stage: "generating" });
+    setJobProgress({ done: 0, total: 0 });
     setError(null);
 
     let designSystemId: string | undefined;
@@ -274,16 +328,25 @@ export function DesignStudio({
       const res = await fetch("/api/design", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, kind, count: 3, designSystemId }),
+        body: JSON.stringify({
+          projectId,
+          kind,
+          count: 3,
+          designSystemId,
+          ...(opts?.feedback?.trim() ? { feedback: opts.feedback.trim() } : {}),
+          ...(opts?.refineFromAssetId ? { refineFromAssetId: opts.refineFromAssetId } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Generation failed");
       const job: DesignJobState | undefined = data.job;
       if (!job) throw new Error("Design generation did not start correctly");
+      setJobProgress({ done: job.asset_ids?.length ?? 0, total: job.count ?? 3 });
       setLoading({ kind, stage: "generating", jobId: job.id });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generation failed");
       setLoading(null);
+      setJobProgress({ done: 0, total: 0 });
     }
   }
 
@@ -337,34 +400,47 @@ export function DesignStudio({
     }
   }
 
+  function removeAssetsFromState(ids: string[]) {
+    const discardedIds = new Set(ids);
+    setAssets((prev) => {
+      const removedSystems = prev.filter(
+        (a) => discardedIds.has(a.id) && a.kind === "design_system"
+      );
+      const next = prev
+        .filter((asset) => !discardedIds.has(asset.id))
+        .map((candidate) =>
+          removedSystems.some((sys) => candidate.design_system_id === sys.id)
+            ? { ...candidate, selected: false }
+            : candidate
+        );
+      if (previewAssetId && discardedIds.has(previewAssetId)) {
+        setPreviewAssetId(next.find((a) => a.selected)?.id ?? next[0]?.id ?? null);
+        setPreviewSection("overview");
+      }
+      return next;
+    });
+  }
+
   async function discardProposal(assetId: string) {
-    const asset = assets.find((candidate) => candidate.id === assetId);
-    const label = asset?.variant ? `proposal ${asset.variant}` : "this proposal";
-    if (!confirm(`Discard ${label}? This cannot be undone.`)) return;
+    if (deletingId || discardingKind) return;
+    const snapshot = assets;
     setDeletingId(assetId);
     setError(null);
+    // Optimistic remove — no browser confirm (those dialogs often get blocked).
+    removeAssetsFromState([assetId]);
     try {
-      const res = await fetch(`/api/design/${assetId}?projectId=${projectId}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Discard failed");
-      setAssets((prev) => {
-        const removed = prev.find((candidate) => candidate.id === assetId);
-        const next = prev
-          .filter((candidate) => candidate.id !== assetId)
-          .map((candidate) =>
-            removed?.kind === "design_system" && candidate.design_system_id === removed.id
-              ? { ...candidate, selected: false }
-              : candidate
-          );
-        if (previewAssetId === assetId) {
-          setPreviewAssetId(next.find((candidate) => candidate.selected)?.id ?? next[0]?.id ?? null);
-          setPreviewSection("overview");
-        }
-        return next;
+      const res = await fetch("/api/design", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ projectId, assetIds: [assetId] }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Delete failed");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Discard failed");
+      setAssets(snapshot);
+      setError(e instanceof Error ? e.message : "Delete failed");
     } finally {
       setDeletingId(null);
     }
@@ -372,27 +448,50 @@ export function DesignStudio({
 
   async function discardUnselected(kind: AssetRow["kind"]) {
     const unselected = byKind[kind].filter((asset) => !asset.selected);
-    if (unselected.length === 0) return;
-    const proposalLabel = `${unselected.length} unselected proposal${unselected.length === 1 ? "" : "s"}`;
-    const outcome = byKind[kind].some((asset) => asset.selected)
-      ? "The final direction will be kept."
-      : "All current proposals will be removed.";
-    if (!confirm(`Discard ${proposalLabel}? ${outcome} This cannot be undone.`)) return;
+    if (unselected.length === 0 || deletingId || discardingKind) return;
+    const snapshot = assets;
     setDiscardingKind(kind);
     setError(null);
+    const ids = unselected.map((asset) => asset.id);
+    removeAssetsFromState(ids);
     try {
-      const res = await fetch(`/api/design?projectId=${projectId}&kind=${kind}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Discard failed");
-      const discardedIds = new Set(unselected.map((asset) => asset.id));
-      setAssets((prev) => prev.filter((asset) => !discardedIds.has(asset.id)));
-      if (previewAssetId && discardedIds.has(previewAssetId)) {
-        setPreviewAssetId(byKind[kind].find((asset) => asset.selected)?.id ?? null);
-        setPreviewSection("overview");
-      }
+      const res = await fetch("/api/design", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ projectId, assetIds: ids }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Delete failed");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Discard failed");
+      setAssets(snapshot);
+      setError(e instanceof Error ? e.message : "Delete failed");
+    } finally {
+      setDiscardingKind(null);
+    }
+  }
+
+  async function discardMany(ids: string[]) {
+    if (ids.length === 0 || deletingId || discardingKind) return;
+    const snapshot = assets;
+    const first = assets.find((a) => a.id === ids[0]);
+    setDiscardingKind(first?.kind ?? "design_system");
+    setError(null);
+    removeAssetsFromState(ids);
+    try {
+      const res = await fetch("/api/design", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ projectId, assetIds: ids }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Delete failed");
+      router.refresh();
+    } catch (e) {
+      setAssets(snapshot);
+      setError(e instanceof Error ? e.message : "Delete failed");
     } finally {
       setDiscardingKind(null);
     }
@@ -409,26 +508,6 @@ export function DesignStudio({
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-  }
-
-  async function publishFinalPackage() {
-    setPublishingPackage(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/publish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, action: "publish" }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Final package could not be published");
-      setShareToken(data.token);
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Final package could not be published");
-    } finally {
-      setPublishingPackage(false);
-    }
   }
 
   async function copyPackageLink() {
@@ -500,21 +579,33 @@ export function DesignStudio({
     && (loading.kind === "design_system" || loading.kind === "landing_page" || loading.kind === "deck" || loading.kind === "mockups")
     ? loading.kind
     : null;
+  const mockupsAligned =
+    Boolean(identitySelected) &&
+    Boolean(landingSelected?.design_system_id === identitySelected?.id) &&
+    Boolean(deckSelected?.design_system_id === identitySelected?.id);
+  const mockupsIncomplete = Boolean(identitySelected) && !mockupsAligned;
+  const isBuildingMockups = loading?.kind === "mockups" && loading.stage === "generating";
+  const actionsBusy = Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind);
 
   return (
     <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-12 lg:py-12 2xl:max-w-[104rem]">
       <div className="mb-8">
         <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">Design Studio</h1>
         <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">
-          Faro read the {projectName} strategic brief and design plan. Compare the three identity
-          proposals, approve one, and the Studio applies it to the mockups your plan calls for.
+          Builds on the logo you approved in the Logo Workshop. Systems must follow your strategy
+          brief only — no invented claims. Compare proposals, delete any you don&apos;t want, pick
+          one, and the Studio applies it to the mockups your plan calls for.
         </p>
       </div>
 
       {!apiKeyConfigured && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
           <AlertCircle size={18} className="mt-0.5 shrink-0" />
-          Add your Anthropic API key in Settings to generate design assets.
+          Design Studio uses <strong className="font-medium">Open Design only</strong> (not OpenAI or
+          Gemini). Save an Anthropic key in Settings. Faro tries to start the OD daemon automatically
+          when you generate; if it fails, run{" "}
+          <code className="text-xs">npm run od:ensure</code> or{" "}
+          <code className="text-xs">start-open-design.ps1</code>.
         </div>
       )}
 
@@ -531,16 +622,50 @@ export function DesignStudio({
         </div>
       )}
 
-      <section aria-labelledby="deliverable-title" className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow lg:p-6">
+      {/* After stop/cancel (or first select): clear path to finish mockups. */}
+      {mockupsIncomplete && !isBuildingMockups && (
+        <div className="mb-6 rounded-2xl border border-[var(--accent)]/35 bg-[var(--accent)]/8 px-5 py-4 sm:px-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="font-medium text-[var(--foreground)]">
+                Identity chosen — next: application mockups
+              </p>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                You selected a Brand Identity System
+                {identitySelected?.variant ? ` (proposal ${identitySelected.variant})` : ""}.
+                Build the landing page and brand deck to continue toward Brand Handover
+                {loading?.stage === "selecting" ? "" : " (safe to restart if you stopped earlier)"}.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => identitySelected && void generateMockups(identitySelected.id)}
+              disabled={actionsBusy || !identitySelected}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+            >
+              <Sparkles size={16} />
+              Build landing page &amp; deck
+            </button>
+          </div>
+        </div>
+      )}
+
+      <section
+        id="brand-handover"
+        aria-labelledby="deliverable-title"
+        className="mb-6 scroll-mt-24 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow lg:p-6"
+      >
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2">
               <PackageCheck size={18} className="text-[var(--accent)]" />
-              <h2 id="deliverable-title" className="font-serif text-xl font-medium tracking-tight">Final brand package</h2>
+              <h2 id="deliverable-title" className="font-serif text-xl font-medium tracking-tight">
+                Brand Handover
+              </h2>
             </div>
             <p className="max-w-xl text-sm text-[var(--muted)]">
-              Approve one identity proposal — the Studio then builds the application mockups from
-              your design plan and the complete brand package is ready to share.
+              When identity + mockups are ready, open Brand Handover to review the final package.
+              Publish a private client link from there when you want to share it.
             </p>
             <ul className="mt-4 flex flex-wrap gap-2" aria-live="polite">
               {finalOutputs.map((output) => (
@@ -569,38 +694,23 @@ export function DesignStudio({
               {deliverableReady ? "All 3 outputs are ready" : `${finalCount} of 3 outputs ready`}
             </p>
             <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
-              {shareToken ? (
-                <>
-                  <a
-                    href={`/share/${shareToken}/package`}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-disabled={!deliverableReady}
-                    className={`inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition ${
-                      deliverableReady ? "hover:bg-[var(--accent-hover)]" : "pointer-events-none opacity-50"
-                    }`}
-                  >
-                    <ExternalLink size={16} /> View final package
-                  </a>
-                  <button
-                    type="button"
-                    onClick={copyPackageLink}
-                    disabled={!deliverableReady}
-                    className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2.5 text-sm font-medium transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {packageLinkCopied ? <Check size={16} /> : <Copy size={16} />}
-                    {packageLinkCopied ? "Copied" : "Copy private link"}
-                  </button>
-                </>
-              ) : (
+              <Link
+                href={`/projects/${projectId}/handover`}
+                className={`inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] ${
+                  !deliverableReady ? "opacity-90" : ""
+                }`}
+              >
+                <PackageCheck size={16} />
+                {deliverableReady ? "Open Brand Handover" : "Open Brand Handover (checklist)"}
+              </Link>
+              {shareToken && deliverableReady && (
                 <button
                   type="button"
-                  onClick={publishFinalPackage}
-                  disabled={!deliverableReady || publishingPackage || Boolean(loading)}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={copyPackageLink}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2.5 text-sm font-medium transition hover:bg-[var(--surface-2)]"
                 >
-                  {publishingPackage ? <Loader2 size={16} className="animate-spin" /> : <ExternalLink size={16} />}
-                  {publishingPackage ? "Publishing..." : "Publish final package"}
+                  {packageLinkCopied ? <Check size={16} /> : <Copy size={16} />}
+                  {packageLinkCopied ? "Copied" : "Copy client link"}
                 </button>
               )}
             </div>
@@ -631,11 +741,19 @@ export function DesignStudio({
             discardingKind={discardingKind}
             previewAssetId={previewAssetId}
             onGenerate={() => generateProposals("design_system")}
+            onImprove={(assetId, feedback) =>
+              generateProposals("design_system", {
+                refineFromAssetId: assetId,
+                feedback,
+              })
+            }
             onSelect={selectProposal}
             onPreview={previewProposal}
             onDiscard={discardProposal}
             onDiscardUnselected={() => discardUnselected("design_system")}
+            onDiscardMany={discardMany}
             unlocked={!generationBlockedReason}
+            allowFeedback
           />
           {/* Application mockups: created automatically after the identity is
               approved, in the design plan's execution order. Not a separate
@@ -655,12 +773,14 @@ export function DesignStudio({
               </h2>
             </div>
             <p className="mb-4 text-xs text-[var(--muted)]">
-              A landing page and brand deck showing your approved identity in use. Built
-              automatically when you approve an identity proposal, following the design plan.
+              Landing page + brand deck applying your chosen identity. Starts when you choose a
+              final identity — if you stop, use the button below to continue anytime.
             </p>
             {!identitySelected ? (
               <p className="rounded-xl bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--muted)]">
-                Approve an identity proposal first — the mockups follow it.
+                First choose a Brand Identity System as final (button on each proposal, or{" "}
+                <strong className="font-medium text-[var(--foreground)]">Choose as final</strong> in
+                the preview).
               </p>
             ) : (
               <>
@@ -692,7 +812,7 @@ export function DesignStudio({
                                 ? isPreviewed
                                   ? "Previewing"
                                   : "Ready — preview"
-                                : loading?.kind === "mockups"
+                                : isBuildingMockups
                                 ? "Building…"
                                 : "Not built yet"}
                             </span>
@@ -705,12 +825,24 @@ export function DesignStudio({
                 </ul>
                 <button
                   type="button"
-                  onClick={() => generateMockups(identitySelected.id)}
-                  disabled={Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind)}
-                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2 text-xs font-medium transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => void generateMockups(identitySelected.id)}
+                  disabled={actionsBusy}
+                  className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                    mockupsIncomplete
+                      ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
+                      : "border border-[var(--border-strong)] text-[var(--foreground)] hover:bg-[var(--surface-2)]"
+                  }`}
                 >
-                  {loading?.kind === "mockups" ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                  {loading?.kind === "mockups" ? "Building the mockups…" : "Rebuild the mockups"}
+                  {isBuildingMockups ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={15} />
+                  )}
+                  {isBuildingMockups
+                    ? "Building the mockups…"
+                    : mockupsAligned
+                      ? "Rebuild the mockups"
+                      : "Build / continue mockups"}
                 </button>
               </>
             )}
@@ -720,7 +852,14 @@ export function DesignStudio({
         {/* Preview */}
         <div className="flex min-h-[60vh] flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow">
           {generationKind ? (
-            <DesignGenerationWindow kind={generationKind} projectName={projectName} />
+            <DesignGenerationWindow
+              kind={generationKind}
+              projectName={projectName}
+              onCancel={loading?.jobId ? () => void stopGeneration() : undefined}
+              cancelling={stopping}
+              progressDone={jobProgress.done}
+              progressTotal={jobProgress.total}
+            />
           ) : previewAsset ? (
             <>
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -743,23 +882,47 @@ export function DesignStudio({
                     Generated {new Date(previewAsset.created_at).toLocaleString()}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  {!previewAsset.selected && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {!previewAsset.selected ? (
                     <>
                       <button
                         onClick={() => selectProposal(previewAsset.id, previewAsset.kind)}
-                        disabled={Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind)}
-                        className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                        disabled={actionsBusy}
+                        className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
                       >
                         <Check size={16} /> Choose as final
                       </button>
                       <button
                         onClick={() => discardProposal(previewAsset.id)}
-                        disabled={Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind)}
+                        disabled={Boolean(deletingId) || Boolean(discardingKind)}
                         className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--muted)] transition hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {deletingId === previewAsset.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                         Discard
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+                        <Check size={14} /> This is your final {KIND_META[previewAsset.kind].shortLabel}
+                      </span>
+                      {previewAsset.kind === "design_system" && mockupsIncomplete && !isBuildingMockups && (
+                        <button
+                          type="button"
+                          onClick={() => void generateMockups(previewAsset.id)}
+                          disabled={actionsBusy}
+                          className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                        >
+                          <Sparkles size={16} /> Build mockups next
+                        </button>
+                      )}
+                      <button
+                        onClick={() => discardProposal(previewAsset.id)}
+                        disabled={Boolean(deletingId) || Boolean(discardingKind)}
+                        className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] px-3 py-2 text-sm font-medium text-[var(--muted)] transition hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:opacity-50"
+                      >
+                        {deletingId === previewAsset.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                        Remove
                       </button>
                     </>
                   )}
@@ -776,16 +939,6 @@ export function DesignStudio({
                   >
                     <Download size={16} /> Download
                   </button>
-                  {previewAsset.selected && (
-                    <button
-                      onClick={() => discardProposal(previewAsset.id)}
-                      disabled={Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind)}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] text-[var(--muted)] transition hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
-                      aria-label="Delete selected proposal"
-                    >
-                      {deletingId === previewAsset.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                    </button>
-                  )}
                 </div>
               </div>
               <div className="flex-1 overflow-hidden rounded-xl border border-[var(--border)] bg-white">
@@ -844,6 +997,15 @@ export function DesignStudio({
   );
 }
 
+const IDENTITY_FEEDBACK_CHIPS = [
+  "Simpler palette",
+  "Bolder type hierarchy",
+  "More space / calmer",
+  "Stronger components",
+  "Closer to the logo",
+  "Less generic",
+];
+
 function PipelineStep({
   kind,
   step,
@@ -855,11 +1017,14 @@ function PipelineStep({
   discardingKind,
   previewAssetId,
   onGenerate,
+  onImprove,
   onSelect,
   onPreview,
   onDiscard,
   onDiscardUnselected,
+  onDiscardMany,
   unlocked,
+  allowFeedback = false,
 }: {
   kind: AssetRow["kind"];
   step: number;
@@ -871,16 +1036,60 @@ function PipelineStep({
   discardingKind: AssetRow["kind"] | null;
   previewAssetId: string | null;
   onGenerate: () => void;
+  onImprove?: (assetId: string, feedback: string) => void;
   onSelect: (id: string, kind: AssetRow["kind"]) => void;
   onPreview: (id: string) => void;
   onDiscard: (id: string) => void;
   onDiscardUnselected: () => void;
+  onDiscardMany: (ids: string[]) => void;
   unlocked: boolean;
+  allowFeedback?: boolean;
 }) {
+  const [marked, setMarked] = useState<Set<string>>(new Set());
+  const [feedbackFor, setFeedbackFor] = useState<string | null>(null);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [chips, setChips] = useState<string[]>([]);
   const isGenerating = loading?.kind === kind && loading.stage === "generating";
   const isDiscarding = discardingKind === kind;
-  const isBusy = Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind);
+  // Generation must not lock delete — previously a stuck/restarting job set
+  // `loading` and disabled every Trash control across the studio.
+  const isDeleting = Boolean(deletingId) || Boolean(discardingKind);
+  const isBusy = isGenerating || isDeleting;
   const unselectedCount = proposals.filter((asset) => !asset.selected).length;
+  const markedCount = [...marked].filter((id) => proposals.some((p) => p.id === id)).length;
+
+  // Drop marks for proposals that no longer exist after regenerate/delete.
+  useEffect(() => {
+    const ids = new Set(proposals.map((p) => p.id));
+    setMarked((prev) => {
+      const next = new Set([...prev].filter((id) => ids.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [proposals]);
+
+  function toggleMark(id: string) {
+    setMarked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleMarkAll() {
+    if (markedCount === proposals.length) {
+      setMarked(new Set());
+      return;
+    }
+    setMarked(new Set(proposals.map((p) => p.id)));
+  }
+
+  async function deleteMarked() {
+    const ids = [...marked].filter((id) => proposals.some((p) => p.id === id));
+    if (ids.length === 0) return;
+    onDiscardMany(ids);
+    setMarked(new Set());
+  }
 
   return (
     <section
@@ -909,11 +1118,32 @@ function PipelineStep({
           {isGenerating ? <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Sparkles size={16} />}
           {isGenerating ? "Generating 3 proposals..." : proposals.length > 0 ? "Regenerate proposals" : meta.cta}
         </button>
+        {proposals.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={toggleMarkAll}
+              disabled={isDeleting}
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--muted)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+            >
+              {markedCount === proposals.length ? "Clear selection" : "Select all"}
+            </button>
+            <button
+              type="button"
+              onClick={deleteMarked}
+              disabled={isDeleting || markedCount === 0}
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full border border-[var(--danger)]/30 bg-[var(--danger)]/5 px-3 py-2 text-xs font-medium text-[var(--danger)] transition hover:border-[var(--danger)]/50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Trash2 size={14} />
+              Delete selected ({markedCount})
+            </button>
+          </div>
+        )}
         {unselectedCount > 0 && (
           <button
             type="button"
             onClick={onDiscardUnselected}
-            disabled={isBusy}
+            disabled={isDeleting}
             className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[var(--border)] px-4 py-2 text-xs font-medium text-[var(--muted)] transition hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isDiscarding ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
@@ -930,63 +1160,187 @@ function PipelineStep({
 
       {proposals.length > 0 ? (
         <ul className="space-y-2">
+          {allowFeedback && proposals.length > 0 && (
+            <p className="mb-2 text-[11px] leading-snug text-[var(--muted)]">
+              Like a proposal? Use{" "}
+              <span className="font-medium text-[var(--foreground)]">Improve with feedback</span> to
+              refine it — chips + your notes, then three new versions.
+            </p>
+          )}
           {proposals.map((asset) => {
             const isSelected = asset.selected;
             const isPreviewed = asset.id === previewAssetId;
+            const isMarked = marked.has(asset.id);
+            const showFeedback = allowFeedback && feedbackFor === asset.id && onImprove;
             return (
               <li
                 key={asset.id}
-                className={`group flex items-center gap-1 rounded-xl border px-1 py-1 transition ${
-                  isPreviewed
+                className={`rounded-xl border p-2 transition ${
+                  showFeedback
+                    ? "border-[var(--accent)]/50 bg-[var(--accent)]/5"
+                    : isPreviewed
                     ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-                    : "border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]"
+                    : isMarked
+                    ? "border-[var(--danger)]/30 bg-[var(--danger)]/5"
+                    : "border-[var(--border)] bg-[var(--surface)]"
                 }`}
               >
-                <button
-                  onClick={() => onPreview(asset.id)}
-                  aria-pressed={isPreviewed}
-                  className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left"
-                >
-                  <span
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                      isSelected
-                        ? "bg-[var(--accent)] text-white"
-                        : "bg-[var(--surface-2)] text-[var(--muted)]"
-                    }`}
-                  >
-                    {asset.variant ?? "—"}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className={`block truncate text-sm ${isSelected ? "font-medium" : ""}`}>
-                      Proposal {asset.variant ?? ""}
-                    </span>
-                    <span className="block truncate text-xs text-[var(--subtle)]">
-                      {isSelected ? "Final direction" : isPreviewed ? "Previewing" : "Preview proposal"}
-                    </span>
-                  </span>
-                </button>
-                {!isSelected && (
+                <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => onSelect(asset.id, kind)}
-                    disabled={isBusy}
-                    className="rounded-full p-1.5 text-[var(--muted)] transition hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
-                    aria-label={`Choose proposal ${asset.variant ?? ""} as final`}
-                    title="Choose as final"
+                    role="checkbox"
+                    aria-checked={isMarked}
+                    aria-label={`Select proposal ${asset.variant ?? ""} for deletion`}
+                    onClick={() => toggleMark(asset.id)}
+                    disabled={isDeleting}
+                    className={`ml-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
+                      isMarked
+                        ? "border-[var(--danger)] bg-[var(--danger)] text-white"
+                        : "border-[var(--border-strong)] text-transparent hover:border-[var(--muted)]"
+                    }`}
                   >
-                    <Check size={14} />
+                    <Check size={12} strokeWidth={3} />
+                  </button>
+                  <button
+                    onClick={() => onPreview(asset.id)}
+                    aria-pressed={isPreviewed}
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left"
+                  >
+                    <span
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                        isSelected
+                          ? "bg-[var(--accent)] text-white"
+                          : "bg-[var(--surface-2)] text-[var(--muted)]"
+                      }`}
+                    >
+                      {asset.variant ?? "—"}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className={`block truncate text-sm ${isSelected ? "font-medium" : ""}`}>
+                        Proposal {asset.variant ?? ""}
+                      </span>
+                      <span className="block truncate text-xs text-[var(--subtle)]">
+                        {isSelected ? "Final direction" : isPreviewed ? "Previewing" : "Preview proposal"}
+                      </span>
+                    </span>
+                  </button>
+                  {isSelected ? (
+                    <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+                      Final
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onSelect(asset.id, kind)}
+                      disabled={isBusy}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--accent)] px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                      aria-label={`Choose proposal ${asset.variant ?? ""} as final`}
+                      title="Choose as final"
+                    >
+                      <Check size={12} /> Choose
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onDiscard(asset.id)}
+                    disabled={isDeleting}
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-1.5 text-xs font-medium text-[var(--danger)]/80 transition hover:bg-[var(--danger)]/10 hover:text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label={`Delete proposal ${asset.variant ?? ""}`}
+                    title="Delete proposal"
+                  >
+                    {deletingId === asset.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                  </button>
+                </div>
+
+                {allowFeedback && onImprove && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFeedbackFor((id) => (id === asset.id ? null : asset.id));
+                      setFeedbackText("");
+                      setChips([]);
+                    }}
+                    disabled={isBusy}
+                    className={`mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${
+                      showFeedback
+                        ? "border-[var(--accent)] bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
+                        : "border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/15"
+                    }`}
+                  >
+                    <MessageSquarePlus size={14} />
+                    {showFeedback ? "Hide feedback" : "Improve with feedback"}
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => onDiscard(asset.id)}
-                  disabled={isBusy}
-                  className="rounded-full p-1.5 text-[var(--muted)] transition hover:text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
-                  aria-label={`Discard proposal ${asset.variant ?? ""}`}
-                  title="Discard proposal"
-                >
-                  {deletingId === asset.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                </button>
+
+                {showFeedback && (
+                  <div className="mt-2 rounded-xl border border-[var(--accent)]/20 bg-[var(--background)] p-3">
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <p className="text-[11px] leading-snug text-[var(--muted)]">
+                        Describe what should change. Faro keeps this direction and generates{" "}
+                        <strong className="font-medium text-[var(--foreground)]">3 refined versions</strong>.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setFeedbackFor(null)}
+                        className="shrink-0 rounded-full p-1 text-[var(--subtle)] hover:bg-[var(--surface-2)]"
+                        aria-label="Close feedback"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                    <div className="mb-2 flex flex-wrap gap-1">
+                      {IDENTITY_FEEDBACK_CHIPS.map((chip) => {
+                        const on = chips.includes(chip);
+                        return (
+                          <button
+                            key={chip}
+                            type="button"
+                            onClick={() =>
+                              setChips((prev) =>
+                                prev.includes(chip) ? prev.filter((c) => c !== chip) : [...prev, chip]
+                              )
+                            }
+                            className={`rounded-full border px-2 py-1 text-[10px] font-medium ${
+                              on
+                                ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                                : "border-[var(--border-strong)] text-[var(--muted)] hover:text-[var(--foreground)]"
+                            }`}
+                          >
+                            {chip}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <textarea
+                      value={feedbackText}
+                      onChange={(e) => setFeedbackText(e.target.value)}
+                      rows={3}
+                      maxLength={2000}
+                      placeholder='e.g. "Warmer palette, tighter type scale, simpler components."'
+                      className="w-full resize-y rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-2.5 py-2 text-xs outline-none focus:border-[var(--accent)]"
+                    />
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => {
+                        const parts = [...chips];
+                        if (feedbackText.trim()) parts.push(feedbackText.trim());
+                        onImprove(asset.id, parts.join(". "));
+                        setFeedbackFor(null);
+                        setFeedbackText("");
+                        setChips([]);
+                      }}
+                      className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                    >
+                      {isGenerating ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Sparkles size={13} />
+                      )}
+                      Generate improved versions
+                    </button>
+                  </div>
+                )}
               </li>
             );
           })}

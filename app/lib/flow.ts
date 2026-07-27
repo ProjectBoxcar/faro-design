@@ -167,10 +167,26 @@ export function prevReviewGroupId(id: string): string | null {
   return i > 0 ? reviewGroupList[i - 1].id : null;
 }
 
+// Content exists (AI draft or owner-finished). Express leaves most steps as
+// `draft` until Approve — that still counts as real progress for the sidebar.
+function sectionFilled(map: StatusMap, id: string): boolean {
+  const status = map.get(id) ?? "empty";
+  return status === "draft" || status === "complete" || status === "client_submitted";
+}
+
 // A step is "settled" if it's complete, or it's optional and untouched (e.g. a
-// skipped survey). Optional-but-drafted steps still want a glance.
+// skipped survey). Optional-but-drafted steps still want a glance in the guided
+// review — drafts do NOT settle required steps (owner still reviews them).
 function sectionSettled(map: StatusMap, id: string): boolean {
   if (isComplete(map, id)) return true;
+  return !isRequired(id) && (map.get(id) ?? "empty") === "empty";
+}
+
+// Journey progress for rails/cards: drafted content counts, and optional steps
+// left empty count as skipped. This matches what the owner has actually built
+// (including the express pipeline), not only sections marked "complete".
+function sectionJourneyDone(map: StatusMap, id: string): boolean {
+  if (sectionFilled(map, id)) return true;
   return !isRequired(id) && (map.get(id) ?? "empty") === "empty";
 }
 
@@ -179,10 +195,21 @@ export function reviewGroupDone(id: string, map: StatusMap): boolean {
   return g ? g.sectionIds.every((sid) => sectionSettled(map, sid)) : false;
 }
 
+// Reviewed-complete progress (stricter). Prefer journeyGroupProgress for UI rails.
 export function reviewGroupProgress(id: string, map: StatusMap): { done: number; total: number } {
   const g = getReviewGroup(id);
   if (!g) return { done: 0, total: 0 };
   return { done: g.sectionIds.filter((sid) => sectionSettled(map, sid)).length, total: g.sectionIds.length };
+}
+
+// Content-based progress for a pillar/group — drafts from express count.
+export function journeyGroupProgress(id: string, map: StatusMap): { done: number; total: number } {
+  const g = getReviewGroup(id);
+  if (!g) return { done: 0, total: 0 };
+  return {
+    done: g.sectionIds.filter((sid) => sectionJourneyDone(map, sid)).length,
+    total: g.sectionIds.length,
+  };
 }
 
 // The group to work next (first not-done), or null when the whole review is done.
@@ -194,9 +221,16 @@ export function currentReviewGroupId(map: StatusMap): string {
   return firstIncompleteReviewGroup(map) ?? reviewGroupList[reviewGroupList.length - 1].id;
 }
 
+// Stricter complete-only progress (kept for call sites that mean "reviewed").
 export function reviewProgress(map: StatusMap): { done: number; total: number } {
   const all = reviewGroupList.flatMap((g) => g.sectionIds);
   return { done: all.filter((sid) => sectionSettled(map, sid)).length, total: all.length };
+}
+
+// What the sidebar / home cards should show: how far the strategy has been built.
+export function journeyProgress(map: StatusMap): { done: number; total: number } {
+  const all = reviewGroupList.flatMap((g) => g.sectionIds);
+  return { done: all.filter((sid) => sectionJourneyDone(map, sid)).length, total: all.length };
 }
 
 export type { Phase, Pillar, Section };

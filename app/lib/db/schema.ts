@@ -16,11 +16,17 @@ export const settings = sqliteTable("settings", {
   ai_base_url: text("ai_base_url"),
   // Optional per-provider model override. Falls back to default_model when null.
   ai_model: text("ai_model"),
-  // API key set from the in-app Settings page (local, single-user).
-  // Works for Anthropic or any OpenAI-compatible provider. Falls back to the
-  // ANTHROPIC_API_KEY env var when null. Stored plaintext in the local SQLite
-  // file (gitignored) — fine for a personal local tool.
+  // Strategy-lane API key (Settings page). Falls back to ANTHROPIC_API_KEY /
+  // OPENAI_API_KEY env. Never used for graphic generation.
   anthropic_api_key: text("anthropic_api_key"),
+  // Open Design lane — graphics only (logos, identity systems, mockups).
+  // Does NOT fall back to the strategy key. Env: OPEN_DESIGN_API_KEY, etc.
+  design_api_key: text("design_api_key"),
+  design_ai_provider: text("design_ai_provider", { enum: ["anthropic", "openai-compatible"] })
+    .notNull()
+    .default("openai-compatible"),
+  design_ai_base_url: text("design_ai_base_url"),
+  design_ai_model: text("design_ai_model"),
   debug_mode: integer("debug_mode", { mode: "boolean" }).notNull().default(false),
   created_at: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -235,4 +241,39 @@ export const assets = sqliteTable(
       .default(sql`(unixepoch())`),
   },
   (t) => [index("assets_project_idx").on(t.project_id)]
+);
+
+// Cross-project learning: outcomes the owner approved, used to steer future
+// strategy / logo / design generation (app memory — not model fine-tuning).
+export const brand_memory = sqliteTable(
+  "brand_memory",
+  {
+    id: text("id").primaryKey(),
+    // Source project (kept even if project later archived; no hard FK cascade so
+    // learnings survive accidental project deletes if we ever soft-delete).
+    project_id: text("project_id"),
+    project_name: text("project_name"),
+    // Which engine should read this learning.
+    engine: text("engine", { enum: ["strategy", "logo", "design", "all"] })
+      .notNull()
+      .default("all"),
+    // What kind of signal this is.
+    kind: text("kind", {
+      enum: ["strategy_outcome", "logo_preference", "design_preference", "taste", "package"],
+    }).notNull(),
+    title: text("title").notNull(),
+    // Short natural-language summary injected into prompts.
+    body: text("body").notNull(),
+    // Optional structured extras (labels, hexes, verdicts…).
+    meta: text("meta", { mode: "json" }).$type<Record<string, unknown>>().default({}),
+    // Higher = more important when ranking (recent package = high).
+    weight: integer("weight").notNull().default(1),
+    created_at: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index("brand_memory_engine_idx").on(t.engine),
+    index("brand_memory_project_idx").on(t.project_id),
+  ]
 );

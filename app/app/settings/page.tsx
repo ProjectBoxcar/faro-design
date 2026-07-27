@@ -1,14 +1,27 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { apiKeyStatus, getProviderConfig } from "@/lib/settings";
+import {
+  apiKeyStatus,
+  getProviderConfig,
+  designApiKeyStatus,
+  getOpenDesignConfig,
+} from "@/lib/settings";
 import { publicProviderConfig } from "@/lib/settings-public";
+import { brandMemoryStats } from "@/lib/brand-memory";
 import { SettingsForm } from "@/components/SettingsForm";
 
 export const dynamic = "force-dynamic";
 
 export default function SettingsPage() {
-  const status = apiKeyStatus();
-  const cfg = publicProviderConfig(getProviderConfig());
+  const strategy = {
+    ...apiKeyStatus(),
+    ...publicProviderConfig(getProviderConfig()),
+  };
+  const openDesign = {
+    ...designApiKeyStatus(),
+    ...publicProviderConfig(getOpenDesignConfig()),
+  };
+  const brandMemory = brandMemoryStats();
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-10 lg:px-10 lg:py-14 2xl:max-w-3xl">
@@ -22,11 +35,11 @@ export default function SettingsPage() {
       <header className="mt-3 mb-6">
         <h1 className="font-serif text-4xl font-medium tracking-tight">Settings</h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          Connect AI so “Improve with AI” can turn your notes into polished brand content.
+          API keys for each engine, plus brand memory that improves results as you finish projects.
         </p>
       </header>
 
-      <SettingsForm initial={{ ...status, ...cfg }} />
+      <SettingsForm initial={{ strategy, openDesign, brandMemory }} />
     </main>
   );
 }

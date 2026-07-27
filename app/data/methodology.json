@@ -283,6 +283,7 @@
               "resolver": "client",
               "kind": "input",
               "internal": false,
+              "optional": true,
               "reads": [
                 "reality.service"
               ],
@@ -384,6 +385,7 @@
               "resolver": "client",
               "kind": "input",
               "internal": false,
+              "optional": true,
               "reads": [
                 "reality.ideal-client"
               ],

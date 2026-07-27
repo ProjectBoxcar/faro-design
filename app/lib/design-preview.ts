@@ -1,12 +1,19 @@
 import type { AssetKind } from "@/lib/db/types";
 
-export type IdentityPreviewSection = "overview" | "logo" | "color" | "type" | "components";
+export type IdentityPreviewSection =
+  | "overview"
+  | "logo"
+  | "color"
+  | "type"
+  | "icons"
+  | "components";
 
 export const IDENTITY_PREVIEW_SECTIONS: Array<{ id: IdentityPreviewSection; label: string }> = [
   { id: "overview", label: "Overview" },
   { id: "logo", label: "Logo" },
   { id: "color", label: "Colors" },
   { id: "type", label: "Type" },
+  { id: "icons", label: "Icons" },
   { id: "components", label: "Components" },
 ];
 
@@ -15,7 +22,7 @@ html{scroll-behavior:smooth!important;zoom:1!important}body{zoom:1!important;tra
 </style>`;
 
 const previewBridge = `<script data-faro-preview-bridge>
-(()=>{const names={logo:['logo','mark','lockup'],color:['color','colour','palette','swatch'],type:['type','typography','font'],components:['component','ui','application']};const find=(key)=>{for(const name of names[key]||[]){const direct=document.getElementById(name)||document.querySelector('[id*="'+name+'" i]');if(direct)return direct}const terms=names[key]||[];return Array.from(document.querySelectorAll('h1,h2,h3,[class*="title" i],[class*="kicker" i]')).find(node=>terms.some(term=>(node.textContent||'').toLowerCase().includes(term)))?.closest('section,article,main,div')||null};const focus=(key)=>{if(key==='overview'){window.scrollTo({top:0,behavior:'smooth'});return}find(key)?.scrollIntoView({behavior:'smooth',block:'start'})};window.addEventListener('message',event=>{if(event.source===window.parent&&event.data?.source==='faro-preview'&&event.data?.action==='focus')focus(event.data.section)});document.addEventListener('click',event=>{const link=event.target.closest?.('a[href^="#"]');if(!link)return;const id=decodeURIComponent(link.getAttribute('href').slice(1));const target=document.getElementById(id);if(!target)return;event.preventDefault();event.stopImmediatePropagation();target.scrollIntoView({behavior:'smooth',block:'start'})},true)})();
+(()=>{const names={logo:['logo','mark','lockup'],color:['color','colour','palette','swatch'],type:['type','typography','font'],icons:['icon','icons','iconography','glyph'],components:['component','ui','application']};const find=(key)=>{for(const name of names[key]||[]){const direct=document.getElementById(name)||document.querySelector('[id*="'+name+'" i]');if(direct)return direct}const terms=names[key]||[];return Array.from(document.querySelectorAll('h1,h2,h3,[class*="title" i],[class*="kicker" i]')).find(node=>terms.some(term=>(node.textContent||'').toLowerCase().includes(term)))?.closest('section,article,main,div')||null};const focus=(key)=>{if(key==='overview'){window.scrollTo({top:0,behavior:'smooth'});return}find(key)?.scrollIntoView({behavior:'smooth',block:'start'})};window.addEventListener('message',event=>{if(event.source===window.parent&&event.data?.source==='faro-preview'&&event.data?.action==='focus')focus(event.data.section)});document.addEventListener('click',event=>{const link=event.target.closest?.('a[href^="#"]');if(!link)return;const id=decodeURIComponent(link.getAttribute('href').slice(1));const target=document.getElementById(id);if(!target)return;event.preventDefault();event.stopImmediatePropagation();target.scrollIntoView({behavior:'smooth',block:'start'})},true)})();
 </script>`;
 
 export function buildArtifactPreviewHtml(html: string | null, kind: AssetKind): string {

@@ -27,14 +27,14 @@ export type ExpandResult = {
 };
 
 // Reality + Identity input sections the interview fills.
+// Optional owner details (packages, channels) are NOT forced here — they no
+// longer block Strategy completion (see methodology optional: true).
 const TARGETS = [
   "reality.problem",
   "reality.solution",
   "reality.service",
   "reality.ideal-client",
   "reality.business-stage",
-  "reality.service-structure",
-  "reality.acquisition-channels",
   "reality.capacity",
   "reality.operational-quirks",
   "identity.origin",
@@ -92,7 +92,7 @@ function buildSystem(): string {
   return `${SYSTEM_INTRO}\n\nSECTIONS TO FILL:\n\n${briefs}`;
 }
 
-function buildUserMessage(brandName: string, a: IntakeAnswers): string {
+function buildUserMessage(brandName: string, a: IntakeAnswers, memory = ""): string {
   const lines = [
     `BRAND: ${brandName}`,
     "",
@@ -104,16 +104,120 @@ function buildUserMessage(brandName: string, a: IntakeAnswers): string {
     `5. One thing that's true about them a competitor couldn't say:\n${a.edge || "(not answered)"}`,
     `6. How they want the brand to look and feel (styles admired, feelings wanted, things to avoid):\n${a.taste || "(not answered)"}`,
   ];
+  if (memory) lines.push("", memory);
   lines.push("\nReturn the JSON object now.");
   return lines.join("\n");
+}
+
+function objectHasContent(obj: Record<string, unknown>): boolean {
+  return Object.values(obj).some((v) => {
+    if (v == null) return false;
+    if (typeof v === "string") return v.trim() !== "";
+    if (Array.isArray(v)) return v.length > 0;
+    return true;
+  });
+}
+
+function saveIntakeDraft(
+  projectId: string,
+  id: string,
+  obj: Record<string, unknown>,
+  model: string
+): void {
+  saveSection({
+    projectId,
+    key: id,
+    value: obj as unknown as SectionValue,
+    status: "draft",
+    aiGenerated: true,
+  });
+  db.insert(ai_generations)
+    .values({
+      id: nanoid(),
+      project_id: projectId,
+      section_key: id,
+      model,
+      reads: ["quick-start-intake"],
+      output: JSON.stringify(obj).slice(0, 20000),
+      accepted: true,
+    })
+    .run();
+}
+
+/** Deterministic drafts when the model leaves a Reality/Identity section empty. */
+function fallbackFromAnswers(
+  sectionId: string,
+  brandName: string,
+  a: IntakeAnswers
+): Record<string, unknown> | null {
+  const section = getSection(sectionId);
+  if (!section?.fields?.length) return null;
+
+  const blob = [a.offering, a.story, a.difference, a.operations, a.edge, a.taste]
+    .filter(Boolean)
+    .join(" ");
+
+  // Section-aware seed text so empty fields still carry the owner's meaning.
+  const seeds: Record<string, string> = {
+    "reality.problem": a.offering || blob,
+    "reality.solution": a.offering || a.difference || blob,
+    "reality.service": a.offering || blob,
+    "reality.ideal-client": a.offering || blob,
+    "reality.business-stage": a.operations || a.story || blob,
+    "reality.capacity": a.operations || blob,
+    "reality.operational-quirks": a.edge || a.operations || blob,
+    "identity.origin": a.story || blob,
+    "identity.self-perception": a.difference || a.edge || blob,
+    "identity.aspiration": a.story || a.difference || blob,
+    "identity.beliefs": a.difference || a.edge || blob,
+  };
+  const seed = (seeds[sectionId] || blob || brandName).trim();
+  if (!seed) return null;
+
+  const out: Record<string, unknown> = {};
+  for (const f of section.fields) {
+    if (f.type === "list") {
+      out[f.id] = seed
+        .split(/[.;\n]/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 4);
+      if ((out[f.id] as string[]).length === 0) out[f.id] = [seed.slice(0, 120)];
+    } else if (f.type === "table" && f.columns?.length) {
+      const row: Record<string, string> = {};
+      for (const col of f.columns) {
+        row[col.id] = seed.slice(0, 100);
+      }
+      out[f.id] = [row];
+    } else if (f.type === "enum" && f.options?.length) {
+      // Prefer a middle/default option rather than inventing outside the set.
+      const lower = seed.toLowerCase();
+      out[f.id] =
+        f.options.find((o) => lower.includes(o.toLowerCase())) ?? f.options[0];
+    } else {
+      out[f.id] = seed.length > 800 ? seed.slice(0, 800) + "…" : seed;
+    }
+  }
+  return objectHasContent(out) ? out : null;
 }
 
 // Run the Quick Start expansion: one Opus call turns the owner's answers into
 // drafts for every target section, saved as editable AI drafts (status "draft",
 // ai_generated true) for the owner to review.
+//
+// Contract: EVERY target Reality/Identity section is filled. If the model skips
+// one, we retry once for the gaps, then fall back to structured text from the
+// six answers — never leave required Reality steps empty after Quick Start.
 export async function expandIntake(projectId: string, brandName: string, answers: IntakeAnswers): Promise<ExpandResult> {
   const system = buildSystem();
-  const user = buildUserMessage(brandName, answers);
+  let memory = "";
+  try {
+    const { formatMemoryForPrompt } = await import("@/lib/brand-memory");
+    memory = formatMemoryForPrompt("strategy", { excludeProjectId: projectId, limit: 5 });
+  } catch {
+    /* optional until migration */
+  }
+  const user = buildUserMessage(brandName, answers, memory);
 
   const { text, model } = await generateText({
     model: MODELS.reasoning,
@@ -122,37 +226,78 @@ export async function expandIntake(projectId: string, brandName: string, answers
     messages: [{ role: "user", content: user }],
     cacheSystem: true,
   });
-  const parsed = extractJson(text);
+  let parsed = extractJson(text) as Record<string, unknown>;
 
   const filled: string[] = [];
+  const missing: string[] = [];
 
   for (const id of TARGETS) {
     const value = parsed[id];
-    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      missing.push(id);
+      continue;
+    }
     const obj = value as Record<string, unknown>;
-    // Skip sections the model left entirely empty.
-    const hasContent = Object.values(obj).some((v) => {
-      if (v == null) return false;
-      if (typeof v === "string") return v.trim() !== "";
-      if (Array.isArray(v)) return v.length > 0;
-      return true;
-    });
-    if (!hasContent) continue;
+    if (!objectHasContent(obj)) {
+      missing.push(id);
+      continue;
+    }
+    saveIntakeDraft(projectId, id, obj, model);
+    filled.push(id);
+  }
 
-    saveSection({ projectId, key: id, value: obj as unknown as SectionValue, status: "draft", aiGenerated: true });
-    db.insert(ai_generations)
-      .values({
-        id: nanoid(),
-        project_id: projectId,
-        section_key: id,
-        model,
-        reads: ["quick-start-intake"],
-        output: JSON.stringify(obj),
-        accepted: true,
-      })
-      .run();
+  // Second AI pass: only the gaps, with a stricter instruction.
+  if (missing.length > 0) {
+    try {
+      const gapBriefs = missing
+        .map((id) => getSection(id))
+        .filter((s): s is Section => Boolean(s))
+        .map(sectionBrief)
+        .join("\n\n");
+      const { text: gapText, model: gapModel } = await generateText({
+        model: MODELS.reasoning,
+        maxTokens: 8000,
+        system: `${SYSTEM_INTRO}\n\nYou MUST fill EVERY section below. Do not leave strings empty. Infer reasonably from the owner's answers.\n\nSECTIONS TO FILL:\n\n${gapBriefs}`,
+        messages: [{ role: "user", content: buildUserMessage(brandName, answers) }],
+      });
+      parsed = extractJson(gapText) as Record<string, unknown>;
+      const stillMissing: string[] = [];
+      for (const id of missing) {
+        const value = parsed[id];
+        if (!value || typeof value !== "object" || Array.isArray(value)) {
+          stillMissing.push(id);
+          continue;
+        }
+        const obj = value as Record<string, unknown>;
+        if (!objectHasContent(obj)) {
+          stillMissing.push(id);
+          continue;
+        }
+        saveIntakeDraft(projectId, id, obj, gapModel);
+        filled.push(id);
+      }
+      missing.length = 0;
+      missing.push(...stillMissing);
+    } catch (e) {
+      console.warn("[intake] gap fill failed, using answer fallbacks:", e);
+    }
+  }
+
+  // Last resort: never leave a Reality/Identity target blank after Quick Start.
+  for (const id of missing) {
+    const fallback = fallbackFromAnswers(id, brandName, answers);
+    if (!fallback) {
+      console.warn(`[intake] could not fallback-fill ${id}`);
+      continue;
+    }
+    saveIntakeDraft(projectId, id, fallback, `${model}+fallback`);
     filled.push(id);
   }
 
   return { filled, model };
+}
+
+/** All Reality + Identity section ids the Quick Start is responsible for. */
+export function intakeTargetSectionIds(): string[] {
+  return [...TARGETS];
 }

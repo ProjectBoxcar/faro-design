@@ -1,16 +1,28 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
-import { getProviderConfig, getDefaultModel } from "@/lib/settings";
+import {
+  getProviderConfig,
+  getOpenDesignDaemonConfig,
+  getLogoApiConfig,
+  getGeminiConfig,
+  hasGeminiKey,
+  logoApiKeyStatus,
+} from "@/lib/settings";
+import { generateViaOpenDesign, isOpenDesignDaemonUp } from "@/lib/open-design-engine";
+import type { AiProvider } from "@/lib/db/types";
 
 export type AiMessage = { role: "user"; content: string };
 
 export type GenerateTextResult = {
   text: string;
   model: string;
+  /** strategy-direct | open-design-daemon | openai-direct | gemini-direct */
+  engine?: "open-design-daemon" | "strategy-direct" | "openai-direct" | "gemini-direct";
 };
 
-// Model selection: the reasoning default is the user's configured model;
-// parsing uses a cheap model appropriate to the active provider.
+// strategy = text; design = Open Design daemon (identity/mockups only).
+export type AiLane = "strategy" | "design";
+
 export const MODELS = {
   get reasoning(): string {
     return getProviderConfig().model;
@@ -18,24 +30,45 @@ export const MODELS = {
   get parsing(): string {
     const cfg = getProviderConfig();
     if (cfg.provider === "anthropic") return "claude-haiku-4-5-20251001";
-    // Custom OpenAI-compatible providers (Gemini, Groq, …) don't serve OpenAI
-    // model names, so fall back to the user's configured model.
     return cfg.baseUrl ? cfg.model : "gpt-4o-mini";
+  },
+  /** Open Design daemon model (identity systems + mockups). */
+  get design(): string {
+    return getOpenDesignDaemonConfig().model;
+  },
+  /** Logo Workshop model (OpenAI). */
+  get logo(): string {
+    return getLogoApiConfig().model || "gpt-4o";
   },
 } as const;
 
-// True when a key is available (from the in-app Settings page or the env var).
 export function hasApiKey(): boolean {
   return Boolean(getProviderConfig().apiKey);
 }
 
-// Generate text using the configured AI provider.
-// - Anthropic: uses the Anthropic SDK with optional prompt caching and streaming.
-//   Streaming lets us request large design artifact outputs (up to the model ceiling)
-//   without hitting the non-streaming 10-minute SDK guard.
-// - OpenAI-compatible: uses a fetch to the provider's /chat/completions endpoint.
-//   Supports OpenAI, OpenRouter, Groq, Together, Ollama, etc.
-export async function generateText(params: {
+/** Anthropic BYOK available for Open Design daemon (Design Studio). */
+export function hasOpenDesignKey(): boolean {
+  return Boolean(getOpenDesignDaemonConfig().apiKey);
+}
+
+/** Logo Workshop: OpenAI key and/or Gemini fallback. */
+export function hasLogoKey(): boolean {
+  return logoApiKeyStatus().configured || hasGeminiKey();
+}
+
+function isRetriableProviderError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  return /429|quota|billing|rate limit|insufficient|exceeded|401|403|invalid.?api.?key|incorrect api key/i.test(
+    msg
+  );
+}
+
+/** Design Studio ready: OD daemon up + Anthropic BYOK. */
+export async function hasOpenDesignEngine(): Promise<boolean> {
+  return hasOpenDesignKey() && (await isOpenDesignDaemonUp());
+}
+
+async function callStrategyProvider(params: {
   model?: string;
   maxTokens: number;
   system?: string;
@@ -43,7 +76,9 @@ export async function generateText(params: {
   cacheSystem?: boolean;
 }): Promise<GenerateTextResult> {
   const cfg = getProviderConfig();
-  if (!cfg.apiKey) throw new Error("No API key configured — add it in Settings.");
+  if (!cfg.apiKey) {
+    throw new Error("No strategy API key configured — add it in Settings (Anthropic / GPT / …).");
+  }
   const model = params.model ?? cfg.model;
 
   if (cfg.provider === "anthropic") {
@@ -54,8 +89,6 @@ export async function generateText(params: {
         : params.system
       : undefined;
 
-    // Anthropic recommends (and the SDK enforces for large max_tokens) streaming for
-    // long-running generation. Stream and collect the text for a single return value.
     const stream = client.messages.stream({
       model,
       max_tokens: params.maxTokens,
@@ -65,11 +98,30 @@ export async function generateText(params: {
 
     const text = await stream.finalText();
     const message = await stream.finalMessage();
-    return { text: text.trim(), model: message.model };
+    return { text: text.trim(), model: message.model, engine: "strategy-direct" };
   }
 
-  // OpenAI-compatible provider.
-  const baseUrl = (cfg.baseUrl ?? "https://api.openai.com/v1").replace(/\/$/, "");
+  return callOpenAiCompatible({
+    apiKey: cfg.apiKey,
+    baseUrl: cfg.baseUrl,
+    model,
+    maxTokens: params.maxTokens,
+    system: params.system,
+    messages: params.messages,
+    engine: "strategy-direct",
+  });
+}
+
+async function callOpenAiCompatible(params: {
+  apiKey: string;
+  baseUrl: string | null;
+  model: string;
+  maxTokens: number;
+  system?: string;
+  messages: AiMessage[];
+  engine: "strategy-direct" | "openai-direct" | "gemini-direct";
+}): Promise<GenerateTextResult> {
+  const baseUrl = (params.baseUrl ?? "https://api.openai.com/v1").replace(/\/$/, "");
   const openaiMessages: { role: string; content: string }[] = [];
   if (params.system) openaiMessages.push({ role: "system", content: params.system });
   for (const m of params.messages) openaiMessages.push({ role: m.role, content: m.content });
@@ -77,14 +129,15 @@ export async function generateText(params: {
   const resp = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${cfg.apiKey}`,
+      Authorization: `Bearer ${params.apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model,
+      model: params.model,
       max_tokens: params.maxTokens,
       messages: openaiMessages,
     }),
+    signal: AbortSignal.timeout(Math.max(120_000, params.maxTokens * 25)),
   });
 
   const data = (await resp.json()) as {
@@ -93,8 +146,207 @@ export async function generateText(params: {
     model?: string;
   };
   if (!resp.ok) {
-    throw new Error(data.error?.message ?? `OpenAI-compatible API error: ${resp.status}`);
+    const msg = data.error?.message ?? `API error: ${resp.status}`;
+    if (resp.status === 429 || /quota|billing|rate limit/i.test(msg)) {
+      throw new Error(
+        `${msg} — Check provider billing/quota, or wait and retry.`
+      );
+    }
+    throw new Error(msg);
   }
   const text = data.choices?.[0]?.message?.content ?? "";
-  return { text: text.trim(), model: data.model ?? model };
+  return { text: text.trim(), model: data.model ?? params.model, engine: params.engine };
+}
+
+/** Google Gemini — native generateContent first (most reliable), OpenAI-compat second. */
+async function callGemini(params: {
+  maxTokens: number;
+  system?: string;
+  messages: AiMessage[];
+  model?: string;
+}): Promise<GenerateTextResult> {
+  const cfg = getGeminiConfig();
+  if (!cfg.apiKey) {
+    throw new Error("No Gemini API key — set GEMINI_API_KEY in .env.local");
+  }
+  const model = params.model ?? cfg.model;
+
+  // 1) Native generateContent (best for free-tier / AQ keys)
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(cfg.apiKey)}`;
+  const contents: { role: string; parts: { text: string }[] }[] = [];
+  for (const m of params.messages) {
+    contents.push({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    });
+  }
+  const body: Record<string, unknown> = {
+    contents,
+    generationConfig: {
+      maxOutputTokens: params.maxTokens,
+      // Helps logo pipeline extractJson; ignore if model rejects the field.
+      responseMimeType: "application/json",
+    },
+  };
+  if (params.system) {
+    body.systemInstruction = { parts: [{ text: params.system }] };
+  }
+
+  try {
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(Math.max(120_000, params.maxTokens * 25)),
+    });
+    const data = (await resp.json()) as {
+      error?: { message?: string };
+      candidates?: { content?: { parts?: { text?: string }[] } }[];
+    };
+    if (!resp.ok) {
+      throw new Error(data.error?.message ?? `Gemini API error: ${resp.status}`);
+    }
+    const text =
+      data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+    if (!text.trim()) {
+      throw new Error("Gemini returned an empty response");
+    }
+    return { text: text.trim(), model, engine: "gemini-direct" };
+  } catch (nativeError) {
+    // 2) OpenAI-compatible endpoint fallback
+    try {
+      return await callOpenAiCompatible({
+        apiKey: cfg.apiKey,
+        baseUrl: cfg.baseUrl,
+        model,
+        maxTokens: params.maxTokens,
+        system: params.system,
+        messages: params.messages,
+        engine: "gemini-direct",
+      });
+    } catch (compatError) {
+      const a = nativeError instanceof Error ? nativeError.message : String(nativeError);
+      const b = compatError instanceof Error ? compatError.message : String(compatError);
+      throw new Error(`Gemini native failed (${a}). OpenAI-compat also failed: ${b}`);
+    }
+  }
+}
+
+/**
+ * - strategy (default): Settings Anthropic/GPT in Faro
+ * - design: Open Design daemon only (never Anthropic SDK in Faro)
+ */
+export async function generateText(params: {
+  lane?: AiLane;
+  model?: string;
+  maxTokens: number;
+  system?: string;
+  messages: AiMessage[];
+  cacheSystem?: boolean;
+}): Promise<GenerateTextResult> {
+  if ((params.lane ?? "strategy") === "design") {
+    return generateDesignText(params);
+  }
+  return callStrategyProvider(params);
+}
+
+export async function generateStrategyText(
+  params: Omit<Parameters<typeof generateText>[0], "lane">
+): Promise<GenerateTextResult> {
+  return callStrategyProvider(params);
+}
+
+/**
+ * Design Studio ONLY (identity systems + landing/deck mockups).
+ * Always Open Design daemon + Anthropic BYOK — never OpenAI, never Gemini.
+ */
+export async function generateDesignText(
+  params: Omit<Parameters<typeof generateText>[0], "lane">
+): Promise<GenerateTextResult> {
+  const cfg = getOpenDesignDaemonConfig();
+  if (!cfg.apiKey) {
+    throw new Error(
+      "Design Studio needs an Anthropic API key for Open Design (BYOK). Save it in Strategy Settings (Anthropic) or as an Anthropic graphics key. Logos use OpenAI/Gemini separately."
+    );
+  }
+  if (!(await isOpenDesignDaemonUp())) {
+    throw new Error(
+      "Open Design daemon is not running. Start start-open-design.ps1 (port 7456). Identity systems and mockups require the OD engine — not OpenAI or Gemini."
+    );
+  }
+
+  const model = params.model ?? MODELS.design;
+  const result = await generateViaOpenDesign({
+    system: params.system,
+    messages: params.messages.map((m) => ({ role: m.role, content: m.content })),
+    maxTokens: params.maxTokens,
+    model,
+    apiKey: cfg.apiKey,
+  });
+  return { text: result.text, model: result.model, engine: "open-design-daemon" };
+}
+
+/**
+ * Logo Workshop ONLY.
+ * OpenAI first → Gemini fallback on quota/auth errors. Never the OD daemon.
+ */
+export async function generateLogoText(
+  params: Omit<Parameters<typeof generateText>[0], "lane">
+): Promise<GenerateTextResult> {
+  const logo = getLogoApiConfig();
+  const model = params.model ?? MODELS.logo;
+
+  async function primaryOpenAi(): Promise<GenerateTextResult> {
+    if (!logo.apiKey) {
+      throw new Error(
+        "No OpenAI logo key — save an OpenAI API key in Settings (graphics / OpenAI-compatible), or set OPENAI_API_KEY."
+      );
+    }
+    return callOpenAiCompatible({
+      apiKey: logo.apiKey,
+      baseUrl: logo.baseUrl,
+      model: model || "gpt-4o",
+      maxTokens: params.maxTokens,
+      system: params.system,
+      messages: params.messages,
+      engine: "openai-direct",
+    });
+  }
+
+  // No OpenAI key → Gemini only
+  if (!logo.apiKey) {
+    if (hasGeminiKey()) {
+      console.warn("[ai] no OpenAI logo key — using Gemini");
+      return callGemini({
+        maxTokens: params.maxTokens,
+        system: params.system,
+        messages: params.messages,
+      });
+    }
+    throw new Error(
+      "No logo AI key — save OpenAI in Settings, or set GEMINI_API_KEY in .env.local as fallback."
+    );
+  }
+
+  try {
+    return await primaryOpenAi();
+  } catch (primaryError) {
+    if (!hasGeminiKey() || !isRetriableProviderError(primaryError)) {
+      throw primaryError;
+    }
+    const reason = primaryError instanceof Error ? primaryError.message : String(primaryError);
+    console.warn("[ai] OpenAI logo failed; falling back to Gemini:", reason.slice(0, 160));
+    try {
+      return await callGemini({
+        maxTokens: params.maxTokens,
+        system: params.system,
+        messages: params.messages,
+      });
+    } catch (geminiError) {
+      const gMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
+      throw new Error(
+        `OpenAI logo failed (${reason.slice(0, 120)}). Gemini fallback also failed: ${gMsg}`
+      );
+    }
+  }
 }
