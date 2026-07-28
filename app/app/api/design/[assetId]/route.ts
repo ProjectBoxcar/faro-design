@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getAsset, selectAsset, deleteAsset } from "@/lib/design";
 import { getProject } from "@/lib/queries";
+import { createDesignJob, serializeDesignJob } from "@/lib/design-jobs";
+import { viabilityActionBlockedReason } from "@/lib/project-gates";
+import { hasOpenDesignKey } from "@/lib/ai";
 
 export async function GET(
   req: Request,
@@ -34,7 +37,8 @@ export async function POST(
   if (!projectId) {
     return NextResponse.json({ error: "Missing projectId" }, { status: 400 });
   }
-  if (!getProject(projectId)) {
+  const project = getProject(projectId);
+  if (!project) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
   if (!getAsset(projectId, assetId)) {
@@ -46,7 +50,30 @@ export async function POST(
 
   if (action === "select") {
     const asset = selectAsset(projectId, assetId);
-    return NextResponse.json({ asset });
+
+    // Identity final → start application mockups on the server so API clients
+    // and the UI both get the same path (UI may also poll the returned job).
+    let mockupsJob = null;
+    if (asset.kind === "design_system") {
+      const blocked = viabilityActionBlockedReason(project, "design");
+      if (!blocked && hasOpenDesignKey()) {
+        try {
+          const { ensureOpenDesignDaemon } = await import("@/lib/open-design-ensure");
+          await ensureOpenDesignDaemon();
+          const job = createDesignJob({
+            projectId,
+            kind: "mockups",
+            count: 2,
+            designSystemId: asset.id,
+          });
+          mockupsJob = serializeDesignJob(job);
+        } catch (e) {
+          console.warn("[design] auto mockups after identity select failed:", e);
+        }
+      }
+    }
+
+    return NextResponse.json({ asset, job: mockupsJob });
   }
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });

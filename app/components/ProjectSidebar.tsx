@@ -1,117 +1,71 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Check,
   ChevronDown,
-  Compass,
-  FileText,
-  Lightbulb,
   LockKeyhole,
-  PackageCheck,
-  Palette,
   Settings,
-  Sparkles,
-  type LucideIcon,
 } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
 import { FaroMark } from "./FaroMark";
+import type { JourneyStageItem, JourneyStepItem, StageStatus } from "@/lib/sidebar-journey";
 
-// A pillar-level review screen (one of the numbered steps in the old flat list).
-export type SidebarGroup = {
-  id: string;
-  name: string;
-  done: number;
-  total: number;
-  isCurrent: boolean;
-};
+export type { JourneyStageItem, JourneyStepItem, StageStatus };
 
-// A methodology phase that owns several review groups. The rail groups steps
-// under these so the methodology journey stays distinct from the artifact studio.
-export type SidebarPhase = {
-  id: string;
-  name: string;
-  done: number;
-  total: number;
-  isCurrent: boolean;
-  groups: SidebarGroup[];
-};
-
-export type SidebarStudioStep = {
-  id: string;
-  name: string;
-  status: "not-started" | "review" | "selected" | "locked";
-  proposals: number;
-};
-
-export type SidebarAssetStudio = {
-  locked: boolean;
-  hint: string;
-};
-
-/** Final shareable brand package (publish + download). */
-export type SidebarHandover = {
-  locked: boolean;
-  ready: boolean;
-  hint: string;
-};
-
-// Per-phase presentation: an icon so the rail is scannable and a short hint
-// that accurately describes the methodology work behind each phase.
-const PHASE_META: Record<string, { icon: LucideIcon; label?: string; hint: string }> = {
-  strategic: { icon: Compass, hint: "Understand the business" },
-  handoff: { icon: FileText, hint: "Write the thinking up cleanly" },
-  planning: { icon: Lightbulb, hint: "Turn strategy into a plan" },
-  design: { icon: Palette, hint: "Naming, territories, system & closure" },
-};
-
-// Desktop-only left rail: project identity, overall progress, and the guided
-// journey grouped by phase. Each phase collapses so the rail stays a calm "where
-// am I", and detailed steps still live behind "View all steps" on the hub.
+/** Desktop left rail: one journey list, same status logic for every stage. */
 export function ProjectSidebar({
   projectId,
   projectName,
   clientName,
   greenfield,
+  stages,
   overall,
-  phases,
-  studioSteps,
-  assetStudio,
-  designStudio,
-  brandHandover,
 }: {
   projectId: string;
   projectName: string;
   clientName?: string | null;
   greenfield?: boolean;
+  stages: JourneyStageItem[];
   overall: { done: number; total: number };
-  phases: SidebarPhase[];
-  studioSteps: SidebarStudioStep[];
-  assetStudio: SidebarAssetStudio;
-  designStudio: SidebarAssetStudio;
-  brandHandover: SidebarHandover;
 }) {
-  // Highlight only the path actually being viewed; the hub falls back to the
-  // computed "work on this next" methodology group.
   const pathname = usePathname();
-  const routeParams = useParams<{ group?: string }>();
-  const studioActive = pathname === `/projects/${projectId}/design`;
-  const handoverActive = pathname === `/projects/${projectId}/handover`;
-  const assetStudioActive = pathname.startsWith(`/projects/${projectId}/studio`);
-  const onHub = pathname === `/projects/${projectId}`;
-  const viewedGroup = pathname.startsWith(`/projects/${projectId}/review/`) && routeParams?.group
-    ? decodeURIComponent(routeParams.group)
-    : null;
+
+  function isStageActive(stage: JourneyStageItem): boolean {
+    const base = `/projects/${projectId}`;
+    if (stage.id === "strategy") {
+      if (pathname === base) return true;
+      if (pathname.startsWith(`${base}/express`)) return true;
+      if (pathname.startsWith(`${base}/review`)) return true;
+      // Section editor / hub under project, not studio/design/handover
+      if (
+        pathname.startsWith(`${base}/`) &&
+        !pathname.startsWith(`${base}/studio`) &&
+        !pathname.startsWith(`${base}/design`) &&
+        !pathname.startsWith(`${base}/handover`)
+      ) {
+        return true;
+      }
+      return false;
+    }
+    if (stage.id === "logo") return pathname.startsWith(`${base}/studio`);
+    if (stage.id === "design") return pathname.startsWith(`${base}/design`);
+    if (stage.id === "handover") return pathname.startsWith(`${base}/handover`);
+    return pathname === stage.href || pathname.startsWith(`${stage.href}/`);
+  }
 
   return (
     <aside
       className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col border-r border-[var(--border)] lg:flex"
-      style={{ backgroundColor: "rgba(250,248,243,0.82)", backdropFilter: "blur(20px)" }}
+      style={{
+        backgroundColor: "color-mix(in srgb, var(--background) 92%, transparent)",
+        backdropFilter: "blur(20px)",
+      }}
     >
-      <div className="p-5">
+      <div className="p-5 pb-3">
         <Link
           href="/"
           className="inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
@@ -123,7 +77,7 @@ export function ProjectSidebar({
       <div className="px-5">
         <Link
           href="/"
-          className="mb-4 block text-[var(--foreground)] opacity-80 transition hover:opacity-100"
+          className="mb-3 block text-[var(--foreground)] opacity-80 transition hover:opacity-100"
           aria-label="Faro Design home"
         >
           <FaroMark className="h-6 w-auto max-w-[11rem]" />
@@ -136,165 +90,34 @@ export function ProjectSidebar({
           <p className="mt-1 text-xs text-[var(--subtle)]">Greenfield — audit skipped</p>
         )}
         <div className="mt-4">
-          <div className="mb-1 text-xs text-[var(--subtle)]">Strategy built</div>
+          <div className="mb-1 flex items-center justify-between text-xs text-[var(--subtle)]">
+            <span>Journey</span>
+            <span className="tabular-nums">
+              {overall.done}/{overall.total} stages
+            </span>
+          </div>
           <ProgressBar done={overall.done} total={overall.total} showPercent />
         </div>
       </div>
 
       <nav aria-label="Project journey" className="mt-5 flex-1 overflow-y-auto px-3 pb-6">
-        <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
-          Journey
-        </div>
-        <div className="space-y-1">
-          {phases.map((phase) => (
-            <PhaseSection
-              key={`${phase.id}:${viewedGroup ?? (onHub ? "hub" : "other")}`}
-              projectId={projectId}
-              phase={phase}
-              viewedGroup={viewedGroup}
-              showNext={onHub}
+        <p className="px-2.5 pb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
+          Stages
+        </p>
+        <ol className="space-y-1">
+          {stages.map((stage) => (
+            <StageRow
+              key={stage.id}
+              stage={stage}
+              active={isStageActive(stage)}
+              pathname={pathname}
             />
           ))}
-        </div>
-        <Link
-          href={`/projects/${projectId}?plan=open#plan`}
-          className="mt-3 block rounded-xl px-2.5 py-2 text-sm text-[var(--accent)] transition hover:bg-[var(--surface-2)]"
-        >
-          View all methodology steps →
-        </Link>
+        </ol>
 
-        <div className="mx-2.5 my-4 border-t border-[var(--border)]" />
-        <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
-          Next after strategy
-        </div>
-        <Link
-          href={`/projects/${projectId}/studio`}
-          aria-disabled={assetStudio.locked}
-          aria-current={assetStudioActive ? "page" : undefined}
-          className={`flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition ${
-            assetStudio.locked
-              ? "pointer-events-none opacity-50"
-              : assetStudioActive
-              ? "bg-[var(--accent-soft)]"
-              : "hover:bg-[var(--surface-2)]"
-          }`}
-        >
-          <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-            assetStudioActive ? "bg-[var(--accent)] text-white" : "bg-[var(--surface-2)] text-[var(--muted)]"
-          }`}>
-            {assetStudio.locked ? <LockKeyhole size={11} /> : <Palette size={13} />}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium">Logo Workshop</span>
-            <span className="block truncate text-[11px] text-[var(--subtle)]">{assetStudio.hint}</span>
-          </span>
-        </Link>
-
-        <div className="mx-2.5 my-4 border-t border-[var(--border)]" />
-        <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
-          Then
-        </div>
-        <div className={`rounded-xl ${studioActive && !designStudio.locked ? "bg-[var(--accent-soft)]" : ""}`}>
-          <Link
-            href={`/projects/${projectId}/design`}
-            aria-disabled={designStudio.locked}
-            aria-current={studioActive ? "page" : undefined}
-            className={`flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition ${
-              designStudio.locked
-                ? "pointer-events-none opacity-50"
-                : "hover:bg-[var(--surface-2)]"
-            }`}
-          >
-            <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-              studioActive && !designStudio.locked
-                ? "bg-[var(--accent)] text-white"
-                : "bg-[var(--surface-2)] text-[var(--muted)]"
-            }`}>
-              {designStudio.locked ? <LockKeyhole size={11} /> : <Sparkles size={13} />}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium">Design Studio</span>
-              <span className="mt-0.5 block truncate text-[11px] text-[var(--subtle)]">
-                {designStudio.hint}
-              </span>
-            </span>
-          </Link>
-          {!designStudio.locked && (
-            <ol aria-label="Design Studio steps" className="mb-3 ml-[1.55rem] space-y-0.5 border-l border-[var(--border)] pb-1 pl-2">
-              {studioSteps.map((step) => (
-                <li key={step.id}>
-                  <Link
-                    href={`/projects/${projectId}/design#${step.id}`}
-                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-[var(--surface-2)]"
-                  >
-                    <StudioStepStatus status={step.status} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] text-[var(--muted)]">{step.name}</span>
-                      <span className="block truncate text-[10px] text-[var(--subtle)]">
-                        {step.status === "selected"
-                          ? "Final selected"
-                          : step.status === "review"
-                          ? `${step.proposals} proposal${step.proposals === 1 ? "" : "s"} to review`
-                          : step.status === "locked"
-                          ? step.id === "identity-system"
-                            ? "Approve a logo first"
-                            : "Select an identity first"
-                          : "Not started"}
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
-
-        <div className="mx-2.5 my-4 border-t border-[var(--border)]" />
-        <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
-          Finish
-        </div>
-        <Link
-          href={
-            brandHandover.locked
-              ? `/projects/${projectId}/design`
-              : `/projects/${projectId}/handover`
-          }
-          aria-current={handoverActive ? "page" : undefined}
-          title={
-            brandHandover.locked
-              ? brandHandover.hint
-              : "Open Brand Handover — final package"
-          }
-          className={`flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition hover:bg-[var(--surface-2)] ${
-            handoverActive ? "bg-[var(--surface-2)]" : ""
-          } ${brandHandover.locked ? "opacity-60" : ""}`}
-        >
-          <span
-            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-              handoverActive
-                ? "bg-[var(--accent)] text-white"
-                : brandHandover.ready
-                ? "bg-[var(--foreground)] text-white"
-                : brandHandover.locked
-                ? "bg-[var(--surface-2)] text-[var(--muted)]"
-                : "border border-[var(--border-strong)] bg-transparent text-[var(--muted)]"
-            }`}
-          >
-            {brandHandover.locked ? (
-              <LockKeyhole size={11} />
-            ) : brandHandover.ready ? (
-              <Check size={13} strokeWidth={3} />
-            ) : (
-              <PackageCheck size={13} />
-            )}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium">Brand Handover</span>
-            <span className="mt-0.5 block truncate text-[11px] text-[var(--subtle)]">
-              {brandHandover.hint}
-            </span>
-          </span>
-        </Link>
+        <p className="mt-4 px-2.5 text-[11px] leading-snug text-[var(--subtle)]">
+          Same order for every project: strategy → logo → design → handover.
+        </p>
       </nav>
 
       <div className="border-t border-[var(--border)] p-3">
@@ -309,136 +132,221 @@ export function ProjectSidebar({
   );
 }
 
-function StudioStepStatus({ status }: { status: SidebarStudioStep["status"] }) {
-  if (status === "selected") {
-    return (
-      <span className="flex h-4 w-4 shrink-0 items-center justify-center" aria-label="Selected">
-        <Check size={13} className="text-[var(--ok)]" />
-      </span>
-    );
-  }
-  if (status === "locked") {
-    return (
-      <span className="flex h-4 w-4 shrink-0 items-center justify-center" aria-label="Locked">
-        <LockKeyhole size={11} className="text-[var(--subtle)]" />
-      </span>
-    );
-  }
-  return (
-    <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-      <span className={`h-2 w-2 rounded-full ${
-        status === "review" ? "bg-[var(--accent)]" : "bg-[var(--border-strong)]"
-      }`} />
-    </span>
-  );
-}
-
-function PhaseSection({
-  projectId,
-  phase,
-  viewedGroup,
-  showNext,
+function StageRow({
+  stage,
+  active,
+  pathname,
 }: {
-  projectId: string;
-  phase: SidebarPhase;
-  viewedGroup: string | null;
-  showNext: boolean;
+  stage: JourneyStageItem;
+  active: boolean;
+  pathname: string;
 }) {
-  const meta = PHASE_META[phase.id];
-  const Icon = meta?.icon ?? Compass;
-  const label = meta?.label ?? phase.name;
-  const complete = phase.total > 0 && phase.done === phase.total;
-  const holdsViewed = viewedGroup ? phase.groups.some((g) => g.id === viewedGroup) : false;
-  const active = holdsViewed || (showNext && phase.isCurrent);
-  // Open the phase you're viewing, or the next phase on the hub; the rest stay
-  // tucked away so the rail never overwhelms or highlights a different path.
-  const [open, setOpen] = useState(active);
+  const hasSteps = Boolean(stage.steps?.length);
+  const locked = stage.status === "locked";
+  // Auto: expand the stage you are on, or the stage that is "Next".
+  // Collapse everything else so location is obvious.
+  const autoOpen = !locked && hasSteps && (active || stage.status === "current");
+  // null = follow auto; boolean = user override until navigation changes
+  const [manualOpen, setManualOpen] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Route / stage status changed — snap expand/collapse to location.
+    setManualOpen(null);
+  }, [pathname, active, stage.status, stage.id]);
+
+  const open = manualOpen !== null ? manualOpen : autoOpen;
+  const href = locked ? undefined : stage.href;
+
+  const [hash, setHash] = useState("");
+  useEffect(() => {
+    const read = () => setHash(typeof window !== "undefined" ? window.location.hash : "");
+    read();
+    window.addEventListener("hashchange", read);
+    return () => window.removeEventListener("hashchange", read);
+  }, [pathname]);
+
+  const rowClass = [
+    "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition",
+    locked ? "cursor-not-allowed opacity-55" : "hover:bg-[var(--surface-2)]",
+    active && !locked ? "bg-[var(--accent-soft)]" : "",
+  ].join(" ");
+
+  const main = (
+    <>
+      <StatusDot status={stage.status} active={active} size="lg" />
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2">
+          <span className="truncate text-sm font-medium text-[var(--foreground)]">{stage.name}</span>
+          <StatusBadge status={stage.status} viewing={active && stage.status !== "done"} />
+        </span>
+        <span className="mt-0.5 block truncate text-[11px] text-[var(--subtle)]">{stage.detail}</span>
+      </span>
+    </>
+  );
 
   return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition hover:bg-[var(--surface-2)]"
-      >
-        <span
-          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-            complete
-              ? "bg-[var(--ok)] text-white"
-              : active
-              ? "bg-[var(--accent)] text-white"
-              : "bg-[var(--surface-2)] text-[var(--muted)]"
-          }`}
-        >
-          {complete ? <Check size={13} /> : <Icon size={13} />}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2">
-            <span className="truncate text-sm font-medium">{label}</span>
-            {active && (
-              <span className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
-                {holdsViewed ? "Viewing" : "Next"}
-              </span>
-            )}
-          </span>
-          <span className="mt-0.5 block truncate text-[11px] text-[var(--subtle)]">
-            {meta?.hint ?? `${phase.done}/${phase.total} done`}
-          </span>
-        </span>
-        <ChevronDown
-          size={15}
-          className={`shrink-0 text-[var(--subtle)] transition-transform ${open ? "rotate-180" : ""}`}
-        />
-      </button>
+    <li>
+      <div className="flex items-center gap-0.5">
+        {href ? (
+          <Link href={href} className={`min-w-0 flex-1 ${rowClass}`} aria-current={active ? "page" : undefined}>
+            {main}
+          </Link>
+        ) : (
+          <div className={`min-w-0 flex-1 ${rowClass}`} aria-disabled="true">
+            {main}
+          </div>
+        )}
+        {hasSteps && !locked && (
+          <button
+            type="button"
+            onClick={() => setManualOpen(!open)}
+            aria-expanded={open}
+            aria-label={open ? "Collapse steps" : "Expand steps"}
+            className="shrink-0 rounded-lg p-2 text-[var(--subtle)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+          >
+            <ChevronDown size={15} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+          </button>
+        )}
+      </div>
 
-      {open && (
-        <ol className="mb-1 ml-[1.55rem] space-y-0.5 border-l border-[var(--border)] pl-2">
-          {phase.groups.map((g) => {
-            const done = g.total > 0 && g.done === g.total;
-            const current = viewedGroup ? g.id === viewedGroup : showNext && g.isCurrent;
+      {hasSteps && open && !locked && (
+        <ol className="mb-2 ml-5 mt-0.5 space-y-0.5 border-l border-[var(--border)] pl-2.5">
+          {stage.steps!.map((step) => {
+            const hashId = step.href.includes("#") ? `#${step.href.split("#")[1]}` : "";
+            const onReview = pathname.includes(`/review/${step.id}`);
+            const onDesignStep =
+              pathname.includes("/design") &&
+              Boolean(hashId) &&
+              (hash === hashId ||
+                // No hash yet: highlight the current design sub-step only
+                (!hash && step.status === "current"));
+            const viewing = onReview || onDesignStep;
             return (
-              <li key={g.id}>
-                <Link
-                  href={`/projects/${projectId}/review/${g.id}`}
-                  className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition ${
-                    current ? "bg-[var(--accent-soft)]" : "hover:bg-[var(--surface-2)]"
-                  }`}
-                >
-                  <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-                    {done ? (
-                      <Check size={13} className="text-[var(--ok)]" />
-                    ) : (
-                      <span
-                        className={`h-2 w-2 rounded-full ${
-                          current ? "bg-[var(--accent)]" : "bg-[var(--border-strong)]"
-                        }`}
-                      />
-                    )}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span
-                        className={`truncate text-[13px] ${
-                          current ? "font-medium" : "text-[var(--muted)]"
-                        }`}
-                      >
-                        {g.name}
-                      </span>
-                      {current && (
-                        <span className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
-                          {viewedGroup ? "Viewing" : "Next"}
-                        </span>
-                      )}
-                    </span>
-                    <ProgressBar done={g.done} total={g.total} className="mt-1" />
-                  </span>
-                </Link>
+              <li key={step.id}>
+                <StepRow step={step} viewing={viewing} />
               </li>
             );
           })}
         </ol>
       )}
-    </div>
+    </li>
   );
+}
+
+function StepRow({ step, viewing }: { step: JourneyStepItem; viewing: boolean }) {
+  const locked = step.status === "locked";
+  const className = [
+    "flex items-center gap-2 rounded-lg px-2 py-1.5 transition",
+    locked ? "cursor-not-allowed opacity-50" : "hover:bg-[var(--surface-2)]",
+    viewing && !locked ? "bg-[var(--accent-soft)]" : "",
+  ].join(" ");
+
+  const body = (
+    <>
+      <StatusDot status={step.status} active={viewing} size="sm" />
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2">
+          <span
+            className={`truncate text-[13px] ${
+              viewing || step.status === "current" ? "font-medium text-[var(--foreground)]" : "text-[var(--muted)]"
+            }`}
+          >
+            {step.name}
+          </span>
+          <StatusBadge status={step.status} viewing={viewing && step.status !== "done"} compact />
+        </span>
+        <span className="mt-0.5 block truncate text-[10px] text-[var(--subtle)]">{step.detail}</span>
+      </span>
+    </>
+  );
+
+  if (locked) {
+    return <div className={className}>{body}</div>;
+  }
+  return (
+    <Link href={step.href} className={className} aria-current={viewing ? "page" : undefined}>
+      {body}
+    </Link>
+  );
+}
+
+function StatusDot({
+  status,
+  active,
+  size,
+}: {
+  status: StageStatus;
+  active?: boolean;
+  size: "sm" | "lg";
+}) {
+  const box = size === "lg" ? "h-6 w-6" : "h-4 w-4";
+  const icon = size === "lg" ? 13 : 11;
+
+  if (status === "done") {
+    return (
+      <span
+        className={`flex ${box} shrink-0 items-center justify-center rounded-full bg-[var(--ok)] text-white`}
+        aria-label="Done"
+      >
+        <Check size={icon} strokeWidth={3} />
+      </span>
+    );
+  }
+  if (status === "locked") {
+    return (
+      <span
+        className={`flex ${box} shrink-0 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--muted)]`}
+        aria-label="Locked"
+      >
+        <LockKeyhole size={icon - 2} />
+      </span>
+    );
+  }
+  if (status === "current" || active) {
+    return (
+      <span
+        className={`flex ${box} shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white`}
+        aria-label="Current"
+      >
+        <span className={`${size === "lg" ? "h-2 w-2" : "h-1.5 w-1.5"} rounded-full bg-white`} />
+      </span>
+    );
+  }
+  // todo
+  return (
+    <span
+      className={`flex ${box} shrink-0 items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--surface)]`}
+      aria-label="To do"
+    >
+      <span className={`${size === "lg" ? "h-2 w-2" : "h-1.5 w-1.5"} rounded-full bg-[var(--border-strong)]`} />
+    </span>
+  );
+}
+
+function StatusBadge({
+  status,
+  viewing,
+  compact,
+}: {
+  status: StageStatus;
+  viewing?: boolean;
+  compact?: boolean;
+}) {
+  const cls = compact
+    ? "shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
+    : "shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide";
+
+  if (viewing && status !== "done" && status !== "locked") {
+    return <span className={`${cls} bg-[var(--accent)] text-white`}>Viewing</span>;
+  }
+  if (status === "current") {
+    return <span className={`${cls} bg-[var(--accent)] text-white`}>Next</span>;
+  }
+  if (status === "done") {
+    return <span className={`${cls} bg-[var(--ok)]/15 text-[var(--ok)]`}>Done</span>;
+  }
+  if (status === "locked") {
+    return <span className={`${cls} bg-[var(--surface-2)] text-[var(--subtle)]`}>Locked</span>;
+  }
+  return null;
 }

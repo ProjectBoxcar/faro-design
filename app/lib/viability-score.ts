@@ -2,9 +2,14 @@
 
 export const GATE_KEY = "reality.evaluation-criteria";
 
-// Criteria where a "no" means the methodology says do not proceed (recurring
-// sales, budget). Matched against the seeded criterion text.
-export const BLOCKING = [/recurring sales/i, /budget/i];
+// Criteria where a "no" hard-stops commercial client work. Budget and
+// decision-maker stay non-negotiables for scoring display, but they only
+// produce a *caveat* (proceed with eyes open) — rebrands often omit budget
+// in intake and must not lock Logo Workshop / Design Studio.
+export const BLOCKING = [/recurring sales/i];
+
+/** Soft commercial gaps — never alone cause fail; surface as caveat. */
+export const SOFT_COMMERCIAL = [/budget/i, /decision-maker/i, /approve creative/i];
 
 export type CriterionScore = {
   criterion: string;
@@ -47,7 +52,9 @@ export function scoreViabilityVerdict(
       (s) =>
         s.type === "non-negotiable" &&
         s.answer === "no" &&
-        BLOCKING.some((rx) => rx.test(s.criterion))
+        BLOCKING.some((rx) => rx.test(s.criterion)) &&
+        // Soft commercial criteria never hard-fail by themselves.
+        !SOFT_COMMERCIAL.some((rx) => rx.test(s.criterion))
     );
   if (hardFail) return "fail";
 

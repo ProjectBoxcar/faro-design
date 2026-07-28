@@ -25,6 +25,20 @@ describe("scoreViabilityVerdict", () => {
     expect(scoreViabilityVerdict(scored, false)).toBe("fail");
   });
 
+  it("does not hard-fail when only budget or decision-maker is missing", () => {
+    const scored = [
+      crit({ criterion: "Does the business have recurring sales?", type: "non-negotiable", answer: "yes" }),
+      crit({ criterion: "Is there a budget assigned to the project?", type: "non-negotiable", answer: "no" }),
+      crit({
+        criterion: "Is there a clear decision-maker who can approve creative direction?",
+        type: "non-negotiable",
+        answer: "no",
+      }),
+    ];
+    // Caveat — proceed to Logo Workshop / Design Studio with eyes open.
+    expect(scoreViabilityVerdict(scored, false)).toBe("caveat");
+  });
+
   it("does not fail personal projects on commercial non-negotiables", () => {
     const scored = [
       crit({ criterion: "Recurring sales exist", type: "non-negotiable", answer: "no" }),

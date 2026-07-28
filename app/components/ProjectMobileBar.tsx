@@ -86,7 +86,15 @@ export function ProjectMobileBar({
           <Settings size={17} />
         </Link>
       </div>
-      <ProgressBar done={overall.done} total={overall.total} />
+      <div className="px-4 pb-2">
+        <div className="mb-1 flex justify-between text-[10px] text-[var(--subtle)]">
+          <span>Journey</span>
+          <span className="tabular-nums">
+            {overall.done}/{overall.total} stages
+          </span>
+        </div>
+        <ProgressBar done={overall.done} total={overall.total} showPercent />
+      </div>
     </header>
   );
 }

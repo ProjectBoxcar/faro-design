@@ -156,36 +156,79 @@ function extractSection(html: string, id: string): string {
   return html.match(re)?.[0] ?? "";
 }
 
+function slugifyIconName(raw: string, fallback: string): string {
+  const slug = raw
+    .toLowerCase()
+    .replace(/&amp;/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40);
+  return slug || fallback;
+}
+
+function extractIconLabel(cell: string, index: number): string {
+  const strip = (s: string) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const candidates = [
+    cell.match(/class=["'][^"']*\blbl\b[^"']*["'][^>]*>([\s\S]*?)<\//i)?.[1],
+    cell.match(/class=["'][^"']*\blabel\b[^"']*["'][^>]*>([\s\S]*?)<\//i)?.[1],
+    cell.match(/class=["'][^"']*\bname\b[^"']*["'][^>]*>([\s\S]*?)<\//i)?.[1],
+    cell.match(/class=["'][^"']*\bcaption\b[^"']*["'][^>]*>([\s\S]*?)<\//i)?.[1],
+    cell.match(/<figcaption[^>]*>([\s\S]*?)<\/figcaption>/i)?.[1],
+    cell.match(/aria-label=["']([^"']+)["']/i)?.[1],
+    cell.match(/<!--\s*([a-z0-9][a-z0-9 _/-]{1,40})\s*-->/i)?.[1],
+    cell.match(/data-name=["']([^"']+)["']/i)?.[1],
+    cell.match(/title=["']([^"']+)["']/i)?.[1],
+  ];
+  for (const c of candidates) {
+    if (!c) continue;
+    const t = strip(c);
+    if (t && t.length < 48) return t;
+  }
+  return `icon-${index + 1}`;
+}
+
 function extractIcons(html: string): Array<{ name: string; svg: string }> {
   const section = extractSection(html, "icons");
   if (!section) return [];
   const icons: Array<{ name: string; svg: string }> = [];
-  // icon-cell blocks with label + first 24px svg
-  const cells = section.split(/class=["']icon-cell["']/i).slice(1);
+
+  // Prefer explicit icon cells; fall back to any grid item with an svg.
+  let cells = section.split(/class=["'][^"']*\bicon-cell\b[^"']*["']/i).slice(1);
+  if (cells.length === 0) {
+    cells = section.split(/class=["'][^"']*\bicon(?:-item|-tile|-card)?\b[^"']*["']/i).slice(1);
+  }
+  if (cells.length === 0) {
+    // Last resort: each standalone svg with a nearby text label before the next svg
+    const chunks = section.split(/(?=<svg\b)/i).slice(1);
+    cells = chunks.map((chunk, i) => {
+      const next = chunks[i + 1] ? chunk : chunk;
+      return next;
+    });
+  }
+
   for (const cell of cells) {
-    const label =
-      cell.match(/class=["']lbl["'][^>]*>\s*([^<]+)/i)?.[1]?.trim() ||
-      cell.match(/<!--\s*([a-z0-9 _-]+)\s*-->/i)?.[1]?.trim() ||
-      `icon-${icons.length + 1}`;
     const svg = cell.match(/<svg\b[\s\S]*?<\/svg>/i)?.[0];
     if (!svg) continue;
-    const slug = label
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 40);
-    // Normalize to 24 viewBox standalone file
+    // Prefer 24×24 (or first) — already first match
+    const label = extractIconLabel(cell, icons.length);
+    const slug = slugifyIconName(label, `icon-${icons.length + 1}`);
     const cleaned = svg
       .replace(/\sclass=["'][^"']*["']/gi, "")
       .replace(/\swidth=["'][^"']*["']/i, ' width="24"')
       .replace(/\sheight=["'][^"']*["']/i, ' height="24"');
-    icons.push({ name: slug || `icon-${icons.length + 1}`, svg: cleaned });
+    icons.push({ name: slug, svg: cleaned });
   }
-  // Dedupe by name
+
+  // Dedupe by name; keep first occurrence
   const seen = new Set<string>();
   return icons.filter((icon) => {
-    if (seen.has(icon.name)) return false;
-    seen.add(icon.name);
+    let name = icon.name;
+    let n = 2;
+    while (seen.has(name)) {
+      name = `${icon.name}-${n++}`;
+    }
+    icon.name = name;
+    seen.add(name);
     return true;
   });
 }

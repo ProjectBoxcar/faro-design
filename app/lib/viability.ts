@@ -124,7 +124,9 @@ async function runViabilityGate(projectId: string): Promise<void> {
       ? [
           `NOTE: This project is OWNER-LED — the founder is building their own brand directly in this tool. The person answering IS the decision-maker who approves creative direction, and by running the project themselves they have committed its budget. Answer those criteria "yes" unless the answers state otherwise.`,
         ]
-      : []),
+      : [
+          `NOTE: If budget or a named decision-maker is not mentioned in the answers, answer "yes" with a short note that it was not stated — do NOT invent a hard "no". Only answer "no" when the answers clearly show there is no budget or no one who can approve. Rebrands of operating businesses often omit these details.`,
+        ]),
     ...(greenfield
       ? [
           `NOTE: This is a GREENFIELD brand — not yet launched or still pre-revenue. "Recurring sales exist" should be "no" with a note that the brand is greenfield (that is expected, not a red flag). Do not invent existing revenue.`,
@@ -179,16 +181,18 @@ async function runViabilityGate(projectId: string): Promise<void> {
     value: {
       criteria: scored.map((s) => {
         const softCommercial = project.personal || project.greenfield;
+        const softBudgetOrDecision = /budget|decision-maker|approve creative/i.test(s.criterion);
         const waived =
-          softCommercial &&
           s.type === "non-negotiable" &&
           s.answer === "no" &&
-          /recurring sales|budget/i.test(s.criterion);
-        const waiverLabel = project.personal
-          ? "Not blocking — personal project. "
-          : project.greenfield
-            ? "Not blocking — greenfield brand (expected pre-revenue gap). "
-            : "";
+          ((softCommercial && /recurring sales|budget/i.test(s.criterion)) || softBudgetOrDecision);
+        const waiverLabel = softBudgetOrDecision
+          ? "Does not block Logo Workshop / Design Studio — complete when known. "
+          : project.personal
+            ? "Not blocking — personal project. "
+            : project.greenfield
+              ? "Not blocking — greenfield brand (expected pre-revenue gap). "
+              : "";
         return {
           criterion: s.criterion,
           type: s.type,

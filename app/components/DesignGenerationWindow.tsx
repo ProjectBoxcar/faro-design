@@ -183,7 +183,9 @@ export function DesignGenerationWindow({
               <p className="mt-2 max-w-xl text-xs leading-relaxed text-white/45">
                 {kind === "mockups"
                   ? "Open Design applies your identity in order (landing page, then deck). Typically a few minutes — keep this tab open."
-                  : "Open Design builds directions one at a time so each stays distinct and strategy-grounded. Proposals appear as each finishes."}
+                  : kind === "design_system"
+                    ? "Three full identity systems, built one at a time (often 10–15 minutes total). Progress ticks up as each proposal finishes — keep this tab open."
+                    : "Open Design builds directions one at a time so each stays distinct and strategy-grounded. Proposals appear as each finishes."}
               </p>
             </div>
             <div className="inline-flex shrink-0 flex-col items-end gap-1">

@@ -388,8 +388,16 @@ export function DesignStudio({
       setPreviewSection("overview");
       router.refresh();
       if (updated.kind === "design_system") {
-        // Approving the identity moves straight to the plan's next step:
-        // the application mockups.
+        // Server may already have started mockups on select; reuse that job if present.
+        const serverJob = data.job as DesignJobState | null | undefined;
+        if (serverJob?.id) {
+          setJobProgress({
+            done: serverJob.asset_ids?.length ?? 0,
+            total: serverJob.count ?? 2,
+          });
+          setLoading({ kind: "mockups", stage: "generating", jobId: serverJob.id });
+          return;
+        }
         await generateMockups(updated.id);
         return;
       }
