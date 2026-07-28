@@ -1,0 +1,22 @@
+{
+  "format": "faro-brand-implement-pack",
+  "version": 1,
+  "projectName": "Faro Design",
+  "projectId": "eM-JNZ7bTBZNr3Ay4-q4a",
+  "icons": [
+    "home",
+    "search",
+    "user",
+    "settings",
+    "check",
+    "close",
+    "arrow",
+    "mail",
+    "calendar",
+    "plus",
+    "icon-11",
+    "icon-12",
+    "icon-13",
+    "icon-14"
+  ]
+}

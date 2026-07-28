@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
+import { FaroMark } from "./FaroMark";
 
 // A pillar-level review screen (one of the numbered steps in the old flat list).
 export type SidebarGroup = {
@@ -120,8 +121,15 @@ export function ProjectSidebar({
       </div>
 
       <div className="px-5">
+        <Link
+          href="/"
+          className="mb-4 block text-[var(--foreground)] opacity-80 transition hover:opacity-100"
+          aria-label="Faro Design home"
+        >
+          <FaroMark className="h-6 w-auto max-w-[11rem]" />
+        </Link>
         <Link href={`/projects/${projectId}`} className="block">
-          <h1 className="font-serif text-xl font-semibold tracking-tight">{projectName}</h1>
+          <h1 className="font-serif text-xl font-normal tracking-tight">{projectName}</h1>
         </Link>
         {clientName && <p className="text-sm text-[var(--muted)]">{clientName}</p>}
         {greenfield && (

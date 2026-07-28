@@ -1,15 +1,40 @@
 import Link from "next/link";
-import { Settings } from "lucide-react";
+import { readFile } from "fs/promises";
+import path from "path";
+import { Settings, ArrowRight, Check } from "lucide-react";
 import { listProjects, getSections } from "@/lib/queries";
 import { NewProjectButton } from "@/components/NewProjectButton";
 import { ProjectList } from "@/components/ProjectList";
-import { overview } from "@/lib/guide";
+import { FaroMark } from "@/components/FaroMark";
 import { methodology, getSection } from "@/lib/methodology";
 import { flowSteps, type StatusMap } from "@/lib/flow";
 import { hasApprovedLogo, studioBlockedReason } from "@/lib/studio";
 import type { JourneyStep } from "@/components/JourneyProgress";
 
 export const dynamic = "force-dynamic";
+
+async function loadBrandCopy(): Promise<{
+  headline: string;
+  lede: string;
+}> {
+  try {
+    const raw = await readFile(path.join(process.cwd(), "public", "brand", "copy.json"), "utf8");
+    const data = JSON.parse(raw) as {
+      hero?: { headline?: string; lede?: string };
+    };
+    return {
+      headline: data.hero?.headline?.trim() || "A brand you can actually explain.",
+      lede:
+        data.hero?.lede?.trim() ||
+        "Turn what makes your business special into a clear direction — and a package a designer can build on.",
+    };
+  } catch {
+    return {
+      headline: "A brand you can actually explain.",
+      lede: "Turn what makes your business special into a clear direction — and a package a designer can build on.",
+    };
+  }
+}
 
 const PHASE_SHORT: Record<string, string> = {
   strategic: "Strategy",
@@ -26,10 +51,9 @@ function isComplete(status: string | undefined): boolean {
   return status === "complete";
 }
 
-export default function Home() {
+export default async function Home() {
+  const brandCopy = await loadBrandCopy();
   const projects = listProjects();
-  // Journey points = methodology phases (same arc the app walks). Progress counts
-  // required sections only; Design has no required steps and only unlocks after.
   const requiredByPhase = new Map<string, string[]>();
   for (const step of flowSteps()) {
     const section = getSection(step.sectionId);
@@ -49,9 +73,6 @@ export default function Home() {
     const designPlan = map.get("design-plan");
     const logoWorkshopReady = !studioBlockedReason(p.id, "logo");
     const logoApproved = hasApprovedLogo(p.id);
-    // Strategy is "done" when required sections are filled or the owner has
-    // already moved on (logo workshop / publish / design phase). Optional
-    // Reality steps (packages, channels) never block this.
     const strategyJourneyDone =
       Boolean(p.published_at) ||
       p.current_phase === "design" ||
@@ -61,12 +82,10 @@ export default function Home() {
       (strategyIds.length > 0 && strategyFilled >= strategyIds.length);
     const expressReady = isFilled(designPlan) && !strategyJourneyDone;
     const designJourneyDone =
-      p.current_phase === "finished" ||
-      (Boolean(p.published_at) && logoApproved);
+      p.current_phase === "finished" || (Boolean(p.published_at) && logoApproved);
 
     const steps: JourneyStep[] = methodology.phases.map((phase) => {
       const ids = requiredByPhase.get(phase.id) ?? [];
-      // Design phase is optional artifact work — show as a destination point.
       if (phase.id === "design") {
         return {
           id: phase.id,
@@ -81,7 +100,6 @@ export default function Home() {
         id: phase.id,
         label: phase.name,
         short: PHASE_SHORT[phase.id] ?? phase.name,
-        // Force full fill when the strategy journey has been completed in practice.
         done: strategyJourneyDone ? ids.length : filled,
         total: ids.length,
       };
@@ -103,96 +121,187 @@ export default function Home() {
       logoApproved,
     };
   });
-  const ov = overview();
 
   const PARTS = [
-    { name: "Reality", text: "The plain facts: what you sell, who it's for, and what makes you different." },
-    { name: "Identity", text: "How you see yourself: your story, what you believe, and where you're headed." },
-    { name: "Communication", text: "How your brand should sound and behave, and the promise it makes." },
+    {
+      name: "Reality",
+      text: "The plain facts: what you sell, who it's for, and what makes you different.",
+    },
+    {
+      name: "Identity",
+      text: "How you see yourself: your story, what you believe, and where you're headed.",
+    },
+    {
+      name: "Communication",
+      text: "How your brand should sound and behave, and the promise it makes.",
+    },
+    {
+      name: "Design package",
+      text: "Logo, visual system, landing page, and deck — ready for handover.",
+    },
   ];
+
   const STEPS = [
-    "Answer a handful of plain questions about your business.",
-    "The app drafts your whole strategy from your answers.",
-    "Review each piece, then hand a clear brief to your designer.",
+    {
+      title: "Answer plainly",
+      text: "A handful of questions about your business — no jargon required.",
+    },
+    {
+      title: "Strategy first",
+      text: "The app drafts a full brand strategy you can review and edit.",
+    },
+    {
+      title: "Assets that follow",
+      text: "Logo, system, and mockups built from that direction — then a clean handover.",
+    },
   ];
 
   return (
-    <main className="mx-auto max-w-7xl px-5 py-10 lg:px-12 lg:py-14 2xl:max-w-[110rem]">
-      <header className="mb-8 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-serif text-5xl font-medium leading-[1.02] tracking-tight lg:text-7xl">
-            {ov.title}
-          </h1>
-          <p className="mt-4 max-w-3xl font-serif text-2xl font-normal leading-snug tracking-tight text-[var(--foreground)] lg:text-3xl">
-            {ov.tagline}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Link
-            href="/settings"
-            aria-label="Settings"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-strong)] text-[var(--muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
-          >
-            <Settings size={17} />
+    <main className="min-h-full">
+      {/* Landing-inspired top bar */}
+      <nav className="sticky top-0 z-40 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_92%,transparent)] backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 lg:px-12 2xl:max-w-[110rem]">
+          <Link href="/" className="text-[var(--foreground)]" aria-label="Faro Design home">
+            <FaroMark className="h-8 w-auto sm:h-9" />
           </Link>
-          <NewProjectButton />
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              href="/settings"
+              aria-label="Settings"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-strong)] text-[var(--muted)] transition hover:border-[var(--faro-accent)] hover:text-[var(--faro-accent)]"
+            >
+              <Settings size={17} />
+            </Link>
+            <NewProjectButton />
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero — voice from final Faro landing */}
+      <header className="border-b-[3px] border-[var(--foreground)]">
+        <div className="mx-auto max-w-7xl px-5 py-14 lg:px-12 lg:py-20 2xl:max-w-[110rem]">
+          <p className="faro-kicker mb-6 inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--faro-accent)] px-4 py-1.5">
+            Strategy first · then the assets
+          </p>
+          <h1 className="font-serif max-w-[16ch] text-[clamp(2.75rem,8vw,5.5rem)] font-normal leading-[0.95] tracking-tight text-[var(--foreground)]">
+            {brandCopy.headline}
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg leading-snug text-[var(--foreground)] sm:text-xl lg:text-[1.35rem]">
+            {brandCopy.lede}
+          </p>
+          <p className="mt-4 max-w-lg text-sm text-[var(--muted)]">
+            Answer plain questions. Review a full strategy. Approve logo, system, and mockups. Hand
+            off a final package — or an implement pack for product engineering.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Link
+              href="/start"
+              className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition hover:bg-[var(--accent-hover)] hover:shadow-[var(--shadow-pop)]"
+            >
+              Start a brand project <ArrowRight size={16} />
+            </Link>
+            {cards.length > 0 && (
+              <a
+                href="#projects"
+                className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border-2 border-[var(--foreground)] px-6 py-3 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--foreground)] hover:text-[var(--background)]"
+              >
+                Your projects
+              </a>
+            )}
+          </div>
         </div>
       </header>
 
-      <section className="mb-10 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow lg:p-8">
-        <p className="max-w-3xl text-base leading-relaxed text-[var(--muted)]">{ov.summary}</p>
-
-        <h2 className="mt-7 mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
-          How it works
-        </h2>
-        <ol className="grid gap-3 sm:grid-cols-3">
-          {STEPS.map((step, i) => (
-            <li
-              key={i}
-              className="flex gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm text-[var(--muted)]"
-            >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[11px] font-medium text-white">
-                {i + 1}
-              </span>
-              <span>{step}</span>
-            </li>
-          ))}
-        </ol>
-
-        <h2 className="mt-7 text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
-          What goes into your brand
-        </h2>
-        <p className="mb-3 mt-1 max-w-3xl text-sm text-[var(--muted)]">
-          A brand is more than a logo. You&apos;ll work through the four things it&apos;s built on — the app drafts each
-          from your answers, and you just review:
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {PARTS.map((part) => (
-            <div key={part.name} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
-              <div className="text-sm font-semibold">{part.name}</div>
-              <p className="mt-0.5 text-sm text-[var(--muted)]">{part.text}</p>
-            </div>
-          ))}
+      {/* How it works */}
+      <section className="border-b border-[var(--border)]">
+        <div className="mx-auto max-w-7xl px-5 py-14 lg:px-12 lg:py-16 2xl:max-w-[110rem]">
+          <p className="faro-kicker">How it works</p>
+          <h2 className="font-serif mt-2 max-w-[18ch] text-3xl font-normal leading-none tracking-tight sm:text-4xl lg:text-5xl">
+            From unsure to a direction you can see.
+          </h2>
+          <div className="mt-10 grid gap-4 sm:grid-cols-3">
+            {STEPS.map((step, i) => (
+              <div
+                key={step.title}
+                className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-2)] p-6 transition hover:shadow-[var(--shadow-pop)]"
+              >
+                <div className="faro-accent-line mb-4" />
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-semibold text-white">
+                    {i + 1}
+                  </span>
+                  <h3 className="font-serif text-xl font-normal">{step.title}</h3>
+                </div>
+                <p className="text-sm leading-relaxed text-[var(--muted)]">{step.text}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {cards.length === 0 ? (
-        <>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
+      {/* What goes in */}
+      <section className="border-b border-[var(--border)]">
+        <div className="mx-auto max-w-7xl px-5 py-14 lg:px-12 lg:py-16 2xl:max-w-[110rem]">
+          <p className="faro-kicker">The whole package</p>
+          <h2 className="font-serif mt-2 max-w-[16ch] text-3xl font-normal leading-none tracking-tight sm:text-4xl">
+            A brand, not a file.
+          </h2>
+          <p className="mt-4 max-w-2xl text-base text-[var(--muted)]">
+            You&apos;ll work through what a real brand is built on. The app drafts each piece from your
+            answers — you review, edit, and approve.
+          </p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            {PARTS.map((part) => (
+              <div
+                key={part.name}
+                className="flex gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow"
+              >
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
+                  <Check size={14} strokeWidth={2.5} />
+                </span>
+                <div>
+                  <div className="text-sm font-semibold">{part.name}</div>
+                  <p className="mt-0.5 text-sm text-[var(--muted)]">{part.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Projects workspace */}
+      <section id="projects" className="mx-auto max-w-7xl px-5 py-14 lg:px-12 lg:py-16 2xl:max-w-[110rem]">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="faro-kicker">Workspace</p>
+            <h2 className="font-serif mt-1 text-3xl font-normal tracking-tight sm:text-4xl">
               Your projects
             </h2>
           </div>
-          <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-12 text-center">
-            <p className="text-[var(--muted)]">No projects yet.</p>
-            <p className="mt-1 text-sm text-[var(--subtle)]">
-              Create your first brand engagement to start the Strategic phase.
+          <NewProjectButton />
+        </div>
+
+        {cards.length === 0 ? (
+          <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-12 text-center">
+            <p className="font-medium text-[var(--foreground)]">No projects yet.</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Create your first brand engagement to start the strategy journey.
             </p>
+            <div className="mt-5 flex justify-center">
+              <NewProjectButton />
+            </div>
           </div>
-        </>
-      ) : (
-        <ProjectList projects={cards} />
-      )}
+        ) : (
+          <ProjectList projects={cards} />
+        )}
+      </section>
+
+      <footer className="border-t border-[var(--border)] py-8">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 text-xs text-[var(--subtle)] lg:px-12 2xl:max-w-[110rem]">
+          <span className="font-serif text-sm tracking-wide text-[var(--muted)]">Faro Design</span>
+          <span>Strategy first. Then the assets.</span>
+        </div>
+      </footer>
     </main>
   );
 }

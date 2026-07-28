@@ -20,3 +20,7 @@ tsconfig.tsbuildinfo
 # misc
 .DS_Store
 *.pem
+
+# Local brand exports from project DB
+data/faro-brand-export/
+

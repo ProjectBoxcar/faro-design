@@ -4,9 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   Check,
+  Download,
   Expand,
   ExternalLink,
   Maximize2,
+  Package,
   PackageCheck,
   X,
 } from "lucide-react";
@@ -29,6 +31,7 @@ export function FinalPackageViewer({
   previewBase,
   embedded = false,
   briefHref,
+  projectId,
 }: {
   token?: string | null;
   projectName: string;
@@ -38,6 +41,8 @@ export function FinalPackageViewer({
   previewBase?: string;
   embedded?: boolean;
   briefHref?: string;
+  /** When set, overview offers the Brand Implement Pack download. */
+  projectId?: string;
 }) {
   const [active, setActive] = useState<ViewId>("overview");
   const [fullscreen, setFullscreen] = useState(false);
@@ -197,8 +202,8 @@ export function FinalPackageViewer({
               The complete {projectName} brand package
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--muted)] sm:text-lg">
-              Explore the approved identity system, landing page, and brand deck. Everything here is
-              the final selected direction.
+              Explore the approved identity system, landing page, and brand deck — the visual side of
+              final delivery. For engineering, grab the implement pack (tokens, logos, icons, copy).
             </p>
           </div>
 
@@ -224,6 +229,28 @@ export function FinalPackageViewer({
               </button>
             ))}
           </div>
+
+          {projectId && (
+            <div className="mt-8 rounded-2xl border border-[var(--accent)]/25 bg-[var(--accent-soft)] p-5 sm:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
+                    <Package size={16} className="text-[var(--accent)]" />
+                    Part of final delivery — Brand implement pack
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    tokens.css, logos, icons, copy.json, and IMPLEMENT.md for product teams.
+                  </p>
+                </div>
+                <a
+                  href={`/api/projects/${projectId}/brand-pack`}
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)]"
+                >
+                  <Download size={15} /> Download ZIP
+                </a>
+              </div>
+            </div>
+          )}
 
           {strategyBriefHref && (
             <div className="mt-10 border-t border-[var(--border)] pt-6">

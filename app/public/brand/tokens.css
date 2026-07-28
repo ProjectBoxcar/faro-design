@@ -1,0 +1,47 @@
+/* Faro Design — Brand Implement Pack (dogfood)
+ * Generated from approved Identity System + Landing finals.
+ * Source of truth for the Faro Design webapp chrome.
+ */
+:root {
+  --brand-ink: #111111;
+  --brand-paper: #F5F1E8;
+  --brand-surface: #FFFFFF;
+  --brand-surface-2: #FBF9F3;
+  --brand-primary: #16514B;
+  --brand-primary-strong: #0E3C37;
+  --brand-accent: #F25C2A;
+  --brand-accent-soft: #FDE3D6;
+  --brand-signal: #E8B417;
+  --brand-muted: #6B6558;
+  --brand-line: #D8D1C0;
+  --brand-success: #2E7D5B;
+  --brand-danger: #C0392B;
+  --brand-font-display: "EB Garamond", Georgia, "Times New Roman", serif;
+  --brand-font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Product chrome aliases */
+  --background: var(--brand-paper);
+  --surface: var(--brand-surface);
+  --surface-2: var(--brand-surface-2);
+  --field: var(--brand-surface);
+  --foreground: var(--brand-ink);
+  --muted: var(--brand-muted);
+  --subtle: color-mix(in srgb, var(--brand-muted) 72%, var(--brand-paper));
+  --border: var(--brand-line);
+  --border-strong: color-mix(in srgb, var(--brand-line) 80%, var(--brand-ink));
+  --accent: var(--brand-primary);
+  --accent-hover: var(--brand-primary-strong);
+  --accent-soft: color-mix(in srgb, var(--brand-primary) 12%, var(--brand-paper));
+  --client: var(--brand-accent);
+  --designer: var(--brand-primary);
+  --collab: var(--brand-signal);
+  --ok: var(--brand-success);
+  --warn: #9a6b00;
+  --danger: var(--brand-danger);
+  --shadow-card: 0 1px 2px rgba(17,17,17,.08);
+  --shadow-pop: 0 8px 24px rgba(17,17,17,.14);
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-pill: 999px;
+}

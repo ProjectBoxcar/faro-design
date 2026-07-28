@@ -70,8 +70,10 @@ export default async function BrandHandoverPage({
           Brand Handover
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-          Your final brand package — identity system, landing page, and deck. Open full screen when
-          you want a larger presentation view, or publish a private link for the client.
+          Your final brand package — identity, landing page, and deck. Download the{" "}
+          <strong className="font-medium text-[var(--foreground)]">implement pack</strong> for
+          product engineering (tokens, logos, icons, copy), open full screen to present, or publish
+          a private client link.
         </p>
       </header>
 
@@ -114,6 +116,17 @@ export default async function BrandHandoverPage({
                       {item.ready && item.variant ? ` · ${item.variant}` : " · needed"}
                     </li>
                   ))}
+                  <li
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
+                      packageReady
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
+                        : "bg-[var(--surface-2)] text-[var(--muted)]"
+                    }`}
+                  >
+                    {packageReady ? <Check size={13} /> : <span className="h-2 w-2 rounded-full bg-[var(--border-strong)]" />}
+                    Implement pack
+                    {packageReady ? " · ready to download" : " · after finals"}
+                  </li>
                 </ul>
                 {issue && (
                   <p className="mt-3 flex items-start gap-2 text-sm text-[var(--muted)]">
@@ -133,6 +146,7 @@ export default async function BrandHandoverPage({
           {packageReady ? (
             <FinalPackageViewer
               embedded
+              projectId={id}
               projectName={project.name}
               clientName={project.client_name}
               token={project.share_token}

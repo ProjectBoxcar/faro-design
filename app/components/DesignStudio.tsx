@@ -664,8 +664,9 @@ export function DesignStudio({
               </h2>
             </div>
             <p className="max-w-xl text-sm text-[var(--muted)]">
-              When identity + mockups are ready, open Brand Handover to review the final package.
-              Publish a private client link from there when you want to share it.
+              Final delivery lives in Brand Handover: visual package, client link, offline HTML, and
+              the <strong className="font-medium text-[var(--foreground)]">implement pack</strong>{" "}
+              (tokens, logos, icons for product builds).
             </p>
             <ul className="mt-4 flex flex-wrap gap-2" aria-live="polite">
               {finalOutputs.map((output) => (
@@ -687,16 +688,26 @@ export function DesignStudio({
                   }
                 </li>
               ))}
+              <li
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
+                  deliverableReady
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
+                    : "bg-[var(--surface-2)] text-[var(--muted)]"
+                }`}
+              >
+                {deliverableReady ? <Check size={13} /> : <span className="h-2 w-2 rounded-full bg-[var(--border-strong)]" />}
+                Implement pack{deliverableReady ? " · included" : " · with finals"}
+              </li>
             </ul>
           </div>
           <div className="shrink-0 lg:text-right">
             <p className="mb-2 text-xs font-medium text-[var(--muted)]">
-              {deliverableReady ? "All 3 outputs are ready" : `${finalCount} of 3 outputs ready`}
+              {deliverableReady ? "Final delivery ready" : `${finalCount} of 3 visuals ready`}
             </p>
             <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
               <Link
                 href={`/projects/${projectId}/handover`}
-                className={`inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] ${
+                className={`inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] ${
                   !deliverableReady ? "opacity-90" : ""
                 }`}
               >
@@ -707,22 +718,37 @@ export function DesignStudio({
                 <button
                   type="button"
                   onClick={copyPackageLink}
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2.5 text-sm font-medium transition hover:bg-[var(--surface-2)]"
+                  className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-strong)] px-4 py-2.5 text-sm font-medium transition hover:bg-[var(--surface-2)]"
                 >
                   {packageLinkCopied ? <Check size={16} /> : <Copy size={16} />}
                   {packageLinkCopied ? "Copied" : "Copy client link"}
                 </button>
               )}
             </div>
-            <button
-              type="button"
-              onClick={downloadFinalDeliverable}
-              disabled={!deliverableReady || creatingDeliverable || Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind)}
-              className="mt-2 inline-flex items-center justify-center gap-1.5 text-xs font-medium text-[var(--muted)] transition hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {creatingDeliverable ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-              {creatingDeliverable ? "Preparing offline package..." : "Download offline package"}
-            </button>
+            <div className="mt-2 flex flex-col items-stretch gap-1 sm:items-end">
+              <a
+                href={deliverableReady ? `/api/projects/${projectId}/brand-pack` : undefined}
+                aria-disabled={!deliverableReady}
+                className={`inline-flex items-center justify-center gap-1.5 text-xs font-medium transition ${
+                  deliverableReady
+                    ? "text-[var(--accent)] hover:underline"
+                    : "pointer-events-none text-[var(--subtle)] opacity-50"
+                }`}
+              >
+                <Download size={13} /> Download implement pack (ZIP)
+              </a>
+              <button
+                type="button"
+                onClick={downloadFinalDeliverable}
+                disabled={!deliverableReady || creatingDeliverable || Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind)}
+                className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-[var(--muted)] transition hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {creatingDeliverable ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                {creatingDeliverable
+                  ? "Preparing offline package…"
+                  : "Download offline package (includes implement pack)"}
+              </button>
+            </div>
           </div>
         </div>
       </section>

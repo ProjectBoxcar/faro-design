@@ -63,8 +63,14 @@ function escapeHtml(value: string): string {
 export function buildFaroDeliverable(
   projectName: string,
   assets: DeliverableAsset[],
-  generatedAt = new Date()
+  options?: {
+    generatedAt?: Date;
+    /** Base64 of the Brand Implement Pack ZIP (tokens, logos, icons, copy). */
+    implementPackZipBase64?: string;
+    implementPackFilename?: string;
+  }
 ): string {
+  const generatedAt = options?.generatedAt ?? new Date();
   const issue = finalDeliverableIssue(assets);
   if (issue) throw new Error(issue);
 
@@ -84,6 +90,16 @@ export function buildFaroDeliverable(
   const generatedLabel = escapeHtml(
     generatedAt.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
   );
+  const packFilename = escapeHtml(
+    options?.implementPackFilename ?? `${projectName.replace(/\s+/g, "-").toLowerCase()}-brand-implement-pack.zip`
+  );
+  const packB64 = options?.implementPackZipBase64
+    ? JSON.stringify(options.implementPackZipBase64).replace(/</g, "\\u003c")
+    : "null";
+
+  const implementRow = options?.implementPackZipBase64
+    ? `<div class="deliverable"><div><strong>Brand implement pack</strong><br><span>tokens, logos, icons, copy — for product engineering</span></div><button class="download" type="button" data-pack="1">Download ZIP</button></div>`
+    : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -92,7 +108,7 @@ export function buildFaroDeliverable(
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${safeProjectName} — Faro Brand Deliverable</title>
 <style>
-:root{color-scheme:light;--ink:#201d19;--muted:#716b63;--line:#ded8cf;--paper:#faf8f3;--panel:#fff;--accent:#b94f2d;--soft:#f5e8df}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.shell{min-height:100vh;display:grid;grid-template-columns:260px minmax(0,1fr)}aside{border-right:1px solid var(--line);background:rgba(255,255,255,.84);padding:28px 20px;display:flex;flex-direction:column;gap:28px}.mark{font:600 24px Georgia,serif}.eyebrow{margin:0 0 6px;color:var(--accent);font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}h1{margin:0;font:500 28px/1.1 Georgia,serif}.sub{margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.5}.tabs{display:grid;gap:6px}.tab{width:100%;border:0;border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;padding:11px 12px;text-align:left;font:600 13px/1.2 inherit}.tab:hover,.tab[aria-selected="true"]{background:var(--soft);color:var(--accent)}.credit{margin-top:auto;color:var(--muted);font-size:11px;line-height:1.5}main{min-width:0}.panel{min-height:100vh}.overview{padding:clamp(32px,7vw,96px);display:grid;align-content:center;background:radial-gradient(circle at 80% 15%,#f1d9ca 0,transparent 30%),var(--paper)}.overview-card{max-width:760px}.overview h2{margin:18px 0 12px;font:500 clamp(42px,7vw,84px)/.95 Georgia,serif;letter-spacing:-.04em}.overview p{max-width:600px;color:var(--muted);font-size:17px;line-height:1.6}.deliverables{margin-top:38px;display:grid;gap:10px}.deliverable{display:flex;align-items:center;justify-content:space-between;gap:18px;border-top:1px solid var(--line);padding:15px 0}.deliverable strong{font-size:14px}.deliverable span{color:var(--muted);font-size:12px}.download{border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer;padding:8px 12px;font:600 12px inherit}.download:hover{border-color:var(--accent);color:var(--accent)}.asset{display:grid;grid-template-rows:auto minmax(0,1fr);height:100vh}.asset-head{display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid var(--line);background:var(--panel);padding:14px 20px}.asset-head h2{margin:0;font:500 20px Georgia,serif}.asset-head span{color:var(--muted);font-size:12px}.asset iframe{width:100%;height:100%;border:0;background:white}@media(max-width:760px){.shell{grid-template-columns:1fr}aside{position:sticky;top:0;z-index:2;border-right:0;border-bottom:1px solid var(--line);padding:14px}.brand-copy,.credit{display:none}.tabs{display:flex;overflow:auto}.tab{white-space:nowrap}.panel,.asset{min-height:calc(100vh - 67px);height:calc(100vh - 67px)}.overview{padding:28px}.overview h2{font-size:44px}}@media print{aside{display:none}.shell{display:block}.panel{display:block!important;height:auto;min-height:100vh;page-break-after:always}.asset{height:100vh}.download{display:none}}
+:root{color-scheme:light;--ink:#111111;--muted:#6b6558;--line:#d8d1c0;--paper:#f5f1e8;--panel:#fff;--accent:#16514b;--soft:#e4eeec}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.shell{min-height:100vh;display:grid;grid-template-columns:260px minmax(0,1fr)}aside{border-right:1px solid var(--line);background:rgba(255,255,255,.84);padding:28px 20px;display:flex;flex-direction:column;gap:28px}.mark{font:600 24px Georgia,serif}.eyebrow{margin:0 0 6px;color:#f25c2a;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}h1{margin:0;font:500 28px/1.1 Georgia,serif}.sub{margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.5}.tabs{display:grid;gap:6px}.tab{width:100%;border:0;border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;padding:11px 12px;text-align:left;font:600 13px/1.2 inherit}.tab:hover,.tab[aria-selected="true"]{background:var(--soft);color:var(--accent)}.credit{margin-top:auto;color:var(--muted);font-size:11px;line-height:1.5}main{min-width:0}.panel{min-height:100vh}.overview{padding:clamp(32px,7vw,96px);display:grid;align-content:center;background:radial-gradient(circle at 80% 15%,#fde3d6 0,transparent 30%),var(--paper)}.overview-card{max-width:760px}.overview h2{margin:18px 0 12px;font:500 clamp(42px,7vw,84px)/.95 Georgia,serif;letter-spacing:-.04em}.overview p{max-width:600px;color:var(--muted);font-size:17px;line-height:1.6}.deliverables{margin-top:38px;display:grid;gap:10px}.deliverable{display:flex;align-items:center;justify-content:space-between;gap:18px;border-top:1px solid var(--line);padding:15px 0}.deliverable strong{font-size:14px}.deliverable span{color:var(--muted);font-size:12px}.download{border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer;padding:8px 12px;font:600 12px inherit}.download:hover{border-color:var(--accent);color:var(--accent)}.asset{display:grid;grid-template-rows:auto minmax(0,1fr);height:100vh}.asset-head{display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid var(--line);background:var(--panel);padding:14px 20px}.asset-head h2{margin:0;font:500 20px Georgia,serif}.asset-head span{color:var(--muted);font-size:12px}.asset iframe{width:100%;height:100%;border:0;background:white}@media(max-width:760px){.shell{grid-template-columns:1fr}aside{position:sticky;top:0;z-index:2;border-right:0;border-bottom:1px solid var(--line);padding:14px}.brand-copy,.credit{display:none}.tabs{display:flex;overflow:auto}.tab{white-space:nowrap}.panel,.asset{min-height:calc(100vh - 67px);height:calc(100vh - 67px)}.overview{padding:28px}.overview h2{font-size:44px}}@media print{aside{display:none}.shell{display:block}.panel{display:block!important;height:auto;min-height:100vh;page-break-after:always}.asset{height:100vh}.download{display:none}}
 </style>
 </head>
 <body>
@@ -107,8 +123,9 @@ ${outputs.map((output) => `<button class="tab" type="button" data-panel="${outpu
 </aside>
 <main>
 <section class="panel overview" id="overview">
-<div class="overview-card"><p class="eyebrow">Final brand package</p><h2>${safeProjectName}</h2><p>The approved identity system, landing page, and brand deck are collected here as one complete delivery.</p><div class="deliverables">
+<div class="overview-card"><p class="eyebrow">Final brand package</p><h2>${safeProjectName}</h2><p>Complete delivery: visual package (identity, landing page, deck) plus the implement pack for product engineering (tokens, logos, icons, copy).</p><div class="deliverables">
 ${outputs.map((output, index) => `<div class="deliverable"><div><strong>${output.label}</strong><br><span>Final proposal ${escapeHtml(output.variant)}</span></div><button class="download" type="button" data-download="${index}">Download source</button></div>`).join("\n")}
+${implementRow}
 </div></div>
 </section>
 ${outputs.map((output) => `<section class="panel asset" id="${output.kind}" hidden><div class="asset-head"><div><h2>${output.label}</h2><span>Final proposal ${escapeHtml(output.variant)}</span></div></div><iframe title="${output.label}" sandbox="allow-scripts"></iframe></section>`).join("\n")}
@@ -116,11 +133,15 @@ ${outputs.map((output) => `<section class="panel asset" id="${output.kind}" hidd
 </div>
 <script>
 const outputs=${outputData};
+const packZip=${packB64};
+const packName=${JSON.stringify(packFilename)};
 const decode=(encoded)=>{const binary=atob(encoded);const bytes=Uint8Array.from(binary,char=>char.charCodeAt(0));return new TextDecoder().decode(bytes)};
+const decodeBin=(encoded)=>{const binary=atob(encoded);const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);return bytes};
 document.querySelectorAll('.asset').forEach((panel,index)=>{panel.querySelector('iframe').srcdoc=decode(outputs[index].content)});
 const activate=(id)=>{document.querySelectorAll('.panel').forEach(panel=>panel.hidden=panel.id!==id);document.querySelectorAll('.tab').forEach(tab=>tab.setAttribute('aria-selected',String(tab.dataset.panel===id)))};
 document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>activate(tab.dataset.panel)));
 document.querySelectorAll('[data-download]').forEach(button=>button.addEventListener('click',()=>{const output=outputs[Number(button.dataset.download)];const blob=new Blob([decode(output.content)],{type:'text/html;charset=utf-8'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=output.filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}));
+document.querySelectorAll('[data-pack]').forEach(button=>button.addEventListener('click',()=>{if(!packZip)return;const blob=new Blob([decodeBin(packZip)],{type:'application/zip'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=packName;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}));
 </script>
 </body>
 </html>`;

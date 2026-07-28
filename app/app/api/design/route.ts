@@ -218,7 +218,20 @@ export async function GET(req: Request) {
     const blocked = viabilityActionBlockedReason(project, "deliverable");
     if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
     try {
-      const html = buildFaroDeliverable(project.name, assets);
+      let implementPackZipBase64: string | undefined;
+      let implementPackFilename: string | undefined;
+      try {
+        const { buildBrandPack, zipBrandPack } = await import("@/lib/brand-pack");
+        const pack = buildBrandPack(projectId);
+        implementPackZipBase64 = zipBrandPack(pack.files).toString("base64");
+        implementPackFilename = pack.downloadName;
+      } catch {
+        // Visual package still ships if pack extraction fails.
+      }
+      const html = buildFaroDeliverable(project.name, assets, {
+        implementPackZipBase64,
+        implementPackFilename,
+      });
       const filename = `${sanitizeDownloadName(project.name)}-faro-brand-deliverable.html`;
       return new NextResponse(html, {
         headers: {

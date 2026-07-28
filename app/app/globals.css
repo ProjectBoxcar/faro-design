@@ -1,37 +1,6 @@
 @import "tailwindcss";
-
-:root {
-  /* HYER-inspired: crisp, airy, monochrome luxury. A white canvas, ink-black
-     text, warm-neutral hairline borders, near-flat surfaces, and colour used
-     only where it carries meaning. The premium feel comes from whitespace and
-     restraint, not shadows or accent colour. */
-  --background: #faf8f3; /* warm paper */
-  --surface: #ffffff; /* crisp white cards lift gently off the warm canvas */
-  --surface-2: #f1ece1; /* warm sand — fills / hover */
-  --field: #ffffff;
-  --foreground: #181612; /* warm ink */
-  --muted: #6f6a60;
-  --subtle: #a59e8f;
-  --border: #e8e2d5; /* warm hairline */
-  --border-strong: #d7cfbe;
-  --accent: #1a1712; /* warm near-black — primary actions */
-  --accent-hover: #000000;
-  --accent-soft: #efe6d4; /* warm sand tint for active / "now" states */
-
-  /* The one note of colour: a subtle tan, used on tags and soft accents. */
-  --client: #9a7b4f;
-  --designer: #9a7b4f;
-  --collab: #9a7b4f;
-
-  /* Status — warm, sophisticated, muted. */
-  --ok: #3f7a52;
-  --warn: #9a6b00;
-  --danger: #b3261e;
-
-  /* Near-flat, warm-tinted elevation. */
-  --shadow-card: 0 1px 2px rgba(60, 45, 20, 0.04);
-  --shadow-pop: 0 16px 48px rgba(40, 30, 10, 0.16);
-}
+/* Faro dogfood: Brand Implement Pack (from Faro Design project finals) */
+@import "./brand/tokens.css";
 
 @theme inline {
   --color-background: var(--background);
@@ -53,9 +22,7 @@
 }
 
 html {
-  /* Larger base size for a generous, editorial scale (Hyer-like). Everything is
-     rem-based, so type and spacing scale up together. */
-  font-size: 18px;
+  font-size: 17px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -65,16 +32,32 @@ body {
   background: var(--background);
   color: var(--foreground);
   letter-spacing: -0.011em;
+  line-height: 1.55;
 }
 
-/* Display headings: editorial and airy — refined tracking, not heavy. */
 .font-serif {
-  font-family: var(--font-sans);
+  font-family: var(--font-serif);
   letter-spacing: -0.02em;
+  font-weight: 400;
 }
 
 .card-shadow {
   box-shadow: var(--shadow-card);
+}
+
+.faro-accent-line {
+  width: 40px;
+  height: 3px;
+  background: var(--client, var(--brand-accent, #f25c2a));
+  border-radius: 1px;
+}
+
+.faro-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--client, var(--brand-accent, #f25c2a));
 }
 
 .design-preview-frame:fullscreen {
