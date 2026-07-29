@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getProject } from "@/lib/queries";
-import { logoWorkspace } from "@/lib/studio";
+import { logoWorkspace, studioBlockedReason } from "@/lib/studio";
+import { needsNameWorkshop } from "@/lib/naming-propose";
 import { StudioLogoWorkspace, type WorkspaceAsset } from "@/components/StudioLogoWorkspace";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,14 @@ export default async function LogoWorkspacePage({ params }: { params: Promise<{ 
   if (!project) notFound();
 
   const ws = logoWorkspace(id);
+  // Soft name gate only before any logo work exists.
+  if (
+    needsNameWorkshop(id) &&
+    !studioBlockedReason(id, "logo") &&
+    ws.assets.length === 0
+  ) {
+    redirect(`/projects/${id}/name`);
+  }
   // Serialize for the client component: dates → ISO, evaluation → verdict+scores only.
   const assets: WorkspaceAsset[] = ws.assets.map((a) => {
     const payload = a.payload ?? {};

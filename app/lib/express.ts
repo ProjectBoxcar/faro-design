@@ -6,6 +6,7 @@ import { generateSection } from "@/lib/generate";
 import { canGenerate } from "@/lib/methodology";
 import type { SectionValue } from "@/lib/db/types";
 import { maybeRunViabilityGate } from "@/lib/viability";
+import { classifyAiFailure, formatClassifiedFailure } from "@/lib/ai-failure";
 
 // The express journey: after the Quick Start interview seeds the owner's
 // facts, one background pipeline drafts the ENTIRE required strategy chain in
@@ -22,6 +23,13 @@ export type ExpressState = {
   current: string | null; // section id being drafted
   currentName: string | null;
   error: string | null;
+  /** Owner can call start again; filled sections are skipped (same strategy engine). */
+  resumable?: boolean;
+  /** Failure taxonomy — strategy lane only */
+  errorCode?: string | null;
+  errorHint?: string | null;
+  /** Always strategy-direct for this pipeline */
+  engine?: "strategy-direct";
 };
 
 // After the owner marks a review card Ready, cascade-regenerate every
@@ -36,6 +44,8 @@ export type RefineState = {
   currentName: string | null;
   error: string | null;
   updatedIds: string[];
+  errorCode?: string | null;
+  errorHint?: string | null;
 };
 
 class GenerationCancelled extends Error {
@@ -154,18 +164,31 @@ export function cancelExpressRefine(projectId: string): RefineState {
 
 export function expressStatus(projectId: string): ExpressState {
   const active = runs.get(projectId);
-  if (active) return active.state;
+  if (active) {
+    return {
+      ...active.state,
+      engine: "strategy-direct",
+      resumable:
+        active.state.status === "failed" ||
+        active.state.status === "cancelled" ||
+        (active.state.status === "running" && active.state.done > 0),
+    };
+  }
   // No in-memory run (e.g. after a server restart): derive from saved statuses.
+  // Partial progress → idle + resumable (startExpress skips filled sections).
   const ids = expressSectionIds();
   const statusOf = new Map(getSections(projectId).map((r) => [r.section_key, r.status]));
   const done = ids.filter((id) => (statusOf.get(id) ?? "empty") !== "empty").length;
+  const complete = done === ids.length && ids.length > 0;
   return {
-    status: done === ids.length ? "done" : "idle",
+    status: complete ? "done" : "idle",
     done,
     total: ids.length,
     current: null,
     currentName: null,
     error: null,
+    engine: "strategy-direct",
+    resumable: !complete && done > 0,
   };
 }
 
@@ -210,19 +233,24 @@ export function expressDependents(rootId: string): string[] {
 }
 
 // Start (or resume) the pipeline. Idempotent: already-filled sections are
-// skipped, so a restart continues where the last run stopped.
+// skipped, so a restart continues where the last run stopped (strategy engine only).
 export function startExpress(projectId: string): ExpressState {
   const existing = runs.get(projectId);
   if (existing && existing.state.status === "running") return existing.state;
 
   const ids = expressSectionIds();
+  const alreadyDone = ids.filter((id) => filledKeys(projectId).has(id)).length;
   const state: ExpressState = {
     status: "running",
-    done: 0,
+    done: alreadyDone,
     total: ids.length,
     current: null,
     currentName: null,
     error: null,
+    errorCode: null,
+    errorHint: null,
+    engine: "strategy-direct",
+    resumable: alreadyDone > 0,
   };
 
   const entry = { state, promise: Promise.resolve(), cancelled: false };
@@ -266,7 +294,8 @@ export function startExpress(projectId: string): ExpressState {
         throwIfExpressCancelled(projectId);
         const filled = filledKeys(projectId);
         if (filled.has(id)) {
-          state.done += 1;
+          // Already counted in alreadyDone / prior passes — keep done in sync with disk.
+          state.done = ids.filter((sid) => filledKeys(projectId).has(sid)).length;
           progressed = true;
           continue;
         }
@@ -287,7 +316,7 @@ export function startExpress(projectId: string): ExpressState {
           status: "draft",
           aiGenerated: true,
         });
-        state.done += 1;
+        state.done = ids.filter((sid) => filledKeys(projectId).has(sid)).length;
         progressed = true;
       }
       if (!progressed) {
@@ -300,6 +329,9 @@ export function startExpress(projectId: string): ExpressState {
     state.current = null;
     state.currentName = null;
     state.status = "done";
+    state.resumable = false;
+    state.errorCode = null;
+    state.errorHint = null;
     // Mark every drafted strategy step complete so the journey track (and
     // handover path) shows full completion after the first-questions pipeline.
     try {
@@ -319,16 +351,26 @@ export function startExpress(projectId: string): ExpressState {
     void maybeRunViabilityGate(projectId).catch((e) => console.error("[viability] failed:", e));
   })().catch((error) => {
     if (error instanceof GenerationCancelled || entry.cancelled) {
+      const c = classifyAiFailure(error, "strategy");
       state.status = "cancelled";
       state.current = null;
       state.currentName = null;
       state.error = null;
+      state.errorCode = c.code;
+      state.errorHint = c.hint;
+      state.resumable = true;
+      state.done = ids.filter((sid) => filledKeys(projectId).has(sid)).length;
       return;
     }
+    const c = classifyAiFailure(error, "strategy");
     state.status = "failed";
     state.current = null;
     state.currentName = null;
-    state.error = error instanceof Error ? error.message : "Strategy drafting failed";
+    state.error = formatClassifiedFailure(c);
+    state.errorCode = c.code;
+    state.errorHint = c.hint;
+    state.resumable = true;
+    state.done = ids.filter((sid) => filledKeys(projectId).has(sid)).length;
   });
 
   entry.promise = promise;
@@ -422,16 +464,22 @@ export function startExpressRefine(
     void maybeRunViabilityGate(projectId).catch((e) => console.error("[viability] failed:", e));
   })().catch((error) => {
     if (error instanceof GenerationCancelled || entry.cancelled) {
+      const c = classifyAiFailure(error, "strategy");
       state.status = "cancelled";
       state.current = null;
       state.currentName = null;
       state.error = null;
+      state.errorCode = c.code;
+      state.errorHint = c.hint;
       return;
     }
+    const c = classifyAiFailure(error, "strategy");
     state.status = "failed";
     state.current = null;
     state.currentName = null;
-    state.error = error instanceof Error ? error.message : "Couldn't update the rest of the strategy";
+    state.error = formatClassifiedFailure(c);
+    state.errorCode = c.code;
+    state.errorHint = c.hint;
   });
 
   entry.promise = promise;

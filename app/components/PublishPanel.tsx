@@ -16,6 +16,7 @@ export function PublishPanel({
   prominent?: boolean;
 }) {
   const [token, setToken] = useState<string | null>(initialToken);
+  const [version, setVersion] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,8 +31,10 @@ export function PublishPanel({
       body: JSON.stringify({ projectId, action: "publish" }),
     });
     const data = await res.json().catch(() => ({}));
-    if (res.ok) setToken((data as { token: string }).token);
-    else setError((data as { error?: string }).error ?? "Could not publish the handover.");
+    if (res.ok) {
+      setToken((data as { token: string }).token);
+      setVersion((data as { version?: number | null }).version ?? null);
+    } else setError((data as { error?: string }).error ?? "Could not publish the handover.");
     setBusy(false);
   }
 
@@ -44,8 +47,10 @@ export function PublishPanel({
       body: JSON.stringify({ projectId, action: "unpublish" }),
     });
     const data = await res.json().catch(() => ({}));
-    if (res.ok) setToken(null);
-    else setError((data as { error?: string }).error ?? "Could not unpublish the handover.");
+    if (res.ok) {
+      setToken(null);
+      setVersion(null);
+    } else setError((data as { error?: string }).error ?? "Could not unpublish the handover.");
     setBusy(false);
   }
 
@@ -71,8 +76,12 @@ export function PublishPanel({
         </h2>
         <p className="mt-2 max-w-2xl text-[var(--muted)]">
           {token
-            ? "Read it over, send your designer the link, or download it in the format they prefer."
-            : "Your strategy is reviewed. Publish it as a clean, read-only brief your designer can open in any browser."}
+            ? `Read it over, send your designer the link, or download it in the format they prefer.${
+                version != null
+                  ? ` This is publish v${version} — frozen so later edits in Faro do not change the link until you publish again.`
+                  : " The share link is frozen at publish so later edits do not change what your designer sees."
+              }`
+            : "Your strategy is reviewed. Publish freezes a read-only snapshot your designer can open in any browser."}
         </p>
 
         {error && <p role="alert" className="mt-4 text-sm text-[var(--danger)]">{error}</p>}

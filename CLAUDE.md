@@ -32,7 +32,8 @@ Project data is the user's real client work and is irreplaceable. It lives in `a
   Don't add "what if an agency uses it" features unless asked.
 - **Local self-hosted.** Runs on `npm run dev` on Windows. No Docker, no CI/CD. (Fly.io is a
   later, separate decision — see Gut app's hosting plan.)
-- The design docs in `docs/` (`01`–`09`) are the source of truth for what's in/out of scope.
+- The design docs in `docs/` (`01`–`11`) are the source of truth for what's in/out of scope.
+  AI engine routing is fixed in **`docs/11-ai-lanes.md`**.
 
 ## Methodology fidelity
 
@@ -53,6 +54,21 @@ Project data is the user's real client work and is irreplaceable. It lives in `a
   (e.g. turning identity claims into survey questions). See `docs/05-ai-architecture.md`.
 - Enable **prompt caching** on the static methodology system prompt.
 - AI must cite which upstream sections it drew from, so the designer can trace a draft.
+
+## AI lanes (three engines) — LOAD-BEARING
+
+Full rules: **`docs/11-ai-lanes.md`**. Code: `app/lib/ai.ts`, `app/lib/ai-lanes.ts`, `app/lib/settings.ts`.
+
+| Lane | Uses | Entry | Never |
+|------|------|-------|--------|
+| **Strategy** | Anthropic (default) / strategy Settings | `generateStrategyText` | OD daemon, logo keys |
+| **Logo Workshop** | OpenAI → Gemini fallback | `generateLogoText` | OD daemon, strategy key as logo |
+| **Design Studio** | Open Design daemon + Anthropic BYOK | `generateDesignText` | OpenAI, Gemini, direct “any chat” substitute |
+
+- **Do not** merge lanes, add a smart router, or fall through Design Studio → OpenAI/Gemini if OD is down.
+- **Do not** use the logo OpenAI key for identity systems / mockups, or strategy Anthropic for logos.
+- Settings **AI setup** must show **three independent statuses**, not one “AI OK”.
+- Orchestration (resume, jobs, packages) only wraps these engines — it never rewires them.
 
 ## Style
 

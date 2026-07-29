@@ -1,26 +1,20 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import {
-  apiKeyStatus,
-  getProviderConfig,
-  designApiKeyStatus,
-  getOpenDesignConfig,
-} from "@/lib/settings";
-import { publicProviderConfig } from "@/lib/settings-public";
+import { getAiLaneHealthSnapshot } from "@/lib/settings";
+import { isOpenDesignDaemonUp } from "@/lib/open-design-engine";
 import { brandMemoryStats } from "@/lib/brand-memory";
 import { SettingsForm } from "@/components/SettingsForm";
 
 export const dynamic = "force-dynamic";
 
-export default function SettingsPage() {
-  const strategy = {
-    ...apiKeyStatus(),
-    ...publicProviderConfig(getProviderConfig()),
-  };
-  const openDesign = {
-    ...designApiKeyStatus(),
-    ...publicProviderConfig(getOpenDesignConfig()),
-  };
+export default async function SettingsPage() {
+  let daemonUp: boolean | null = null;
+  try {
+    daemonUp = await isOpenDesignDaemonUp();
+  } catch {
+    daemonUp = false;
+  }
+  const setup = getAiLaneHealthSnapshot(daemonUp);
   const brandMemory = brandMemoryStats();
 
   return (
@@ -35,11 +29,21 @@ export default function SettingsPage() {
       <header className="mt-3 mb-6">
         <h1 className="font-serif text-4xl font-medium tracking-tight">Settings</h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          API keys for each engine, plus brand memory that improves results as you finish projects.
+          Paste your keys once so Faro can write strategy, invent logos, and build your design
+          package. Everything stays on this computer.
         </p>
       </header>
 
-      <SettingsForm initial={{ strategy, openDesign, brandMemory }} />
+      <SettingsForm
+        initial={{
+          lanes: setup.lanes,
+          strategy: setup.strategy,
+          logo: setup.logo,
+          designStudio: setup.designStudio,
+          openDesign: setup.openDesign,
+          brandMemory,
+        }}
+      />
     </main>
   );
 }

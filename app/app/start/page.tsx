@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { FaroLoaderPanel } from "@/components/FaroLoader";
 
 type Answers = {
   offering: string;
@@ -83,12 +84,22 @@ export default function StartPage() {
   const isQuestion = questionIndex >= 0 && questionIndex < QUESTIONS.length;
   const isLastQuestion = questionIndex === QUESTIONS.length - 1;
 
-  const canAdvance = isDetails ? name.trim().length > 0 : true;
+  const currentAnswer =
+    isQuestion ? answers[QUESTIONS[questionIndex].key].trim() : "";
+  const canAdvance = isDetails
+    ? name.trim().length > 0
+    : isQuestion
+      ? currentAnswer.length > 0
+      : false;
 
   function next() {
     setError(null);
     if (isDetails && !name.trim()) {
       setError("Give your brand a name to continue.");
+      return;
+    }
+    if (isQuestion && !currentAnswer) {
+      setError("Write a short answer to continue.");
       return;
     }
     setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
@@ -126,6 +137,10 @@ export default function StartPage() {
   }
 
   async function build() {
+    if (!currentAnswer) {
+      setError("Write a short answer to continue.");
+      return;
+    }
     setBuilding(true);
     setError(null);
     try {
@@ -157,15 +172,12 @@ export default function StartPage() {
 
   if (building) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center px-6 text-center">
-        <div className="animate-pulse">
-          <Sparkles className="mx-auto text-[var(--accent)]" size={36} />
-        </div>
-        <h1 className="mt-5 font-serif text-3xl font-medium tracking-tight">Drafting your strategy…</h1>
-        <p className="mt-3 max-w-md text-[var(--muted)]">
-          We&apos;re turning your answers into a first draft of your brand&apos;s foundations. This takes about a
-          minute. Next, we&apos;ll walk you through your draft one step at a time.
-        </p>
+      <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center px-6 py-16">
+        <FaroLoaderPanel
+          beaconSize="hero"
+          title="Drafting your strategy…"
+          description="We're turning your answers into a first draft of your brand's foundations. Next, you'll review it step by step."
+        />
       </main>
     );
   }
@@ -214,9 +226,13 @@ export default function StartPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && next()}
-              placeholder="e.g. Finisterra"
+              placeholder="e.g. Finisterra — or a temporary working title"
               className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-4 py-3 text-lg outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
             />
+            <p className="mt-1.5 text-xs text-[var(--subtle)]">
+              A working title is fine. After your strategy draft, we can suggest a stronger brand name
+              before logos.
+            </p>
 
             <label className="mt-5 block text-sm font-medium">Company / your name (optional)</label>
             <input
@@ -275,7 +291,7 @@ export default function StartPage() {
               className="mt-5 w-full resize-y rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-4 py-3 leading-relaxed outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
             />
             <p className="mt-2 text-xs text-[var(--subtle)]">
-              A few sentences is plenty. You can leave it blank if it doesn&apos;t apply.
+              A few sentences is plenty — Next unlocks once you type something.
             </p>
           </div>
         )}
@@ -300,7 +316,8 @@ export default function StartPage() {
         {isLastQuestion ? (
           <button
             onClick={build}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+            disabled={!canAdvance || building}
+            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Finish &amp; create my draft <Check size={16} />
           </button>
@@ -308,7 +325,7 @@ export default function StartPage() {
           <button
             onClick={next}
             disabled={!canAdvance}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isDetails ? "Start" : "Next"} <ArrowRight size={15} />
           </button>

@@ -40,17 +40,19 @@ export function ProjectSidebar({
       if (pathname === base) return true;
       if (pathname.startsWith(`${base}/express`)) return true;
       if (pathname.startsWith(`${base}/review`)) return true;
-      // Section editor / hub under project, not studio/design/handover
+      // Section editor under project — not name / studio / design / handover
       if (
         pathname.startsWith(`${base}/`) &&
         !pathname.startsWith(`${base}/studio`) &&
         !pathname.startsWith(`${base}/design`) &&
-        !pathname.startsWith(`${base}/handover`)
+        !pathname.startsWith(`${base}/handover`) &&
+        !pathname.startsWith(`${base}/name`)
       ) {
         return true;
       }
       return false;
     }
+    if (stage.id === "name") return pathname.startsWith(`${base}/name`);
     if (stage.id === "logo") return pathname.startsWith(`${base}/studio`);
     if (stage.id === "design") return pathname.startsWith(`${base}/design`);
     if (stage.id === "handover") return pathname.startsWith(`${base}/handover`);
@@ -116,7 +118,7 @@ export function ProjectSidebar({
         </ol>
 
         <p className="mt-4 px-2.5 text-[11px] leading-snug text-[var(--subtle)]">
-          Same order for every project: strategy → logo → design → handover.
+          Same order for every project: strategy → name → logo → design → handover.
         </p>
       </nav>
 

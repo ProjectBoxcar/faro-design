@@ -47,6 +47,8 @@ Brand App/
 | `docs/05-ai-architecture.md` | Synthesis prompts, model choice, hybrid AI |
 | `docs/06-tech-stack.md` | Stack and why |
 | `docs/07-roadmap.md` | Build order |
-| `docs/08-handover-spec.md` | The shareable brief output |
+| `docs/08-handover-spec.md` | The shareable brief output (snapshot-on-publish) |
 | `docs/09-open-questions.md` | Decisions still pending |
+| `docs/10-asset-studio.md` | Logo Workshop + brand asset pipeline |
+| `docs/11-ai-lanes.md` | **Three engines invariant** (strategy / logo / Open Design) |
 | `docs/gut-intake-answers.md` | Reconstructed Gut quick-start intake answers |

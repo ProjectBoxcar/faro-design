@@ -1,6 +1,12 @@
 import { sql } from "drizzle-orm";
 import { sqliteTable, text, integer, uniqueIndex, index } from "drizzle-orm/sqlite-core";
-import type { SectionValue, EvalScore, AiReads, AssetPayload } from "./types";
+import type {
+  SectionValue,
+  EvalScore,
+  AiReads,
+  AssetPayload,
+  PublishSnapshotPayload,
+} from "./types";
 
 // Single-row app config (id always 1). Mirrors the Gut app's settings pattern.
 export const settings = sqliteTable("settings", {
@@ -241,6 +247,34 @@ export const assets = sqliteTable(
       .default(sql`(unixepoch())`),
   },
   (t) => [index("assets_project_idx").on(t.project_id)]
+);
+
+// Frozen handover package at publish time. Share routes prefer the current
+// snapshot so later edits do not rewrite a brief already sent to a designer.
+// See docs/08-handover-spec.md and lib/publish-snapshot.ts.
+export const publish_snapshots = sqliteTable(
+  "publish_snapshots",
+  {
+    id: text("id").primaryKey(),
+    project_id: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    // Token used for /share/[token] when this version was current.
+    share_token: text("share_token").notNull(),
+    // Monotonic per project: 1, 2, 3… on each publish.
+    version: integer("version").notNull(),
+    // At most one current row per project (enforced in app code).
+    is_current: integer("is_current", { mode: "boolean" }).notNull().default(true),
+    payload: text("payload", { mode: "json" }).$type<PublishSnapshotPayload>().notNull(),
+    created_at: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index("publish_snapshots_project_idx").on(t.project_id),
+    index("publish_snapshots_token_idx").on(t.share_token),
+    uniqueIndex("publish_snapshots_project_version_idx").on(t.project_id, t.version),
+  ]
 );
 
 // Cross-project learning: outcomes the owner approved, used to steer future

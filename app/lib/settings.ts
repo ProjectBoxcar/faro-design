@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { settings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import type { AiProvider } from "@/lib/db/types";
+import { summarizeLaneHealth } from "@/lib/ai-lanes";
 
 // The single settings row (id = 1). Created on first access.
 function getSettingsRow() {
@@ -336,4 +337,59 @@ export function getGeminiConfig(): {
 
 export function hasGeminiKey(): boolean {
   return Boolean(getGeminiConfig().apiKey);
+}
+
+/**
+ * AI setup snapshot for Settings / API (three engines; no secret values).
+ * @see docs/11-ai-lanes.md
+ */
+export function getAiLaneHealthSnapshot(openDesignDaemonUp: boolean | null = null) {
+  const strategyCfg = getProviderConfig();
+  const strategyStatus = apiKeyStatus();
+  const logoCfg = getLogoApiConfig();
+  const logoStatus = logoApiKeyStatus();
+  const designStatus = designApiKeyStatus();
+  const od = getOpenDesignDaemonConfig();
+
+  const lanes = summarizeLaneHealth({
+    strategyConfigured: strategyStatus.configured,
+    strategyProvider: strategyCfg.provider,
+    strategyModel: strategyCfg.model,
+    logoOpenAiConfigured: logoStatus.configured,
+    geminiConfigured: hasGeminiKey(),
+    logoModel: logoCfg.model,
+    designAnthropicConfigured: designStatus.configured,
+    designKeySource: designStatus.source,
+    designModel: od.model,
+    openDesignDaemonUp,
+  });
+
+  return {
+    lanes,
+    strategy: {
+      ...strategyStatus,
+      provider: strategyCfg.provider,
+      baseUrl: strategyCfg.baseUrl,
+      model: strategyCfg.model,
+    },
+    logo: {
+      ...logoStatus,
+      model: logoCfg.model,
+      baseUrl: logoCfg.baseUrl,
+      geminiConfigured: hasGeminiKey(),
+      geminiModel: hasGeminiKey() ? getGeminiConfig().model : null,
+    },
+    designStudio: {
+      ...designStatus,
+      model: od.model,
+      daemonUp: openDesignDaemonUp,
+    },
+    // Back-compat aliases used by older SettingsForm consumers
+    openDesign: {
+      ...designStatus,
+      provider: getDesignProvider(),
+      baseUrl: getDesignBaseUrl(),
+      model: getDesignModel(),
+    },
+  };
 }

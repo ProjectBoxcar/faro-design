@@ -171,6 +171,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // filled at Quick Start so the journey shows Strategy → Handover complete.
   completeSectionsWithContent(id, flowSteps().map((s) => s.sectionId));
   const token = publishProject(id);
+  try {
+    const { createPublishSnapshot } = await import("@/lib/publish-snapshot");
+    createPublishSnapshot(id, token);
+  } catch (e) {
+    console.error("[publish] express approve snapshot failed:", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Could not freeze the handover snapshot" },
+      { status: 500 }
+    );
+  }
   await maybeRunViabilityGate(id).catch((e) => console.error("[viability] failed:", e));
   try {
     const { recordStrategyLearning } = await import("@/lib/brand-memory");
@@ -178,5 +188,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   } catch (e) {
     console.warn("[brand-memory] strategy learn failed:", e);
   }
-  return NextResponse.json({ token });
+  // Temporary working titles → name workshop; real names skip to Logo Workshop.
+  let nextPath = `/projects/${id}/studio`;
+  try {
+    const { needsNameWorkshop } = await import("@/lib/naming-propose");
+    if (needsNameWorkshop(id)) nextPath = `/projects/${id}/name`;
+  } catch {
+    /* keep studio default */
+  }
+  return NextResponse.json({ token, nextPath });
 }

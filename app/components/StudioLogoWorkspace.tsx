@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, Loader2, MessageSquarePlus, Sparkles, Square, Trash2, Undo2, X } from "lucide-react";
+import { ArrowRight, BadgeCheck, Check, Loader2, MessageSquarePlus, Sparkles, Square, Trash2, Undo2, X } from "lucide-react";
+import { FaroBeacon, FaroLoaderInline } from "@/components/FaroLoader";
+import { LOGO_STAGES, stageStatus, timeBasedPercent } from "@/lib/generation-progress";
 import type { AssetPayload, EvalScore } from "@/lib/db/types";
 
 /** Common tweak chips — owner can combine with free text. */
@@ -285,11 +287,11 @@ export function StudioLogoWorkspace({
         >
           {isFreshGenerate ? (
             <>
-              <Loader2 size={15} className="animate-spin" /> Designing… takes a minute or two
+              <FaroBeacon size="sm" /> Designing… takes a minute or two
             </>
           ) : isImproving ? (
             <>
-              <Loader2 size={15} className="animate-spin" /> Improving a proposal…
+              <FaroBeacon size="sm" /> Improving a proposal…
             </>
           ) : (
             <>
@@ -415,7 +417,7 @@ export function StudioLogoWorkspace({
         <div className="mb-4 sticky top-2 z-10 rounded-2xl border border-[var(--accent)]/40 bg-[var(--background)]/95 px-4 py-3 shadow-sm backdrop-blur-md">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-start gap-2.5 text-sm">
-              <Loader2 size={16} className="mt-0.5 shrink-0 animate-spin text-[var(--accent)]" />
+              <FaroBeacon size="sm" className="mt-0.5 shrink-0" />
               <div>
                 <p className="font-medium text-[var(--foreground)]">
                   Improving “{improveJob.sourceLabel}”…
@@ -554,23 +556,24 @@ function ImproveInlineProgress({
   cancelling?: boolean;
 }) {
   const [elapsed, setElapsed] = useState(0);
+  const [peakPct, setPeakPct] = useState(2);
   useEffect(() => {
     const t = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(t);
   }, []);
-  const pct = Math.min(95, Math.max(2, Math.round((1 - Math.exp(-elapsed / 70)) * 95)));
+  const rawPct = timeBasedPercent(elapsed, 130);
+  useEffect(() => {
+    setPeakPct((p) => Math.max(p, rawPct));
+  }, [rawPct]);
+  const pct = Math.max(peakPct, rawPct);
+  const stages = stageStatus(LOGO_STAGES, pct / 100);
   const stage =
-    elapsed < 12
-      ? "Reading your feedback against this mark…"
-      : elapsed < 85
-        ? `Designing 3 refinements of “${sourceLabel}”…`
-        : "Scoring the refined versions…";
+    stages.find((s) => s.state === "active")?.label ??
+    `Designing 3 refinements of “${sourceLabel}”…`;
   return (
     <div className="mt-3 space-y-4 rounded-2xl border border-dashed border-[var(--accent)]/40 bg-[var(--accent)]/5 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="flex items-center gap-2 text-sm text-[var(--foreground)]">
-          <Loader2 size={15} className="animate-spin text-[var(--accent)]" /> {stage}
-        </p>
+        <FaroLoaderInline label={stage} size="sm" />
         {onCancel && (
           <button
             type="button"
@@ -638,49 +641,37 @@ function GenerationProgress({
   cancelling?: boolean;
 }) {
   const [elapsed, setElapsed] = useState(0);
+  const [peakPct, setPeakPct] = useState(2);
   useEffect(() => {
     const t = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(t);
   }, []);
-  // Soft estimate (~2 min logo + critic). Caps at 95% until the real response lands.
-  const pct = Math.min(95, Math.max(2, Math.round((1 - Math.exp(-elapsed / 70)) * 95)));
-  const stage =
-    mode === "improve"
-      ? elapsed < 12
-        ? "Reading your feedback…"
-        : elapsed < 85
-          ? "Designing refined versions of the mark you liked…"
-          : "Scoring the refined versions…"
-      : elapsed < 10
-        ? "Reading your strategy…"
-        : elapsed < 80
-          ? "Designing candidates from your concept, territory and palette…"
-          : "The skeptical critic is scoring them against your strategy…";
+
+  // One-shot logo+critic call (~2 min). Monotonic soft estimate — never sawtooths.
+  const estimateSec = mode === "improve" ? 130 : 120;
+  const rawPct = timeBasedPercent(elapsed, estimateSec);
+  useEffect(() => {
+    setPeakPct((p) => Math.max(p, rawPct));
+  }, [rawPct]);
+  const pct = Math.max(peakPct, rawPct);
+  const progress01 = pct / 100;
+  const stages = stageStatus(LOGO_STAGES, progress01);
+  const activeLabel =
+    stages.find((s) => s.state === "active")?.label ??
+    (mode === "improve" ? "Improving your mark…" : "Designing logo candidates…");
+
   return (
-    <div className="mb-6 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="flex items-center gap-2 text-sm text-[var(--muted)]">
-          <Loader2 size={15} className="animate-spin" /> {stage}
+    <div className="mb-6 space-y-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
+      <div className="flex flex-col items-center text-center">
+        <FaroBeacon size="xl" />
+        <p className="mt-4 text-sm font-medium text-[var(--foreground)]">{activeLabel}</p>
+        <p className="mt-1 text-xs text-[var(--subtle)]">
+          {mode === "improve"
+            ? "Three refined versions, then a quick score against your brief."
+            : "Three candidates from your strategy, then a skeptical score."}
         </p>
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={cancelling}
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
-          >
-            {cancelling ? (
-              <>
-                <Loader2 size={14} className="animate-spin" /> Stopping…
-              </>
-            ) : (
-              <>
-                <Square size={12} fill="currentColor" /> Stop generation
-              </>
-            )}
-          </button>
-        )}
       </div>
+
       <div className="flex items-center gap-3">
         <div
           className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--surface-2)]"
@@ -699,17 +690,64 @@ function GenerationProgress({
           {pct}%
         </span>
       </div>
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
-          <div className="mb-4 h-5 w-44 rounded bg-[var(--surface-2)]" />
-          <div className="mb-4 h-3 w-3/4 rounded bg-[var(--surface-2)]" />
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="h-24 rounded-xl bg-[var(--surface-2)]" />
-            <div className="h-24 rounded-xl bg-[var(--surface-2)]" />
-            <div className="h-24 rounded-xl bg-[var(--surface-2)]" />
-          </div>
+
+      <ol className="space-y-2.5">
+        {stages.map((s, i) => (
+          <li key={s.id} className="flex items-center gap-3 text-sm">
+            <span
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                s.state === "done"
+                  ? "bg-[var(--accent)] text-white"
+                  : s.state === "active"
+                    ? "border border-[var(--accent)] text-[var(--accent)]"
+                    : "border border-[var(--border-strong)] text-[var(--subtle)]"
+              }`}
+            >
+              {s.state === "done" ? (
+                <Check size={13} />
+              ) : s.state === "active" ? (
+                <span className="faro-generation-dot h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+              ) : (
+                i + 1
+              )}
+            </span>
+            <span
+              className={
+                s.state === "active"
+                  ? "font-medium"
+                  : s.state === "pending"
+                    ? "text-[var(--muted)]"
+                    : ""
+              }
+            >
+              {mode === "improve" && s.id === "design"
+                ? "Designing refined versions"
+                : s.label}
+            </span>
+          </li>
+        ))}
+      </ol>
+
+      {onCancel && (
+        <div className="flex justify-center pt-1">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={cancelling}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+          >
+            {cancelling ? (
+              <>
+                <Loader2 size={14} className="animate-spin" /> Stopping…
+              </>
+            ) : (
+              <>
+                <Square size={12} fill="currentColor" /> Stop generation
+              </>
+            )}
+          </button>
         </div>
-      ))}
+      )}
     </div>
   );
 }

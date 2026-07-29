@@ -4,6 +4,11 @@ import { z } from "zod";
 import { viabilityActionBlockedReason } from "@/lib/project-gates";
 import { finalDeliverableIssue } from "@/lib/design-deliverable";
 import { listAssets } from "@/lib/design";
+import {
+  clearCurrentSnapshots,
+  createPublishSnapshot,
+  getCurrentSnapshotForProject,
+} from "@/lib/publish-snapshot";
 
 const PublishSchema = z.object({
   projectId: z.string().min(1),
@@ -28,14 +33,22 @@ export async function POST(req: Request) {
   const action = parsed.data.action ?? "publish";
   if (action === "unpublish") {
     unpublishProject(parsed.data.projectId);
+    clearCurrentSnapshots(parsed.data.projectId);
     return NextResponse.json({ ok: true });
   }
   const blocked = viabilityActionBlockedReason(project, "publish");
   if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
 
-  const token = publishProject(parsed.data.projectId);
-  // Publishing with the full design package on file completes the journey:
-  // strategy + approved proposal + mockups are all behind this one link.
+  let token: string;
+  try {
+    token = publishProject(parsed.data.projectId);
+    createPublishSnapshot(parsed.data.projectId, token);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Could not publish";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+
+  // Publishing with the full design package on file completes the journey.
   if (!finalDeliverableIssue(listAssets(parsed.data.projectId))) {
     setProjectPhase(parsed.data.projectId, "finished");
   }
@@ -45,5 +58,12 @@ export async function POST(req: Request) {
   } catch (e) {
     console.warn("[brand-memory] package learn failed:", e);
   }
-  return NextResponse.json({ token });
+
+  const snap = getCurrentSnapshotForProject(parsed.data.projectId);
+  return NextResponse.json({
+    token,
+    version: snap?.version ?? null,
+    publishedAt: snap?.payload?.publishedAt ?? null,
+    packageReady: snap?.payload?.package?.ready ?? false,
+  });
 }

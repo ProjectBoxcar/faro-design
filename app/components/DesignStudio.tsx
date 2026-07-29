@@ -25,6 +25,7 @@ import {
   IDENTITY_PREVIEW_SECTIONS,
   type IdentityPreviewSection,
 } from "@/lib/design-preview";
+import { FaroBeacon } from "@/components/FaroLoader";
 import {
   DesignGenerationWindow,
   type DesignGenerationKind,
@@ -195,9 +196,14 @@ export function DesignStudio({
         if (!res.ok) throw new Error(data.error ?? "Could not check design generation");
         const job: DesignJobState = data.job;
         if (cancelled) return;
-        setJobProgress({
-          done: job.asset_ids?.length ?? 0,
-          total: job.count ?? 0,
+        // Never let poll glitches drop completed counts (would yank the bar backward).
+        setJobProgress((prev) => {
+          const done = job.asset_ids?.length ?? 0;
+          const total = job.count ?? prev.total ?? 0;
+          return {
+            done: Math.max(prev.done, done),
+            total: Math.max(prev.total, total),
+          };
         });
         if (job.status === "complete") {
           const generated: AssetRow[] = data.assets;
@@ -223,7 +229,15 @@ export function DesignStudio({
         }
         if (job.status === "failed") {
           const stopped = /stopped/i.test(job.error ?? "");
-          setError(stopped ? null : (job.error ?? "Design generation failed"));
+          if (stopped) {
+            setError(null);
+          } else {
+            const hint =
+              typeof job.errorHint === "string" && job.errorHint.trim()
+                ? ` ${job.errorHint}`
+                : " Check Settings if this keeps failing, then try again.";
+            setError((job.error ?? "Design generation failed.") + hint);
+          }
           setLoading(null);
           setJobProgress({ done: 0, total: 0 });
           setStopping(false);
@@ -609,11 +623,8 @@ export function DesignStudio({
       {!apiKeyConfigured && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
           <AlertCircle size={18} className="mt-0.5 shrink-0" />
-          Design Studio uses <strong className="font-medium">Open Design only</strong> (not OpenAI or
-          Gemini). Save an Anthropic key in Settings. Faro tries to start the OD daemon automatically
-          when you generate; if it fails, run{" "}
-          <code className="text-xs">npm run od:ensure</code> or{" "}
-          <code className="text-xs">start-open-design.ps1</code>.
+          Design package needs your <strong className="font-medium">Claude key</strong> in Settings
+          and the app launcher running. Open Settings if generation is blocked.
         </div>
       )}
 
@@ -1149,7 +1160,7 @@ function PipelineStep({
           aria-busy={isGenerating}
           className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isGenerating ? <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Sparkles size={16} />}
+          {isGenerating ? <FaroBeacon size="sm" tone="light" /> : <Sparkles size={16} />}
           {isGenerating ? "Generating 3 proposals..." : proposals.length > 0 ? "Regenerate proposals" : meta.cta}
         </button>
         {proposals.length > 0 && (

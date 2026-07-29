@@ -10,6 +10,7 @@ import {
 import { methodology } from "@/lib/methodology";
 import { getProject, getSections, listStudioAssets } from "@/lib/queries";
 import { designStudioBlockedReason, hasApprovedLogo, studioBlockedReason } from "@/lib/studio";
+import { hasConfirmedBrandName, needsNameWorkshop } from "@/lib/naming-propose";
 
 /** Shared stage state for every journey item (strategy, logo, design, handover). */
 export type StageStatus = "locked" | "todo" | "current" | "done";
@@ -63,6 +64,11 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
   const logoBlocked = studioBlockedReason(projectId, "logo");
   const logoUnlocked = !logoBlocked;
   const logoApproved = hasApprovedLogo(projectId);
+  const logoHasWork = listStudioAssets(projectId, "logo").some((a) => a.status !== "discarded");
+  // Once the owner has entered naming or logos, never hard-lock those rows —
+  // they must be able to come back like Strategy.
+  const nameConfirmed = hasConfirmedBrandName(projectId);
+  const nameStillNeeded = needsNameWorkshop(projectId);
   const designBlocked = designStudioBlockedReason(projectId);
   const designUnlocked = !designBlocked;
 
@@ -209,20 +215,35 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       steps: strategySteps,
     },
     {
+      id: "name",
+      name: "2. Brand name",
+      href: `/projects/${projectId}/name`,
+      // Open once strategy is ready, or if they already touched logos/name.
+      locked: !logoUnlocked && !logoHasWork && !logoApproved && !nameConfirmed,
+      done: nameConfirmed || (logoUnlocked && !nameStillNeeded) || logoApproved,
+      lockHint: logoBlocked ?? "Finish strategy first",
+      doneDetail: "Name set for logos",
+      todoDetail: nameStillNeeded ? "Suggest or keep a name" : "Confirm name for logos",
+    },
+    {
       id: "logo",
-      name: "2. Logo Workshop",
+      name: "3. Logo Workshop",
+      // Always go to studio when clickable. Name gate is a soft page redirect only
+      // on first entry (no logo work yet) — never freeze this stage forever.
       href: `/projects/${projectId}/studio`,
-      locked: !logoUnlocked,
+      locked: !logoUnlocked && !logoHasWork && !logoApproved,
       done: logoApproved,
       lockHint: logoBlocked ?? "Finish strategy first",
       doneDetail: "Logo approved",
-      todoDetail: listStudioAssets(projectId, "logo").some((a) => a.status !== "discarded")
+      todoDetail: logoHasWork
         ? "Choose and approve a logo"
-        : "Generate logo candidates",
+        : nameStillNeeded
+          ? "Set name if prompted, then generate logos"
+          : "Generate logo candidates",
     },
     {
       id: "design",
-      name: "3. Design Studio",
+      name: "4. Design Studio",
       href: `/projects/${projectId}/design`,
       locked: !designUnlocked,
       done: designDone,
@@ -235,7 +256,7 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
     },
     {
       id: "handover",
-      name: "4. Brand Handover",
+      name: "5. Brand Handover",
       href: `/projects/${projectId}/handover`,
       locked: !handoverUnlocked,
       done: handoverDone,

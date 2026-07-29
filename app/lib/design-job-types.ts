@@ -13,4 +13,10 @@ export type DesignJobState = {
   status: "queued" | "running" | "complete" | "failed";
   asset_ids: string[] | null;
   error: string | null;
+  /** Always open-design-daemon for Design Studio jobs */
+  engine?: "open-design-daemon";
+  /** Partial proposals kept; generate remaining on resume */
+  resumable?: boolean;
+  errorCode?: string | null;
+  errorHint?: string | null;
 };

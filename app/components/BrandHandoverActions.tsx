@@ -16,6 +16,7 @@ export function BrandHandoverActions({
 }) {
   const router = useRouter();
   const [shareToken, setShareToken] = useState(initialShareToken);
+  const [version, setVersion] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [packBusy, setPackBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -35,6 +36,7 @@ export function BrandHandoverActions({
       if (!res.ok) throw new Error(data.error ?? "Could not publish");
       const token = (data.token as string | undefined) ?? null;
       if (token) setShareToken(token);
+      setVersion((data.version as number | null | undefined) ?? null);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not publish");
@@ -88,8 +90,8 @@ export function BrandHandoverActions({
       <p className="text-xs font-medium text-[var(--muted)]">
         {packageReady
           ? shareToken
-            ? "Published — share, present, or implement"
-            : "Ready to publish or download the implement pack"
+            ? `Published${version != null ? ` v${version}` : ""} — frozen share link · present or implement`
+            : "Ready to publish (freezes snapshot) or download the implement pack"
           : "Finish all three finals to unlock export"}
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">

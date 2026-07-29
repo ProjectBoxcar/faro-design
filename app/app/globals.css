@@ -82,6 +82,55 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Faro beacon loader — lighthouse mark from the visual system */
+@keyframes faro-loader-beam-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes faro-loader-lamp {
+  0%, 100% { opacity: 0.55; filter: drop-shadow(0 0 2px currentColor); }
+  50% { opacity: 1; filter: drop-shadow(0 0 10px currentColor); }
+}
+
+@keyframes faro-loader-ring {
+  0%, 100% { opacity: 0.2; transform: scale(0.92); }
+  50% { opacity: 0.55; transform: scale(1.04); }
+}
+
+@keyframes faro-loader-halo {
+  0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(0.88); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); }
+}
+
+@keyframes faro-loader-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.faro-loader {
+  animation: faro-loader-bob 3.2s ease-in-out infinite;
+}
+
+.faro-loader-beams {
+  animation: faro-loader-beam-spin 3.8s linear infinite;
+  transform-box: view-box;
+  transform-origin: 40px 22px;
+}
+
+.faro-loader-lamp {
+  animation: faro-loader-lamp 1.5s ease-in-out infinite;
+}
+
+.faro-loader-ring {
+  transform-origin: 40px 40px;
+  animation: faro-loader-ring 2.4s ease-in-out infinite;
+}
+
+.faro-loader-halo {
+  animation: faro-loader-halo 2.6s ease-in-out infinite;
+}
+
 .faro-generation-progress {
   animation: faro-generation-progress 1.8s ease-in-out infinite;
 }
@@ -99,7 +148,12 @@ body {
   .faro-generation-progress,
   .faro-generation-spark,
   .faro-generation-dot,
-  .faro-generation-focus {
+  .faro-generation-focus,
+  .faro-loader,
+  .faro-loader-beams,
+  .faro-loader-lamp,
+  .faro-loader-ring,
+  .faro-loader-halo {
     animation: none;
     transform: none;
   }
