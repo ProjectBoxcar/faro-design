@@ -1,6 +1,6 @@
 /**
  * Brand name workshop — after strategy, before logos.
- * Working titles from Start are fine; we only propose when the name looks temporary.
+ * Owner always confirms (pick or keep working title) so logos lock a deliberate spelling.
  */
 import "server-only";
 // Strategy lane only (Anthropic / Settings strategy key) — same as Express.
@@ -21,17 +21,59 @@ import { isGenericBrandName } from "@/lib/naming-generic";
 
 export { isGenericBrandName } from "@/lib/naming-generic";
 
+/** True once the owner explicitly confirmed a name (pick or keep working title). */
 export function hasConfirmedBrandName(projectId: string): boolean {
+  const presentation = getSectionRow(projectId, "naming.presentation");
+  const chosen = (presentation?.value as { chosen?: string } | undefined)?.chosen?.trim();
+  if (chosen && chosen.length >= 2) return true;
+
+  // New writes use naming_confirm — never count availability research as confirm.
+  if (
+    listEvaluations(projectId, "naming_confirm").some(
+      (e) => e.verdict === "pass" && Boolean(e.subject?.trim())
+    )
+  ) {
+    return true;
+  }
+
+  // Legacy: old confirmBrandName wrote type "naming" with score key "source".
+  // Do not treat bare availability "pass" rows as confirmed.
   return listEvaluations(projectId, "naming").some(
-    (e) => e.verdict === "pass" && Boolean(e.subject?.trim())
+    (e) =>
+      e.verdict === "pass" &&
+      Boolean(e.subject?.trim()) &&
+      (e.scores ?? []).some((s) => s.key === "source")
   );
 }
 
-/** Show name workshop only when name looks temporary and owner hasn't confirmed one yet. */
+/**
+ * Show name workshop until the owner confirms — for both temporary labels and
+ * real-looking Start titles (one-click keep is enough).
+ */
 export function needsNameWorkshop(projectId: string): boolean {
-  if (hasConfirmedBrandName(projectId)) return false;
-  const name = getProject(projectId)?.name?.trim() || "";
-  return isGenericBrandName(name);
+  return !hasConfirmedBrandName(projectId);
+}
+
+/** Resolved brand name for wordmarks: confirmed first, else project name. */
+export function confirmedOrWorkingName(projectId: string): string | null {
+  const presentation = getSectionRow(projectId, "naming.presentation");
+  const chosen = (presentation?.value as { chosen?: string } | undefined)?.chosen?.trim();
+  if (chosen) return chosen;
+
+  const confirm = listEvaluations(projectId, "naming_confirm").find(
+    (e) => e.verdict === "pass" && e.subject?.trim()
+  );
+  if (confirm?.subject?.trim()) return confirm.subject.trim();
+
+  const legacy = listEvaluations(projectId, "naming").find(
+    (e) =>
+      e.verdict === "pass" &&
+      e.subject?.trim() &&
+      (e.scores ?? []).some((s) => s.key === "source")
+  );
+  if (legacy?.subject?.trim()) return legacy.subject.trim();
+
+  return getProject(projectId)?.name?.trim() || null;
 }
 
 function fieldString(value: Record<string, unknown> | null | undefined, ...keys: string[]): string {
@@ -166,7 +208,7 @@ export function readCachedNameProposals(projectId: string): NameCandidate[] {
     .filter((c) => c.name.length >= 2);
 }
 
-/** Confirm a brand name for logos (updates project + naming evaluation). */
+/** Confirm a brand name for logos (updates project + naming_confirm evaluation). */
 export function confirmBrandName(
   projectId: string,
   name: string,
@@ -185,7 +227,7 @@ export function confirmBrandName(
 
   insertEvaluation({
     projectId,
-    type: "naming",
+    type: "naming_confirm",
     subject: clean,
     scores: [
       {

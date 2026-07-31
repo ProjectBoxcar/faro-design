@@ -170,7 +170,14 @@ export async function runNameAvailabilityCheck(
     ...checks.map((c, i) => ({ key: `check-${i}`, label: c.item, result: c.result, notes: c.notes })),
   ];
 
-  const evaluation = insertEvaluation({ projectId, type: "naming", subject: trimmed, scores, verdict });
+  // Separate type from workshop confirm so a research "pass" never marks the name confirmed.
+  const evaluation = insertEvaluation({
+    projectId,
+    type: "naming_availability",
+    subject: trimmed,
+    scores,
+    verdict,
+  });
   return { evaluation, domains };
 }
 
@@ -184,17 +191,29 @@ function deriveVerdict(checks: { result: string }[]): "pass" | "caveat" | "fail"
 export function suggestedCandidates(projectId: string): string[] {
   const names: string[] = [];
   const presentation = getSectionRow(projectId, "naming.presentation");
-  const candidates = (presentation?.value as Record<string, unknown> | undefined)?.candidates;
-  if (Array.isArray(candidates)) {
-    for (const row of candidates as Record<string, string>[]) {
+  const chosen = (presentation?.value as { chosen?: string } | undefined)?.chosen?.trim();
+  if (chosen) names.push(chosen);
+  const presentationCandidates = (presentation?.value as Record<string, unknown> | undefined)
+    ?.candidates;
+  if (Array.isArray(presentationCandidates)) {
+    for (const row of presentationCandidates as Record<string, string>[]) {
       if (row?.name?.trim()) names.push(row.name.trim());
     }
   }
+  // Workshop proposals live on naming.exploration.candidates (not .directions).
   const exploration = getSectionRow(projectId, "naming.exploration");
+  const explorationCandidates = (exploration?.value as Record<string, unknown> | undefined)
+    ?.candidates;
+  if (Array.isArray(explorationCandidates)) {
+    for (const row of explorationCandidates as Record<string, string>[]) {
+      if (row?.name?.trim()) names.push(row.name.trim());
+    }
+  }
   const directions = (exploration?.value as Record<string, unknown> | undefined)?.directions;
   if (Array.isArray(directions)) {
     for (const row of directions as Record<string, string>[]) {
       if (row?.direction?.trim()) names.push(row.direction.trim());
+      if (row?.name?.trim()) names.push(row.name.trim());
     }
   }
   const project = getProject(projectId);

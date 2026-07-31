@@ -75,6 +75,18 @@ On success, callers may assert `result.engine` is in the allowed set for that la
 
 ---
 
+## Journey lifecycle notes (owner path)
+
+- **Quick Start** persists all six answers on `intake.answers` *before* AI expansion (`intake.taste` is still mirrored for design).
+- **Express** drafts stay `draft` until the owner **Approves**; pipeline status (including cancel) is durable on `express.pipeline`.
+- **Brand name** must be confirmed (pick or keep working title) before first logo generate; availability research uses `naming_availability`, not confirm.
+- **Express approve** freezes a **strategy brief** share (not the full brand package). When Design Studio finals land, lifecycle re-freezes package on the same token when ready.
+- **Phases:** `strategic` → `planning` (strategy ready) → `design` (logo approved) → `finished` (package + share).
+
+See pilot audit: `docs/reports/2026-07-31-city-home-pilot-audit.md`.
+
+---
+
 ## Failure policy
 
 | Failure | Correct product behavior |

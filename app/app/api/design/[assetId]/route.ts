@@ -73,7 +73,16 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({ asset, job: mockupsJob });
+    // Selecting landing/deck finals may complete the package → re-freeze share.
+    let lifecycle = null;
+    try {
+      const { syncProjectLifecycle } = await import("@/lib/project-lifecycle");
+      lifecycle = syncProjectLifecycle(projectId);
+    } catch (e) {
+      console.warn("[lifecycle] design select sync failed:", e);
+    }
+
+    return NextResponse.json({ asset, job: mockupsJob, lifecycle });
   }
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });

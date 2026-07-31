@@ -26,7 +26,8 @@ export default async function DesignPage({
   const assets = listAssets(id);
   const openDesign = designApiKeyStatus();
   const activeJob = getActiveDesignJob(id);
-  if (activeJob) void startDesignJob(activeJob.id);
+  // Always resume — never wipe proposals that landed before a refresh/restart.
+  if (activeJob) void startDesignJob(activeJob.id, { resume: true });
 
   return (
     <DesignStudio

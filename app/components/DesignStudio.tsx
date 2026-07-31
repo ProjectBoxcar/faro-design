@@ -315,7 +315,7 @@ export function DesignStudio({
   ) {
     if (!apiKeyConfigured) {
       setError(
-        "Design Studio needs Open Design + Anthropic. Save an Anthropic key in Settings and start the OD daemon."
+        "Design Studio needs Open Design + an Anthropic key. Save Claude in Settings (AI setup), then start the Open Design daemon (port 7456): run start-open-design.ps1 or npm run od:ensure. Logos use a separate OpenAI key — they do not power Design Studio."
       );
       return;
     }
@@ -623,8 +623,24 @@ export function DesignStudio({
       {!apiKeyConfigured && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
           <AlertCircle size={18} className="mt-0.5 shrink-0" />
-          Design package needs your <strong className="font-medium">Claude key</strong> in Settings
-          and the app launcher running. Open Settings if generation is blocked.
+          <div>
+            <p>
+              Design Studio needs{" "}
+              <strong className="font-medium">Claude (Anthropic) in Settings → AI setup</strong> and
+              the <strong className="font-medium">Open Design daemon on port 7456</strong>.
+            </p>
+            <p className="mt-1.5 text-[var(--muted)]">
+              If generation fails with “daemon not running”, start it with{" "}
+              <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">
+                start-open-design.ps1
+              </code>{" "}
+              or{" "}
+              <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">
+                npm run od:ensure
+              </code>
+              . Logo Workshop uses OpenAI/Gemini separately — not this engine.
+            </p>
+          </div>
         </div>
       )}
 

@@ -16,10 +16,13 @@ export function NameWorkshop({
   projectId,
   workingName,
   initialCandidates,
+  isGenericWorkingTitle = true,
 }: {
   projectId: string;
   workingName: string;
   initialCandidates: NameCandidateDto[];
+  /** When false, copy treats the Start name as a real candidate to confirm, not a placeholder. */
+  isGenericWorkingTitle?: boolean;
 }) {
   const router = useRouter();
   const [candidates, setCandidates] = useState(initialCandidates);
@@ -100,9 +103,19 @@ export function NameWorkshop({
       </p>
       <h1 className="mt-2 font-serif text-4xl font-medium tracking-tight">Brand name</h1>
       <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-        You started with <strong className="text-[var(--foreground)]">“{workingName}”</strong>, which
-        still looks like a temporary label. Logos will lock the spelling — pick a stronger name now,
-        or keep this one for now.
+        {isGenericWorkingTitle ? (
+          <>
+            You started with <strong className="text-[var(--foreground)]">“{workingName}”</strong>,
+            which still looks like a temporary label. Logos will lock the spelling — pick a stronger
+            name now, or keep this one for now.
+          </>
+        ) : (
+          <>
+            You started with <strong className="text-[var(--foreground)]">“{workingName}”</strong>.
+            Confirm it for logos, type a different name, or ask for strategy-based suggestions. One
+            click is enough — logos use whatever you lock here.
+          </>
+        )}
       </p>
 
       <div className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">

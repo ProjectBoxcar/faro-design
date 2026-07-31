@@ -27,10 +27,13 @@ a brief they can act on immediately. URL: `/share/<token>` with an unguessable t
 
 ## Behavior
 
+- **Two share meanings (do not conflate):**
+  1. **Strategy brief shared** — Express approve (or early publish) freezes strategy only; package may be `ready: false`.
+  2. **Brand package published** — identity + landing + deck finals frozen (auto re-freeze via `syncProjectLifecycle` when package completes with an existing token, or owner “Update package freeze”).
 - **Snapshot on publish (current):** Each publish freezes brief + selected design package (+ implement
   pack when ready) into `publish_snapshots`. Share routes serve the **current** snapshot so later
   edits in Faro do not rewrite what the designer already received. Re-publish creates **vN+1**
-  (same share token by default). See `lib/publish-snapshot.ts`.
+  (same share token by default). See `lib/publish-snapshot.ts`, `lib/project-lifecycle.ts`.
 - **Legacy:** Tokens published before snapshots existed fall back to live DB compile.
 - **Copy as Markdown** per section and for the whole brief, so the designer can paste into their tools.
 - **Revoke:** clearing `share_token` unpublishes the link; snapshot history is retained locally but

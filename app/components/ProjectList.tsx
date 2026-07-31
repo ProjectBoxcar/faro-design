@@ -181,10 +181,12 @@ export function ProjectList({ projects }: { projects: ProjectCardData[] }) {
           const isSelected = selected.has(p.id);
           const strategyDone =
             p.published ||
+            p.phase === "planning" ||
             p.phase === "design" ||
             p.phase === "finished" ||
             (p.strategyTotal > 0 && p.strategyComplete >= p.strategyTotal) ||
-            p.logoWorkshopReady;
+            p.logoWorkshopReady ||
+            p.logoApproved;
           const draftedReady =
             !strategyDone && p.strategyTotal > 0 && p.strategyFilled >= p.strategyTotal;
           // Order: strategy → Logo Workshop → Design Studio → Brand Handover

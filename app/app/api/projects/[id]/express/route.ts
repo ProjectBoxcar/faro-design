@@ -170,10 +170,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // Complete every methodology step that has content — including Reality inputs
   // filled at Quick Start so the journey shows Strategy → Handover complete.
   completeSectionsWithContent(id, flowSteps().map((s) => s.sectionId));
+  // Strategy brief share: freezes strategy for a designer. This is NOT the full
+  // brand package (identity + mockups) — that freezes later via lifecycle sync.
   const token = publishProject(id);
+  let snapshotVersion: number | null = null;
   try {
     const { createPublishSnapshot } = await import("@/lib/publish-snapshot");
-    createPublishSnapshot(id, token);
+    const snap = createPublishSnapshot(id, token);
+    snapshotVersion = snap.version;
   } catch (e) {
     console.error("[publish] express approve snapshot failed:", e);
     return NextResponse.json(
@@ -188,13 +192,31 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   } catch (e) {
     console.warn("[brand-memory] strategy learn failed:", e);
   }
-  // Temporary working titles → name workshop; real names skip to Logo Workshop.
-  let nextPath = `/projects/${id}/studio`;
+  // Advance phase (planning = strategy ready; finished only after design package).
+  let phase: string = "planning";
+  let packageReady = false;
+  try {
+    const { syncProjectLifecycle } = await import("@/lib/project-lifecycle");
+    const life = syncProjectLifecycle(id);
+    phase = life.phase;
+    packageReady = life.packageReady;
+  } catch (e) {
+    console.warn("[lifecycle] express approve sync failed:", e);
+  }
+  // Always confirm brand name after strategy (pick or keep working title), then logos.
+  let nextPath = `/projects/${id}/name`;
   try {
     const { needsNameWorkshop } = await import("@/lib/naming-propose");
-    if (needsNameWorkshop(id)) nextPath = `/projects/${id}/name`;
+    if (!needsNameWorkshop(id)) nextPath = `/projects/${id}/studio`;
   } catch {
-    /* keep studio default */
+    /* keep name default */
   }
-  return NextResponse.json({ token, nextPath });
+  return NextResponse.json({
+    token,
+    nextPath,
+    phase,
+    version: snapshotVersion,
+    packageReady,
+    shareKind: packageReady ? "brand_package" : "strategy_brief",
+  });
 }

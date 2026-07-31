@@ -156,7 +156,30 @@ export default function StartPage() {
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.projectId) {
+      if (!data.projectId) {
+        setError(data.error ?? "Something went wrong. Please try again.");
+        setBuilding(false);
+        return;
+      }
+      // Answers are saved even when AI is skipped or expansion fails.
+      if (data.aiSkipped) {
+        router.push(
+          `/projects/${data.projectId}?aiSkipped=1${
+            data.error ? `&msg=${encodeURIComponent(String(data.error).slice(0, 200))}` : ""
+          }`
+        );
+        return;
+      }
+      if (data.error || (typeof data.filled === "number" && data.filled === 0 && res.status !== 201)) {
+        // Raw answers on file; strategy drafts did not complete — still open express
+        // so they can resume, with a clear warning in the URL.
+        const warn = encodeURIComponent(
+          String(data.error ?? "Could not draft strategy from your answers. Your answers were saved.")
+        );
+        router.push(`/projects/${data.projectId}/express?intakeError=${warn}`);
+        return;
+      }
+      if (!res.ok) {
         setError(data.error ?? "Something went wrong. Please try again.");
         setBuilding(false);
         return;

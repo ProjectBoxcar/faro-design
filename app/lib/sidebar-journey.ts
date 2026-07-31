@@ -61,6 +61,9 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
   const nextReviewGroup = firstIncompleteReviewGroup(statusMap);
   const designAssets = listDesignAssets(projectId);
 
+  // Palette gate = strategy content only (concept/plan/brief). Logo gate also
+  // requires name confirm for first-time generation.
+  const strategyContentBlocked = studioBlockedReason(projectId, "palette");
   const logoBlocked = studioBlockedReason(projectId, "logo");
   const logoUnlocked = !logoBlocked;
   const logoApproved = hasApprovedLogo(projectId);
@@ -69,6 +72,7 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
   // they must be able to come back like Strategy.
   const nameConfirmed = hasConfirmedBrandName(projectId);
   const nameStillNeeded = needsNameWorkshop(projectId);
+  const strategyContentReady = !strategyContentBlocked;
   const designBlocked = designStudioBlockedReason(projectId);
   const designUnlocked = !designBlocked;
 
@@ -81,9 +85,16 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
   const handoverUnlocked = designUnlocked; // open once design is available
   const handoverDone = designDone; // package complete when all finals chosen
 
-  // Strategy is complete when the logo workshop unlocks (or later stages already passed).
+  // Strategy is complete when strategy content is ready (name/logo gates are separate).
   const strategyDone =
-    logoUnlocked || logoApproved || designUnlocked || designDone || project.current_phase === "finished";
+    strategyContentReady ||
+    logoUnlocked ||
+    logoApproved ||
+    designUnlocked ||
+    designDone ||
+    project.current_phase === "planning" ||
+    project.current_phase === "design" ||
+    project.current_phase === "finished";
 
   // Strategy pillar steps (same status rules)
   const groupById = new Map(reviewGroups().map((g) => [g.id, g]));
@@ -218,12 +229,15 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       id: "name",
       name: "2. Brand name",
       href: `/projects/${projectId}/name`,
-      // Open once strategy is ready, or if they already touched logos/name.
-      locked: !logoUnlocked && !logoHasWork && !logoApproved && !nameConfirmed,
-      done: nameConfirmed || (logoUnlocked && !nameStillNeeded) || logoApproved,
-      lockHint: logoBlocked ?? "Finish strategy first",
-      doneDetail: "Name set for logos",
-      todoDetail: nameStillNeeded ? "Suggest or keep a name" : "Confirm name for logos",
+      // Open when strategy content is ready (not when logo generate is fully unblocked).
+      locked: !strategyContentReady && !logoHasWork && !logoApproved && !nameConfirmed,
+      // Only confirmed (or logo already approved as legacy escape) counts as done.
+      done: nameConfirmed || logoApproved,
+      lockHint: strategyContentBlocked ?? "Finish strategy first",
+      doneDetail: "Name confirmed for logos",
+      todoDetail: nameStillNeeded
+        ? "Confirm this name or pick another"
+        : "Confirm name for logos",
     },
     {
       id: "logo",
@@ -238,7 +252,7 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       todoDetail: logoHasWork
         ? "Choose and approve a logo"
         : nameStillNeeded
-          ? "Set name if prompted, then generate logos"
+          ? "Confirm name first, then generate logos"
           : "Generate logo candidates",
     },
     {
@@ -262,10 +276,14 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       done: handoverDone,
       lockHint: "Unlocks with Design Studio",
       doneDetail: project.share_token
-        ? "Package ready · published"
+        ? "Package ready · brand package published"
         : "Package ready · download or publish",
       todoDetail: designUnlocked
-        ? "Finish Design Studio finals"
+        ? designDone
+          ? project.share_token
+            ? "Update freeze or download package"
+            : "Publish brand package or download"
+          : "Finish Design Studio finals"
         : "Complete design first",
     },
   ];

@@ -18,6 +18,11 @@ import {
 import type { EvalScore } from "@/lib/db/types";
 import { nanoid } from "nanoid";
 import { sanitizeStudioSvg } from "@/lib/studio-svg";
+import { confirmedOrWorkingName, hasConfirmedBrandName } from "@/lib/naming-propose";
+import {
+  assessLogoBatchDiversity,
+  shouldRetryForLogoDiversity,
+} from "@/lib/logo-diversity-pure";
 
 // Asset Studio pipeline (see 10-asset-studio.md). Batch 1: the logo workspace.
 // Flow per kind: generate candidates → skeptical-judge scoring → auto-discard
@@ -130,11 +135,10 @@ function strategyContext(projectId: string): { context: string; reads: string[] 
   return { context: parts.join("\n\n"), reads };
 }
 
-// The name the wordmarks carry: a passed naming check when available, else the project name.
+// The name the wordmarks carry: confirmed workshop name first, else project name.
+// Never uses availability-check passes (those are research only).
 export function clearedName(projectId: string): string | null {
-  const passed = listEvaluations(projectId, "naming").find((e) => e.verdict === "pass" && e.subject);
-  if (passed?.subject) return passed.subject;
-  return getProject(projectId)?.name?.trim() || null;
+  return confirmedOrWorkingName(projectId);
 }
 
 // True once the owner has approved a logo in the Logo Workshop.
@@ -147,8 +151,8 @@ export function getApprovedLogo(projectId: string): StudioAssetRow | null {
 }
 
 // Server-side gate: Logo Workshop opens after the strategy essentials exist
-// (draft or complete). Naming checks are preferred but not required — the
-// project name is used for wordmarks when no availability check has passed.
+// (draft or complete). New projects must confirm a brand name before first logo
+// generate; projects that already have logo work keep access (legacy pilot).
 export function studioBlockedReason(projectId: string, kind: StudioAssetRow["kind"]): string | null {
   const project = getProject(projectId);
   if (!project) return "Unknown project";
@@ -172,6 +176,12 @@ export function studioBlockedReason(projectId: string, kind: StudioAssetRow["kin
   }
   if (kind === "logo" && !clearedName(projectId)) {
     return "Give the project a brand name before designing the logo.";
+  }
+  if (kind === "logo") {
+    const hasLogoWork = listStudioAssets(projectId, "logo").some((a) => a.status !== "discarded");
+    if (!hasConfirmedBrandName(projectId) && !hasLogoWork) {
+      return "Confirm your brand name first — pick one or keep your working title, then generate logos.";
+    }
   }
   return null;
 }
@@ -400,15 +410,27 @@ Constraints for every candidate:
 Return EXACTLY 3 candidates in order (wordmark, mark+word, integrated):
 {"candidates":[{"label","direction","svg","svgOnDark","fonts":["Family",...]}, ...]}`;
 
-  // Prefer a full set of 3 usable marks; one retry if the model under-delivers.
+  // Prefer a full set of 3 usable, structurally diverse marks; retry if short or samey.
+  // Track the *actual* engine/model (OpenAI or Gemini fallback) for provenance.
   let candidates: GeneratedMark[] = [];
   let genText = "";
-  for (let attempt = 0; attempt < 2 && candidates.length < 3; attempt++) {
+  let usedModel = model;
+  let usedEngine: string = "openai-direct";
+  const maxAttempts = base ? 2 : 3; // variations: fewer retries; fresh batch: allow diversity retry
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     throwIfLogoCancelled(runId);
-    const retryNote =
-      attempt === 0
-        ? ""
-        : `\n\nRETRY: Return EXACTLY 3 complete candidates with the three REQUIRED STRUCTURES (wordmark / mark+word / integrated). Prior attempt only had ${candidates.length}. Make them visually distinct — not the same layout with a different font.`;
+    const needMore = candidates.length < 3;
+    const diversity = assessLogoBatchDiversity(candidates);
+    const needDiversity = !base && shouldRetryForLogoDiversity(diversity);
+    if (attempt > 0 && !needMore && !needDiversity) break;
+
+    let retryNote = "";
+    if (attempt > 0 && needMore) {
+      retryNote = `\n\nRETRY: Return EXACTLY 3 complete candidates with the three REQUIRED STRUCTURES (wordmark / mark+word / integrated). Prior attempt only had ${candidates.length}. Make them visually distinct — not the same layout with a different font.`;
+    } else if (attempt > 0 && needDiversity) {
+      retryNote = `\n\nRETRY — STRUCTURE DIVERSITY: The last batch looked too similar (${diversity.kinds.join(", ")}). Return EXACTLY 3 candidates that are clearly different structures: (1) solid wordmark only, (2) separate mark + word, (3) integrated lockup/badge/stack. Name each structure in the "direction" field.`;
+    }
+
     const result = await generateLogoText({
       model,
       maxTokens: 9000,
@@ -418,24 +440,37 @@ Return EXACTLY 3 candidates in order (wordmark, mark+word, integrated):
     });
     throwIfLogoCancelled(runId);
     genText = result.text;
+    usedModel = result.model || model;
+    usedEngine = result.engine ?? usedEngine;
     const parsed = extractJson(genText) as { candidates?: GeneratedMark[] };
     candidates = (parsed.candidates ?? []).filter((c) => c?.label && c?.svg).slice(0, 3);
+
+    if (candidates.length >= 3 && !shouldRetryForLogoDiversity(assessLogoBatchDiversity(candidates))) {
+      break;
+    }
   }
   throwIfLogoCancelled(runId);
   if (candidates.length === 0) throw new Error("Generation returned no usable candidates — try again.");
   if (candidates.length < 3) {
     console.warn(`[studio] logo generation returned ${candidates.length}/3 candidates after retry`);
   }
+  const finalDiversity = assessLogoBatchDiversity(candidates);
+  if (!base && !finalDiversity.diverseEnough) {
+    console.warn(
+      `[studio] logo batch still low diversity after retries: ${finalDiversity.kinds.join(", ")}`
+    );
+  }
 
-  // Provenance, same ledger as strategy drafts.
+  // Provenance, same ledger as strategy drafts — store actual model + engine.
   db.insert(ai_generations)
     .values({
       id: nanoid(),
       project_id: projectId,
       section_key: "studio.logo",
-      model,
+      model: `${usedModel}${usedEngine ? ` (${usedEngine})` : ""}`,
       reads,
       output: genText.slice(0, 20000),
+      accepted: true,
     })
     .run();
 
@@ -459,7 +494,7 @@ Candidates:
 ${JSON.stringify(candidates.map((c) => ({ label: c.label, direction: c.direction, svg: c.svg })))}
 Return: {"scores":[{"label","criteria":[{"criterion","result","note"}],"verdict","summary"}]}`;
 
-  const { text: judgeText } = await generateLogoText({
+  const judgeResult = await generateLogoText({
     model,
     maxTokens: 4096,
     temperature: 0.3,
@@ -467,6 +502,7 @@ Return: {"scores":[{"label","criteria":[{"criterion","result","note"}],"verdict"
     messages: [{ role: "user", content: judgeUser }],
   });
   throwIfLogoCancelled(runId);
+  const judgeText = judgeResult.text;
   const judged = extractJson(judgeText) as {
     scores?: { label: string; criteria?: { criterion: string; result: string; note: string }[]; verdict?: string; summary?: string }[];
   };
@@ -502,6 +538,8 @@ Return: {"scores":[{"label","criteria":[{"criterion","result","note"}],"verdict"
         svgOnDark: c.svgOnDark ? sanitizeStudioSvg(c.svgOnDark) : undefined,
         tokens: {
           fonts: (c.fonts ?? []).slice(0, 4),
+          engine: usedEngine,
+          model: usedModel,
           ...(base
             ? {
                 refinedFrom: base.id,
@@ -513,7 +551,7 @@ Return: {"scores":[{"label","criteria":[{"criterion","result","note"}],"verdict"
       },
       evaluationId: evaluation.id,
       status: "candidate",
-      model,
+      model: usedModel,
     });
     if (verdict === "fail") discarded++; // for UI: "critic flagged N" if we surface it
     rows.push(row);

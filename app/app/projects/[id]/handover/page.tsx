@@ -11,6 +11,7 @@ import {
 import { listAssets } from "@/lib/design";
 import { getProject } from "@/lib/queries";
 import { designStudioBlockedReason } from "@/lib/studio";
+import { getCurrentSnapshotForProject } from "@/lib/publish-snapshot";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ export default async function BrandHandoverPage({
     }));
 
   const packageReady = !issue && outputs.length === FINAL_DESIGN_KINDS.length;
+  const snap = getCurrentSnapshotForProject(id);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-5 py-8 lg:px-12 lg:py-10">
@@ -139,6 +141,8 @@ export default async function BrandHandoverPage({
                 projectId={id}
                 initialShareToken={project.share_token}
                 packageReady={packageReady}
+                initialSnapshotPackageReady={snap?.payload?.package?.ready ?? null}
+                initialVersion={snap?.version ?? null}
               />
             </div>
           </section>

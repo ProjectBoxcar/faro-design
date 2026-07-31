@@ -110,8 +110,18 @@ export const evaluations = sqliteTable(
     project_id: text("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
+    // naming = legacy (mixed confirm + availability); prefer naming_confirm /
+    // naming_availability for new writes so availability pass never equals "confirmed name".
     type: text("type", {
-      enum: ["viability", "naming", "logo", "territory", "concept"],
+      enum: [
+        "viability",
+        "naming",
+        "naming_confirm",
+        "naming_availability",
+        "logo",
+        "territory",
+        "concept",
+      ],
     }).notNull(),
     // Candidate label (e.g. "Finisterra", "Logo direction B"); null for project-level gates.
     subject: text("subject"),

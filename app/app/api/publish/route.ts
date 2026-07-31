@@ -48,9 +48,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  // Publishing with the full design package on file completes the journey.
-  if (!finalDeliverableIssue(listAssets(parsed.data.projectId))) {
-    setProjectPhase(parsed.data.projectId, "finished");
+  // Phase + any follow-up freeze consistency (usually already package-ready).
+  let phase: string | null = null;
+  try {
+    const { syncProjectLifecycle } = await import("@/lib/project-lifecycle");
+    phase = syncProjectLifecycle(parsed.data.projectId).phase;
+  } catch {
+    // Fallback: publishing with the full design package completes the journey.
+    if (!finalDeliverableIssue(listAssets(parsed.data.projectId))) {
+      setProjectPhase(parsed.data.projectId, "finished");
+      phase = "finished";
+    }
   }
   try {
     const { recordPackageLearning } = await import("@/lib/brand-memory");
@@ -60,10 +68,13 @@ export async function POST(req: Request) {
   }
 
   const snap = getCurrentSnapshotForProject(parsed.data.projectId);
+  const packageReady = snap?.payload?.package?.ready ?? false;
   return NextResponse.json({
     token,
     version: snap?.version ?? null,
     publishedAt: snap?.payload?.publishedAt ?? null,
-    packageReady: snap?.payload?.package?.ready ?? false,
+    packageReady,
+    phase,
+    shareKind: packageReady ? "brand_package" : "strategy_brief",
   });
 }

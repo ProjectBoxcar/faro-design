@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getProject } from "@/lib/queries";
 import {
   hasConfirmedBrandName,
-  needsNameWorkshop,
+  isGenericBrandName,
   readCachedNameProposals,
 } from "@/lib/naming-propose";
 import { studioBlockedReason } from "@/lib/studio";
@@ -19,15 +19,15 @@ export default async function NameWorkshopPage({
   const project = getProject(id);
   if (!project) notFound();
 
-  // Strategy not ready → back to project hub
-  const strategyBlocked = studioBlockedReason(id, "logo");
-  if (strategyBlocked) {
+  // Name page needs strategy content only — logo kind also blocks on unconfirmed name,
+  // so use palette (same content gates, no name confirm).
+  const strategyOnlyBlocked = studioBlockedReason(id, "palette");
+  if (strategyOnlyBlocked) {
     redirect(`/projects/${id}`);
   }
 
-  // If name is already fine / confirmed, send people who landed here toward logos —
-  // but allow ?edit=1 later if we add rename. Default: continue the journey.
-  if (hasConfirmedBrandName(id) || !needsNameWorkshop(id)) {
+  // Already confirmed → continue to logos (still allow re-entry later via ?edit if added).
+  if (hasConfirmedBrandName(id)) {
     redirect(`/projects/${id}/studio`);
   }
 
@@ -38,6 +38,7 @@ export default async function NameWorkshopPage({
       projectId={id}
       workingName={project.name}
       initialCandidates={candidates}
+      isGenericWorkingTitle={isGenericBrandName(project.name)}
     />
   );
 }

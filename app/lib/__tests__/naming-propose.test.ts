@@ -18,5 +18,6 @@ describe("isGenericBrandName", () => {
     expect(isGenericBrandName("Northline Studio")).toBe(false);
     expect(isGenericBrandName("Aesop")).toBe(false);
     expect(isGenericBrandName("Paca")).toBe(false);
+    expect(isGenericBrandName("CITY HOME")).toBe(false);
   });
 });

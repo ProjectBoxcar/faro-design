@@ -1,26 +1,52 @@
 "use client";
 
 import { useState } from "react";
-import { Share2, Copy, Check, Link2Off, ExternalLink, FileDown } from "lucide-react";
+import { Share2, Copy, Check, Link2Off, ExternalLink, FileDown, RefreshCw } from "lucide-react";
+import { shareStateCopy } from "@/lib/project-lifecycle-pure";
 
 // Publish/unpublish the read-only handover brief and surface the shareable link.
 // `prominent` is the finish-line version shown when the strategy is reviewed:
 // bigger, with view + download actions alongside the link.
+//
+// Lifecycle honesty: strategy-only publish is "strategy brief shared"; full
+// brand package publish is separate once Design Studio finals exist.
 export function PublishPanel({
   projectId,
   initialToken,
   prominent = false,
+  initialPackageReady = false,
+  initialSnapshotPackageReady = null,
+  initialVersion = null,
 }: {
   projectId: string;
   initialToken: string | null;
   prominent?: boolean;
+  /** Live design package is complete (identity + landing + deck finals). */
+  initialPackageReady?: boolean;
+  /** Current freeze includes package (null = unknown). */
+  initialSnapshotPackageReady?: boolean | null;
+  initialVersion?: number | null;
 }) {
   const [token, setToken] = useState<string | null>(initialToken);
-  const [version, setVersion] = useState<number | null>(null);
+  const [version, setVersion] = useState<number | null>(initialVersion);
+  const [packageReady, setPackageReady] = useState(initialPackageReady);
+  const [snapshotPackageReady, setSnapshotPackageReady] = useState<boolean | null>(
+    initialSnapshotPackageReady
+  );
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const url = token ? `/share/${token}` : "";
+
+  const copy = shareStateCopy({
+    hasShareToken: Boolean(token),
+    packageReady,
+    snapshotPackageReady,
+    version,
+  });
+
+  const needsPackageUpdate =
+    Boolean(token) && packageReady && snapshotPackageReady === false;
 
   async function publish() {
     setBusy(true);
@@ -34,6 +60,9 @@ export function PublishPanel({
     if (res.ok) {
       setToken((data as { token: string }).token);
       setVersion((data as { version?: number | null }).version ?? null);
+      const ready = Boolean((data as { packageReady?: boolean }).packageReady);
+      setPackageReady(ready);
+      setSnapshotPackageReady(ready);
     } else setError((data as { error?: string }).error ?? "Could not publish the handover.");
     setBusy(false);
   }
@@ -50,6 +79,7 @@ export function PublishPanel({
     if (res.ok) {
       setToken(null);
       setVersion(null);
+      setSnapshotPackageReady(null);
     } else setError((data as { error?: string }).error ?? "Could not unpublish the handover.");
     setBusy(false);
   }
@@ -72,17 +102,9 @@ export function PublishPanel({
     return (
       <div className="card-shadow rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] p-6 lg:p-8">
         <h2 className="font-serif text-3xl font-medium tracking-tight">
-          {token ? "Your brief is ready 🎉" : "Hand off to your designer"}
+          {token ? copy.title : "Hand off your strategy brief"}
         </h2>
-        <p className="mt-2 max-w-2xl text-[var(--muted)]">
-          {token
-            ? `Read it over, send your designer the link, or download it in the format they prefer.${
-                version != null
-                  ? ` This is publish v${version} — frozen so later edits in Faro do not change the link until you publish again.`
-                  : " The share link is frozen at publish so later edits do not change what your designer sees."
-              }`
-            : "Your strategy is reviewed. Publish freezes a read-only snapshot your designer can open in any browser."}
-        </p>
+        <p className="mt-2 max-w-2xl text-[var(--muted)]">{copy.blurb}</p>
 
         {error && <p role="alert" className="mt-4 text-sm text-[var(--danger)]">{error}</p>}
 
@@ -93,10 +115,24 @@ export function PublishPanel({
             className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
           >
             <Share2 size={16} />
-            {busy ? "Publishing…" : "Publish & get share link"}
+            {busy ? "Publishing…" : "Publish strategy brief"}
           </button>
         ) : (
           <>
+            {needsPackageUpdate && (
+              <div className="mt-4 rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
+                Design finals are ready, but this link still freezes only the strategy brief.{" "}
+                <button
+                  type="button"
+                  onClick={publish}
+                  disabled={busy}
+                  className="inline-flex items-center gap-1 font-medium text-[var(--accent)] underline-offset-2 hover:underline disabled:opacity-50"
+                >
+                  <RefreshCw size={13} />
+                  {busy ? "Updating…" : "Update freeze with brand package"}
+                </button>
+              </div>
+            )}
             <div className="mt-5 flex flex-wrap items-center gap-2">
               <a
                 href={url}
@@ -154,10 +190,7 @@ export function PublishPanel({
       {error && <p role="alert" className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
       {!token ? (
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-[var(--muted)]">
-            Generate a private link to a clean, read-only brief your designer can open in any
-            browser.
-          </p>
+          <p className="text-sm text-[var(--muted)]">{copy.blurb}</p>
           <div>
             <button
               onClick={publish}
@@ -165,15 +198,26 @@ export function PublishPanel({
               className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
             >
               <Share2 size={15} />
-              {busy ? "Publishing…" : "Publish & get share link"}
+              {busy ? "Publishing…" : "Publish strategy brief"}
             </button>
           </div>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-[var(--muted)]">
-            This brief is live. Anyone with the link can view it (read-only).
+            <span className="font-medium text-[var(--foreground)]">{copy.title}.</span> {copy.blurb}
           </p>
+          {needsPackageUpdate && (
+            <button
+              type="button"
+              onClick={publish}
+              disabled={busy}
+              className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent)] transition hover:bg-[var(--accent-soft)] disabled:opacity-50"
+            >
+              <RefreshCw size={14} />
+              {busy ? "Updating…" : "Update freeze with brand package"}
+            </button>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <input
               readOnly

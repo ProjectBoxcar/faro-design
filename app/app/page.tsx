@@ -9,6 +9,9 @@ import { FaroMark } from "@/components/FaroMark";
 import { methodology, getSection } from "@/lib/methodology";
 import { flowSteps, type StatusMap } from "@/lib/flow";
 import { hasApprovedLogo, studioBlockedReason } from "@/lib/studio";
+import { listAssets } from "@/lib/design";
+import { finalDeliverableIssue } from "@/lib/design-deliverable";
+import { isDesignJourneyDone } from "@/lib/project-lifecycle-pure";
 import type { JourneyStep } from "@/components/JourneyProgress";
 
 export const dynamic = "force-dynamic";
@@ -39,8 +42,9 @@ async function loadBrandCopy(): Promise<{
 const PHASE_SHORT: Record<string, string> = {
   strategic: "Strategy",
   handoff: "Brief",
-  planning: "Plan",
+  planning: "Name & logo",
   design: "Design",
+  finished: "Done",
 };
 
 function isFilled(status: string | undefined): boolean {
@@ -75,14 +79,20 @@ export default async function Home() {
     const logoApproved = hasApprovedLogo(p.id);
     const strategyJourneyDone =
       Boolean(p.published_at) ||
+      p.current_phase === "planning" ||
       p.current_phase === "design" ||
       p.current_phase === "finished" ||
       logoWorkshopReady ||
       logoApproved ||
       (strategyIds.length > 0 && strategyFilled >= strategyIds.length);
     const expressReady = isFilled(designPlan) && !strategyJourneyDone;
-    const designJourneyDone =
-      p.current_phase === "finished" || (Boolean(p.published_at) && logoApproved);
+    // Design stage is done only when identity + landing + deck finals exist —
+    // not merely "strategy was published and a logo was approved".
+    const designPackageReady = finalDeliverableIssue(listAssets(p.id)) === null;
+    const designJourneyDone = isDesignJourneyDone({
+      currentPhase: p.current_phase,
+      designPackageReady,
+    });
 
     const steps: JourneyStep[] = methodology.phases.map((phase) => {
       const ids = requiredByPhase.get(phase.id) ?? [];

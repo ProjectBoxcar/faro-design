@@ -2,24 +2,63 @@ import "server-only";
 import { generateText, MODELS } from "@/lib/ai";
 import { extractJson } from "@/lib/json";
 import { getSection, type Section } from "@/lib/methodology";
-import { saveSection } from "@/lib/queries";
+import { getSectionRow, saveSection } from "@/lib/queries";
 import type { SectionValue } from "@/lib/db/types";
 import { db } from "@/lib/db";
 import { ai_generations } from "@/lib/db/schema";
 import { nanoid } from "nanoid";
+import {
+  intakeAnswersToSectionValue,
+  normalizeIntakeAnswers,
+  parseIntakeAnswersSection,
+  type IntakeAnswers,
+} from "@/lib/intake-answers";
 
-// The Quick Start interview: six broad questions the brand owner answers up
-// front. The AI expands these into editable drafts for every owner-knowable
-// input section of Reality + Identity, so the owner reviews and refines
-// instead of starting blank.
-export type IntakeAnswers = {
-  offering: string; // Q1 — what they sell and to whom
-  story: string; // Q2 — how it started and where it's going
-  difference: string; // Q3 — what makes them different + industry beliefs
-  operations: string; // Q4 — stage, pricing, how clients find them, limits
-  edge: string; // Q5 — the one thing a competitor couldn't say
-  taste: string; // Q6 — how the brand should look and feel (design taste)
-};
+export type { IntakeAnswers } from "@/lib/intake-answers";
+export {
+  normalizeIntakeAnswers,
+  parseIntakeAnswersSection,
+  countFilledIntakeAnswers,
+  intakeAnswersToSectionValue,
+} from "@/lib/intake-answers";
+
+/**
+ * Persist the owner's six Quick Start answers before any AI work.
+ * Also mirrors taste to `intake.taste` for Design Studio / brand memory.
+ */
+export function saveIntakeAnswers(projectId: string, answers: IntakeAnswers): void {
+  const normalized = normalizeIntakeAnswers(answers);
+  saveSection({
+    projectId,
+    key: "intake.answers",
+    value: intakeAnswersToSectionValue(normalized) as unknown as SectionValue,
+    status: "complete",
+    aiGenerated: false,
+  });
+  // Keep the dedicated taste key for callers that already read it.
+  if (normalized.taste) {
+    saveSection({
+      projectId,
+      key: "intake.taste",
+      value: { taste: normalized.taste },
+      status: "complete",
+      aiGenerated: false,
+    });
+  }
+}
+
+export function readIntakeAnswers(projectId: string): IntakeAnswers | null {
+  const row = getSectionRow(projectId, "intake.answers");
+  const fromBundle = parseIntakeAnswersSection(
+    row?.value as Record<string, unknown> | undefined
+  );
+  if (fromBundle) return fromBundle;
+  // Legacy: only taste was stored.
+  const tasteRow = getSectionRow(projectId, "intake.taste");
+  const taste = (tasteRow?.value as { taste?: string } | undefined)?.taste?.trim() ?? "";
+  if (!taste) return null;
+  return normalizeIntakeAnswers({ taste });
+}
 
 export type ExpandResult = {
   filled: string[]; // section ids that received a draft

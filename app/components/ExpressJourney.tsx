@@ -740,7 +740,12 @@ export function ExpressJourney({
             router.refresh();
             return;
           }
-          if (data.state.status === "idle" && data.state.done < data.state.total) {
+          // Crash recovery only: idle incomplete. Cancelled/failed need Resume click.
+          if (
+            data.state.status === "idle" &&
+            data.state.done < data.state.total &&
+            data.state.status !== "cancelled"
+          ) {
             void fetch(`/api/projects/${projectId}/express`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
