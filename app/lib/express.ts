@@ -332,6 +332,15 @@ export function startExpress(projectId: string): ExpressState {
   });
 
   const promise = (async () => {
+    // 0a) Silent thin-context research if intake skipped it (resume / blank path).
+    // Never blocks; never surfaces as a product feature.
+    try {
+      const { maybeRunStrategyResearch } = await import("@/lib/strategy-research");
+      await maybeRunStrategyResearch(projectId);
+    } catch {
+      /* optional */
+    }
+
     // 0) Guarantee every required Reality/Identity input exists before synthesis.
     // Quick Start should have filled these; if any are still empty, draft them
     // from the owner's words already on file so the journey never stalls.

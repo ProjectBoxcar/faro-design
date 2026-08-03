@@ -197,6 +197,14 @@ export async function generateSection(
     parts.push(`IT SHOULD ANSWER:\n${section.triggerQuestions.map((q) => `- ${q}`).join("\n")}`);
   if (upstream) parts.push(`CONTEXT FROM EARLIER STEPS (build on this, stay consistent):\n${upstream}`);
   if (strictness) parts.push(strictness);
+  // Silent category grounding when intake was thin — not a product feature / not shown in UI.
+  try {
+    const { formatStrategyResearchForPrompt } = await import("@/lib/strategy-research");
+    const research = formatStrategyResearchForPrompt(projectId, sectionKey);
+    if (research) parts.push(research);
+  } catch {
+    /* research optional */
+  }
   try {
     const { formatMemoryForPrompt } = await import("@/lib/brand-memory");
     const memory = formatMemoryForPrompt("strategy", {

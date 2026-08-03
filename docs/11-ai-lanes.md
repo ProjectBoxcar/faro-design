@@ -83,7 +83,9 @@ On success, callers may assert `result.engine` is in the allowed set for that la
 - **Express approve** freezes a **strategy brief** share (not the full brand package). When Design Studio finals land, lifecycle re-freezes package on the same token when ready.
 - **Phases:** `strategic` → `planning` (strategy ready) → `design` (logo approved) → `finished` (package + share).
 
-See pilot audit: `docs/reports/2026-07-31-city-home-pilot-audit.md`.
+### Silent strategy grounding (not a product feature)
+
+When Quick Start answers are **thin**, the pipeline may run a short Anthropic web-search briefing and store it on `internal.strategy-research`. It is **never** shown in the owner UI as “research” or a journey step. It injects only into strategy generation prompts (owner answers win on conflict). Rich intakes skip it. Failures are non-blocking. Code: `lib/strategy-research.ts`, gates: `lib/strategy-research-pure.ts`.
 
 ---
 

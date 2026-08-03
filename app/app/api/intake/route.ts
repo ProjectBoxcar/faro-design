@@ -74,6 +74,14 @@ export async function POST(req: Request) {
     // The intake drafts are the viability gate's inputs — evaluate right away,
     // in the background, so the verdict is on the hub by the time it's read.
     void maybeRunViabilityGate(project.id).catch((e) => console.error("[viability] failed:", e));
+    // Silent grounding when answers are thin (web research). Not a product feature —
+    // fail soft, never block Express. Await briefly so first synthesis cards can use it.
+    try {
+      const { maybeRunStrategyResearch } = await import("@/lib/strategy-research");
+      await maybeRunStrategyResearch(project.id);
+    } catch (e) {
+      console.warn("[intake] strategy research skipped:", e);
+    }
     // Kick off the express pipeline: the full strategy chain drafts in the
     // background while the owner watches progress on the express page.
     startExpress(project.id);
