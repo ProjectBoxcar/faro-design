@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Clock3, Loader2, Sparkles, Square } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Clock3, Loader2, Square } from "lucide-react";
+import { FaroBeacon } from "@/components/FaroLoader";
+import { countBasedPercent, timeBasedPercent } from "@/lib/generation-progress";
 
 export type DesignGenerationKind = "design_system" | "landing_page" | "deck" | "mockups";
 
@@ -93,29 +95,35 @@ export function generationFocusIndex(seconds: number, count: number): number {
 
 /**
  * Progress percent for design generation.
- * Prefer real asset progress (done/total). Blend a soft time curve so the bar
- * still moves while the current proposal is cooking — never claims 100% early.
+ * Uses real done/total when known. Soft-fills only the *current* open unit using
+ * seconds since the last completion — never a wall-clock modulo (that caused
+ * the bar to jump backward from ~80% toward 0%).
  */
 export function generationProgressPercent(
   elapsedSeconds: number,
   kind: DesignGenerationKind,
   done = 0,
-  total = 0
+  total = 0,
+  /** Seconds spent on the current unfinished unit (since done last increased). */
+  secondsInCurrent?: number
 ): number {
   if (total > 0 && done >= total) return 100;
   if (total > 0) {
-    const base = (done / total) * 100;
-    const slot = 100 / total;
-    const estimate = ESTIMATE_SECONDS[kind] / Math.max(total, 1);
-    const within = Math.min(0.88, elapsedSeconds / Math.max(estimate, 30));
-    // Progress within the current unfinished slot, reset roughly each completion.
-    const slotElapsed = Math.min(0.88, (elapsedSeconds % Math.max(estimate, 30)) / Math.max(estimate, 30));
-    const blended = base + slot * (done < total ? Math.max(within * 0.15, slotElapsed * 0.75) : 0);
-    return Math.min(99, Math.max(1, Math.round(blended)));
+    const perUnit = ESTIMATE_SECONDS[kind] / Math.max(total, 1);
+    // Prefer explicit "time in current unit"; fall back to a safe estimate that
+    // does NOT use modulo on total elapsed (modulo sawtooths).
+    const inCurrent =
+      typeof secondsInCurrent === "number"
+        ? secondsInCurrent
+        : Math.min(elapsedSeconds, perUnit * 0.95);
+    return countBasedPercent({
+      done,
+      total,
+      secondsInCurrent: inCurrent,
+      secondsPerUnit: perUnit,
+    });
   }
-  // No job totals yet — soft asymptotic estimate (caps at 92%).
-  const soft = (1 - Math.exp(-elapsedSeconds / (ESTIMATE_SECONDS[kind] * 0.55))) * 92;
-  return Math.min(92, Math.max(1, Math.round(soft)));
+  return timeBasedPercent(elapsedSeconds, ESTIMATE_SECONDS[kind]);
 }
 
 export function DesignGenerationWindow({
@@ -136,18 +144,51 @@ export function DesignGenerationWindow({
   progressTotal?: number;
 }) {
   const [elapsed, setElapsed] = useState(0);
+  const [peakPct, setPeakPct] = useState(1);
+  const lastDoneRef = useRef(progressDone);
+  const unitStartedAtRef = useRef(Date.now());
+  const [secondsInCurrent, setSecondsInCurrent] = useState(0);
 
   useEffect(() => {
     const startedAt = Date.now();
-    const update = () => setElapsed(Math.floor((Date.now() - startedAt) / 1000));
+    unitStartedAtRef.current = startedAt;
+    lastDoneRef.current = progressDone;
+    setPeakPct(1);
+    const update = () => {
+      const now = Date.now();
+      setElapsed(Math.floor((now - startedAt) / 1000));
+      setSecondsInCurrent(Math.floor((now - unitStartedAtRef.current) / 1000));
+    };
     update();
     const timer = window.setInterval(update, 1000);
     return () => window.clearInterval(timer);
+    // Reset timer only when kind changes (new generation kind), not when done ticks.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind]);
+
+  // When a new proposal finishes, restart soft fill for the *next* unit only —
+  // the overall bar stays monotonic via peakPct.
+  useEffect(() => {
+    if (progressDone !== lastDoneRef.current) {
+      lastDoneRef.current = progressDone;
+      unitStartedAtRef.current = Date.now();
+      setSecondsInCurrent(0);
+    }
+  }, [progressDone]);
 
   const copy = GENERATION_COPY[kind];
   const focus = copy.focuses[generationFocusIndex(elapsed, copy.focuses.length)];
-  const pct = generationProgressPercent(elapsed, kind, progressDone, progressTotal);
+  const rawPct = generationProgressPercent(
+    elapsed,
+    kind,
+    progressDone,
+    progressTotal,
+    secondsInCurrent
+  );
+  useEffect(() => {
+    setPeakPct((prev) => Math.max(prev, rawPct));
+  }, [rawPct]);
+  const pct = Math.max(peakPct, rawPct);
 
   return (
     <section
@@ -166,8 +207,8 @@ export function DesignGenerationWindow({
         <div>
           <div className="flex items-start justify-between gap-5">
             <div>
-              <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10">
-                <Sparkles size={20} aria-hidden="true" className="faro-generation-spark" />
+              <div className="mb-6 inline-flex items-center justify-center">
+                <FaroBeacon size="xl" tone="light" />
               </div>
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
                 Faro Design Studio

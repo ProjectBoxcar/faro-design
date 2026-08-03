@@ -1,11 +1,17 @@
 import "server-only";
 import { flowSteps } from "@/lib/flow";
 import { allSections, getSection } from "@/lib/methodology";
-import { getSections, saveSection, filledKeys } from "@/lib/queries";
+import { getSections, getSectionRow, saveSection, filledKeys } from "@/lib/queries";
 import { generateSection } from "@/lib/generate";
 import { canGenerate } from "@/lib/methodology";
 import type { SectionValue } from "@/lib/db/types";
 import { maybeRunViabilityGate } from "@/lib/viability";
+import { classifyAiFailure, formatClassifiedFailure } from "@/lib/ai-failure";
+import {
+  EXPRESS_PIPELINE_SECTION_KEY,
+  deriveExpressStatusFromDisk,
+  type ExpressPipelineRecord,
+} from "@/lib/express-run-state-pure";
 
 // The express journey: after the Quick Start interview seeds the owner's
 // facts, one background pipeline drafts the ENTIRE required strategy chain in
@@ -22,6 +28,13 @@ export type ExpressState = {
   current: string | null; // section id being drafted
   currentName: string | null;
   error: string | null;
+  /** Owner can call start again; filled sections are skipped (same strategy engine). */
+  resumable?: boolean;
+  /** Failure taxonomy — strategy lane only */
+  errorCode?: string | null;
+  errorHint?: string | null;
+  /** Always strategy-direct for this pipeline */
+  engine?: "strategy-direct";
 };
 
 // After the owner marks a review card Ready, cascade-regenerate every
@@ -36,6 +49,8 @@ export type RefineState = {
   currentName: string | null;
   error: string | null;
   updatedIds: string[];
+  errorCode?: string | null;
+  errorHint?: string | null;
 };
 
 class GenerationCancelled extends Error {
@@ -89,6 +104,51 @@ function throwIfRefineCancelled(projectId: string) {
   if (run?.cancelled) throw new GenerationCancelled();
 }
 
+function readPersistedExpressRun(projectId: string): ExpressPipelineRecord | null {
+  const row = getSectionRow(projectId, EXPRESS_PIPELINE_SECTION_KEY);
+  if (!row?.value || typeof row.value !== "object") return null;
+  const v = row.value as Record<string, unknown>;
+  const status = v.status;
+  if (
+    status !== "idle" &&
+    status !== "running" &&
+    status !== "done" &&
+    status !== "failed" &&
+    status !== "cancelled"
+  ) {
+    return null;
+  }
+  return {
+    status,
+    done: typeof v.done === "number" ? v.done : undefined,
+    total: typeof v.total === "number" ? v.total : undefined,
+    error: typeof v.error === "string" ? v.error : v.error === null ? null : undefined,
+    errorCode: typeof v.errorCode === "string" ? v.errorCode : null,
+    errorHint: typeof v.errorHint === "string" ? v.errorHint : null,
+    updatedAt: typeof v.updatedAt === "string" ? v.updatedAt : undefined,
+  };
+}
+
+function persistExpressRun(
+  projectId: string,
+  record: ExpressPipelineRecord
+): void {
+  try {
+    saveSection({
+      projectId,
+      key: EXPRESS_PIPELINE_SECTION_KEY,
+      value: {
+        ...record,
+        updatedAt: new Date().toISOString(),
+      } as unknown as SectionValue,
+      status: "complete",
+      aiGenerated: false,
+    });
+  } catch (e) {
+    console.warn("[express] failed to persist run state:", e);
+  }
+}
+
 // Provider rate limits (429) pause the pipeline briefly instead of failing it.
 async function generateWithRetry(
   projectId: string,
@@ -120,10 +180,17 @@ export function cancelExpress(projectId: string): ExpressState {
     existing.state.current = null;
     existing.state.currentName = null;
     existing.state.error = null;
+    existing.state.resumable = true;
+    persistExpressRun(projectId, {
+      status: "cancelled",
+      done: existing.state.done,
+      total: existing.state.total,
+    });
     return existing.state;
   }
   // Idle / no in-memory run (e.g. between polls): still surface as stopped so the
-  // owner isn't auto-restarted by the client.
+  // owner isn't auto-restarted by the client — and persist so a server restart
+  // does not re-surface as idle + auto-start.
   const snapshot = expressStatus(projectId);
   if (snapshot.status === "done" || snapshot.status === "failed") return snapshot;
   if (snapshot.status === "cancelled") return snapshot;
@@ -133,8 +200,14 @@ export function cancelExpress(projectId: string): ExpressState {
     current: null,
     currentName: null,
     error: null,
+    resumable: true,
   };
   runs.set(projectId, { state, promise: Promise.resolve(), cancelled: true });
+  persistExpressRun(projectId, {
+    status: "cancelled",
+    done: state.done,
+    total: state.total,
+  });
   return state;
 }
 
@@ -154,18 +227,37 @@ export function cancelExpressRefine(projectId: string): RefineState {
 
 export function expressStatus(projectId: string): ExpressState {
   const active = runs.get(projectId);
-  if (active) return active.state;
-  // No in-memory run (e.g. after a server restart): derive from saved statuses.
+  if (active) {
+    return {
+      ...active.state,
+      engine: "strategy-direct",
+      resumable:
+        active.state.status === "failed" ||
+        active.state.status === "cancelled" ||
+        (active.state.status === "running" && active.state.done > 0),
+    };
+  }
+  // No in-memory run (e.g. after a server restart): derive from disk + persisted
+  // cancel/fail so Stop survives restarts (no silent auto-start).
   const ids = expressSectionIds();
   const statusOf = new Map(getSections(projectId).map((r) => [r.section_key, r.status]));
   const done = ids.filter((id) => (statusOf.get(id) ?? "empty") !== "empty").length;
+  const derived = deriveExpressStatusFromDisk({
+    sectionsFilled: done,
+    sectionsTotal: ids.length,
+    persisted: readPersistedExpressRun(projectId),
+  });
   return {
-    status: done === ids.length ? "done" : "idle",
-    done,
-    total: ids.length,
+    status: derived.status,
+    done: derived.done,
+    total: derived.total,
     current: null,
     currentName: null,
-    error: null,
+    error: derived.error,
+    errorCode: derived.errorCode,
+    errorHint: derived.errorHint,
+    engine: "strategy-direct",
+    resumable: derived.resumable,
   };
 }
 
@@ -210,25 +302,45 @@ export function expressDependents(rootId: string): string[] {
 }
 
 // Start (or resume) the pipeline. Idempotent: already-filled sections are
-// skipped, so a restart continues where the last run stopped.
+// skipped, so a restart continues where the last run stopped (strategy engine only).
 export function startExpress(projectId: string): ExpressState {
   const existing = runs.get(projectId);
   if (existing && existing.state.status === "running") return existing.state;
 
   const ids = expressSectionIds();
+  const alreadyDone = ids.filter((id) => filledKeys(projectId).has(id)).length;
   const state: ExpressState = {
     status: "running",
-    done: 0,
+    done: alreadyDone,
     total: ids.length,
     current: null,
     currentName: null,
     error: null,
+    errorCode: null,
+    errorHint: null,
+    engine: "strategy-direct",
+    resumable: alreadyDone > 0,
   };
 
   const entry = { state, promise: Promise.resolve(), cancelled: false };
   runs.set(projectId, entry);
+  // Clear durable cancel so intentional Resume is not stuck cancelled on disk.
+  persistExpressRun(projectId, {
+    status: "running",
+    done: alreadyDone,
+    total: ids.length,
+  });
 
   const promise = (async () => {
+    // 0a) Silent thin-context research if intake skipped it (resume / blank path).
+    // Never blocks; never surfaces as a product feature.
+    try {
+      const { maybeRunStrategyResearch } = await import("@/lib/strategy-research");
+      await maybeRunStrategyResearch(projectId);
+    } catch {
+      /* optional */
+    }
+
     // 0) Guarantee every required Reality/Identity input exists before synthesis.
     // Quick Start should have filled these; if any are still empty, draft them
     // from the owner's words already on file so the journey never stalls.
@@ -266,7 +378,8 @@ export function startExpress(projectId: string): ExpressState {
         throwIfExpressCancelled(projectId);
         const filled = filledKeys(projectId);
         if (filled.has(id)) {
-          state.done += 1;
+          // Already counted in alreadyDone / prior passes — keep done in sync with disk.
+          state.done = ids.filter((sid) => filledKeys(projectId).has(sid)).length;
           progressed = true;
           continue;
         }
@@ -287,7 +400,7 @@ export function startExpress(projectId: string): ExpressState {
           status: "draft",
           aiGenerated: true,
         });
-        state.done += 1;
+        state.done = ids.filter((sid) => filledKeys(projectId).has(sid)).length;
         progressed = true;
       }
       if (!progressed) {
@@ -300,35 +413,57 @@ export function startExpress(projectId: string): ExpressState {
     state.current = null;
     state.currentName = null;
     state.status = "done";
-    // Mark every drafted strategy step complete so the journey track (and
-    // handover path) shows full completion after the first-questions pipeline.
-    try {
-      const { completeSectionsWithContent } = await import("@/lib/queries");
-      const { flowSteps } = await import("@/lib/flow");
-      completeSectionsWithContent(
-        projectId,
-        flowSteps().map((s) => s.sectionId)
-      );
-      // Also complete every Reality/Identity input that was drafted.
-      completeSectionsWithContent(projectId, requiredOwnerInputIds());
-    } catch (e) {
-      console.warn("[express] complete-sections pass failed:", e);
-    }
+    state.resumable = false;
+    state.errorCode = null;
+    state.errorHint = null;
+    // Pack 3: leave sections as draft until the owner Approves on the review
+    // screen (completeSectionsWithContent runs only in express approve).
+    state.done = ids.filter((sid) => filledKeys(projectId).has(sid)).length;
+    persistExpressRun(projectId, {
+      status: "done",
+      done: state.done,
+      total: ids.length,
+    });
     // The strategy is drafted — evaluate viability in the background so the
     // verdict is ready by the time the owner approves and opens the Studio.
     void maybeRunViabilityGate(projectId).catch((e) => console.error("[viability] failed:", e));
   })().catch((error) => {
     if (error instanceof GenerationCancelled || entry.cancelled) {
+      const c = classifyAiFailure(error, "strategy");
       state.status = "cancelled";
       state.current = null;
       state.currentName = null;
       state.error = null;
+      state.errorCode = c.code;
+      state.errorHint = c.hint;
+      state.resumable = true;
+      state.done = ids.filter((sid) => filledKeys(projectId).has(sid)).length;
+      persistExpressRun(projectId, {
+        status: "cancelled",
+        done: state.done,
+        total: ids.length,
+        errorCode: c.code,
+        errorHint: c.hint,
+      });
       return;
     }
+    const c = classifyAiFailure(error, "strategy");
     state.status = "failed";
     state.current = null;
     state.currentName = null;
-    state.error = error instanceof Error ? error.message : "Strategy drafting failed";
+    state.error = formatClassifiedFailure(c);
+    state.errorCode = c.code;
+    state.errorHint = c.hint;
+    state.resumable = true;
+    state.done = ids.filter((sid) => filledKeys(projectId).has(sid)).length;
+    persistExpressRun(projectId, {
+      status: "failed",
+      done: state.done,
+      total: ids.length,
+      error: state.error,
+      errorCode: c.code,
+      errorHint: c.hint,
+    });
   });
 
   entry.promise = promise;
@@ -422,16 +557,22 @@ export function startExpressRefine(
     void maybeRunViabilityGate(projectId).catch((e) => console.error("[viability] failed:", e));
   })().catch((error) => {
     if (error instanceof GenerationCancelled || entry.cancelled) {
+      const c = classifyAiFailure(error, "strategy");
       state.status = "cancelled";
       state.current = null;
       state.currentName = null;
       state.error = null;
+      state.errorCode = c.code;
+      state.errorHint = c.hint;
       return;
     }
+    const c = classifyAiFailure(error, "strategy");
     state.status = "failed";
     state.current = null;
     state.currentName = null;
-    state.error = error instanceof Error ? error.message : "Couldn't update the rest of the strategy";
+    state.error = formatClassifiedFailure(c);
+    state.errorCode = c.code;
+    state.errorHint = c.hint;
   });
 
   entry.promise = promise;

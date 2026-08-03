@@ -6,6 +6,9 @@ The methodology assigns synthesis to "the designer". The app lets Claude **draft
 the designer always reviews and edits. AI output is never auto-committed and never shown to the
 client until the designer accepts it.
 
+**Three engines (strategy / logo / Design Studio via Open Design) are a hard product split.**  
+Do not route every call through one provider. Canonical rules: **`docs/11-ai-lanes.md`**.
+
 ## Model choice
 
 | Use | Model | Why |

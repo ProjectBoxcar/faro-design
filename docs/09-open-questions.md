@@ -5,8 +5,9 @@ Decisions to revisit; none block step 1.
 ## Product
 1. **Client intake link (flow B)** — ship in v1, or start "designer fills everything" and add the
    scoped client link later? (Leaning: defer to step 7; forms are identical.)
-2. **Handover: live vs snapshot** — render live from DB (simpler) or freeze a snapshot on publish so
-   edits don't change a brief already sent? (Leaning: live in v1, snapshot later.)
+2. **Handover: live vs snapshot** — ~~render live from DB or freeze on publish?~~ **Decided
+   (2026-07-29):** freeze snapshot on every publish (`publish_snapshots`, versioned). Share link
+   serves current snapshot; re-publish → vN+1.
 3. **Assets/images** — graphic designer's returns (logos, moodboards) are visual. v1 references by
    description + link. When do we add image upload/hosting? (Affects backup size.)
 4. **Concept distillation** — one-shot generation in v1; upgrade to a guided 6-step chat when?
@@ -28,3 +29,6 @@ Decisions to revisit; none block step 1.
     (Brief 5 fields, Concept sub-objects) and leave prose free? (Leaning: validate discrete only.)
 11. **Methodology versioning** — if `methodology.json` changes after projects exist, do old projects
     migrate? (Leaning: section keys are stable; additive changes only, like the DB rule.)
+12. **AI lane routing** — ~~single provider vs multi?~~ **Decided (2026-07-29):** three engines —
+    strategy (Anthropic default), logo (OpenAI → Gemini), Design Studio (Open Design + Anthropic BYOK).
+    See `docs/11-ai-lanes.md`. No cross-lane fallback.

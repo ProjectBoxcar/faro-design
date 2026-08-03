@@ -12,8 +12,12 @@ const Schema = z.object({
   projectId: z.string().min(1),
   key: z.string().min(1),
   value: z.record(z.string(), z.unknown()).optional(),
-  /** "polish" = improve owner's current text; default drafts from notes/context. */
-  mode: z.enum(["draft", "polish"]).optional(),
+  /**
+   * draft = from notes/context (default)
+   * polish = improve owner's current text
+   * alternative = different take (e.g. new brand concept phrase) from same strategy
+   */
+  mode: z.enum(["draft", "polish", "alternative"]).optional(),
 });
 
 export async function POST(req: Request) {

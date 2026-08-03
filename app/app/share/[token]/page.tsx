@@ -8,6 +8,12 @@ import { BriefDownloadBar } from "@/components/BriefDownloadBar";
 import { PackageCheck } from "lucide-react";
 import { listAssets } from "@/lib/design";
 import { finalDeliverableIssue } from "@/lib/design-deliverable";
+import {
+  getCurrentSnapshotByToken,
+  groupsFromSnapshot,
+  buildMarkdownFromSnapshot,
+} from "@/lib/publish-snapshot";
+import type { Section } from "@/lib/methodology";
 
 export const dynamic = "force-dynamic";
 
@@ -24,10 +30,23 @@ export default async function ShareBriefPage({
   const project = getProjectByShareToken(token);
   if (!project || !project.share_token) notFound();
 
-  const compiled = compileBrief(project);
+  const snapshot = getCurrentSnapshotByToken(token);
+  const fromSnapshot = Boolean(snapshot);
+
+  const compiled = snapshot
+    ? groupsFromSnapshot(snapshot.payload.brief.groups)
+    : compileBrief(project);
   const hasAnything = compiled.some((g) => g.sections.length > 0);
-  const markdown = buildMarkdown(project, compiled);
-  const packageReady = finalDeliverableIssue(listAssets(project.id)) === null;
+  const markdown = snapshot
+    ? buildMarkdownFromSnapshot(snapshot.payload)
+    : buildMarkdown(project, compiled);
+  const packageReady = snapshot
+    ? snapshot.payload.package.ready
+    : finalDeliverableIssue(listAssets(project.id)) === null;
+
+  const displayName = snapshot?.payload.project.name ?? project.name;
+  const displayClient = snapshot?.payload.project.client_name ?? project.client_name;
+  const version = snapshot?.version;
 
   return (
     <main className="mx-auto w-full max-w-3xl px-5 py-12 lg:px-8 lg:py-16 2xl:max-w-4xl">
@@ -45,14 +64,25 @@ export default async function ShareBriefPage({
         </div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
           Brand brief
+          {version != null ? ` · v${version}` : ""}
+          {fromSnapshot ? " · frozen at publish" : ""}
         </p>
         <h1 className="font-serif text-6xl font-medium leading-[1.0] tracking-tight lg:text-7xl">
-          {project.name}
+          {displayName}
         </h1>
-        {project.client_name && (
-          <p className="mt-3 text-lg text-[var(--muted)]">{project.client_name}</p>
+        {displayClient && (
+          <p className="mt-3 text-lg text-[var(--muted)]">{displayClient}</p>
         )}
-        <p className="mt-2 text-sm text-[var(--subtle)]">Prepared for the design team.</p>
+        <p className="mt-2 text-sm text-[var(--subtle)]">
+          Prepared for the design team.
+          {fromSnapshot && snapshot?.payload.publishedAt
+            ? ` Published ${new Date(snapshot.payload.publishedAt).toLocaleDateString(undefined, {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })}.`
+            : null}
+        </p>
       </header>
 
       {!hasAnything ? (
@@ -73,7 +103,7 @@ export default async function ShareBriefPage({
                       <h3 className="mb-3 font-serif text-3xl font-medium tracking-tight">
                         {section.name}
                       </h3>
-                      <SectionReadout section={section} value={value} />
+                      <SectionReadout section={section as Section} value={value} />
                     </article>
                   ))}
                 </div>
@@ -84,7 +114,9 @@ export default async function ShareBriefPage({
       )}
 
       <footer className="mt-16 border-t border-[var(--border)] pt-6 text-center text-xs text-[var(--subtle)] print:hidden">
-        Read-only brand brief.
+        {fromSnapshot
+          ? "Read-only brand brief — frozen when published. Later edits in Faro do not change this page until re-publish."
+          : "Read-only brand brief."}
       </footer>
     </main>
   );

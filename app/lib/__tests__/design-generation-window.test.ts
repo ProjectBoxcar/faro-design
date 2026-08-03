@@ -22,10 +22,17 @@ describe("DesignGenerationWindow helpers", () => {
 
   it("reports percent from real asset progress and soft estimates", () => {
     expect(generationProgressPercent(0, "design_system", 3, 3)).toBe(100);
-    expect(generationProgressPercent(30, "design_system", 0, 3)).toBeGreaterThanOrEqual(1);
-    expect(generationProgressPercent(30, "design_system", 0, 3)).toBeLessThan(100);
-    expect(generationProgressPercent(30, "design_system", 1, 3)).toBeGreaterThanOrEqual(33);
+    expect(generationProgressPercent(30, "design_system", 0, 3, 30)).toBeGreaterThanOrEqual(1);
+    expect(generationProgressPercent(30, "design_system", 0, 3, 30)).toBeLessThan(100);
+    expect(generationProgressPercent(30, "design_system", 1, 3, 0)).toBeGreaterThanOrEqual(33);
     expect(generationProgressPercent(5, "mockups", 0, 0)).toBeGreaterThanOrEqual(1);
-    expect(generationProgressPercent(5, "mockups", 0, 0)).toBeLessThanOrEqual(92);
+    expect(generationProgressPercent(5, "mockups", 0, 0)).toBeLessThan(100);
+  });
+
+  it("does not drop when time-in-unit is low after a completion", () => {
+    const afterFirst = generationProgressPercent(120, "design_system", 1, 3, 0);
+    const laterSameDone = generationProgressPercent(200, "design_system", 1, 3, 80);
+    expect(afterFirst).toBeGreaterThanOrEqual(33);
+    expect(laterSameDone).toBeGreaterThanOrEqual(afterFirst);
   });
 });

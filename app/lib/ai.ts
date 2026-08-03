@@ -9,7 +9,15 @@ import {
   logoApiKeyStatus,
 } from "@/lib/settings";
 import { generateViaOpenDesign, isOpenDesignDaemonUp } from "@/lib/open-design-engine";
+import { assertEngineForLane, type AiEngineId } from "@/lib/ai-lanes";
 import type { AiProvider } from "@/lib/db/types";
+
+/**
+ * Three engines — do not merge. See docs/11-ai-lanes.md
+ * - strategy → generateStrategyText (Anthropic / strategy Settings)
+ * - logo     → generateLogoText (OpenAI → Gemini)
+ * - design   → generateDesignText (Open Design daemon + Anthropic BYOK only)
+ */
 
 export type AiMessage = { role: "user"; content: string };
 
@@ -17,10 +25,10 @@ export type GenerateTextResult = {
   text: string;
   model: string;
   /** strategy-direct | open-design-daemon | openai-direct | gemini-direct */
-  engine?: "open-design-daemon" | "strategy-direct" | "openai-direct" | "gemini-direct";
+  engine?: AiEngineId;
 };
 
-// strategy = text; design = Open Design daemon (identity/mockups only).
+// strategy = text; design = Open Design daemon (identity/mockups only). Logo uses generateLogoText.
 export type AiLane = "strategy" | "design";
 
 export const MODELS = {
@@ -98,10 +106,16 @@ async function callStrategyProvider(params: {
 
     const text = await stream.finalText();
     const message = await stream.finalMessage();
-    return { text: text.trim(), model: message.model, engine: "strategy-direct" };
+    const result: GenerateTextResult = {
+      text: text.trim(),
+      model: message.model,
+      engine: "strategy-direct",
+    };
+    assertEngineForLane("strategy", result.engine);
+    return result;
   }
 
-  return callOpenAiCompatible({
+  const result = await callOpenAiCompatible({
     apiKey: cfg.apiKey,
     baseUrl: cfg.baseUrl,
     model,
@@ -110,6 +124,8 @@ async function callStrategyProvider(params: {
     messages: params.messages,
     engine: "strategy-direct",
   });
+  assertEngineForLane("strategy", result.engine);
+  return result;
 }
 
 async function callOpenAiCompatible(params: {
@@ -120,11 +136,22 @@ async function callOpenAiCompatible(params: {
   system?: string;
   messages: AiMessage[];
   engine: "strategy-direct" | "openai-direct" | "gemini-direct";
+  /** Higher = more variety (logo candidates). Omit for provider default. */
+  temperature?: number;
 }): Promise<GenerateTextResult> {
   const baseUrl = (params.baseUrl ?? "https://api.openai.com/v1").replace(/\/$/, "");
   const openaiMessages: { role: string; content: string }[] = [];
   if (params.system) openaiMessages.push({ role: "system", content: params.system });
   for (const m of params.messages) openaiMessages.push({ role: m.role, content: m.content });
+
+  const body: Record<string, unknown> = {
+    model: params.model,
+    max_tokens: params.maxTokens,
+    messages: openaiMessages,
+  };
+  if (typeof params.temperature === "number") {
+    body.temperature = params.temperature;
+  }
 
   const resp = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
@@ -132,11 +159,7 @@ async function callOpenAiCompatible(params: {
       Authorization: `Bearer ${params.apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model: params.model,
-      max_tokens: params.maxTokens,
-      messages: openaiMessages,
-    }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(Math.max(120_000, params.maxTokens * 25)),
   });
 
@@ -233,8 +256,10 @@ async function callGemini(params: {
 }
 
 /**
- * - strategy (default): Settings Anthropic/GPT in Faro
- * - design: Open Design daemon only (never Anthropic SDK in Faro)
+ * - strategy (default): Settings Anthropic/GPT in Faro — never OD, never logo keys
+ * - design: Open Design daemon only (never OpenAI / Gemini / strategy-as-design substitute)
+ * Logo Workshop must use generateLogoText — not this function.
+ * @see docs/11-ai-lanes.md
  */
 export async function generateText(params: {
   lane?: AiLane;
@@ -259,6 +284,7 @@ export async function generateStrategyText(
 /**
  * Design Studio ONLY (identity systems + landing/deck mockups).
  * Always Open Design daemon + Anthropic BYOK — never OpenAI, never Gemini.
+ * @see docs/11-ai-lanes.md
  */
 export async function generateDesignText(
   params: Omit<Parameters<typeof generateText>[0], "lane">
@@ -266,12 +292,12 @@ export async function generateDesignText(
   const cfg = getOpenDesignDaemonConfig();
   if (!cfg.apiKey) {
     throw new Error(
-      "Design Studio needs an Anthropic API key for Open Design (BYOK). Save it in Strategy Settings (Anthropic) or as an Anthropic graphics key. Logos use OpenAI/Gemini separately."
+      "Design Studio needs an Anthropic API key for Open Design (BYOK). Save it in Strategy Settings (Anthropic) or as an Anthropic graphics key. Logos use OpenAI/Gemini separately. See docs/11-ai-lanes.md."
     );
   }
   if (!(await isOpenDesignDaemonUp())) {
     throw new Error(
-      "Open Design daemon is not running. Start start-open-design.ps1 (port 7456). Identity systems and mockups require the OD engine — not OpenAI or Gemini."
+      "Open Design daemon is not running. Start start-open-design.ps1 (port 7456). Identity systems and mockups require the OD engine — not OpenAI or Gemini. See docs/11-ai-lanes.md."
     );
   }
 
@@ -283,23 +309,34 @@ export async function generateDesignText(
     model,
     apiKey: cfg.apiKey,
   });
-  return { text: result.text, model: result.model, engine: "open-design-daemon" };
+  const out: GenerateTextResult = {
+    text: result.text,
+    model: result.model,
+    engine: "open-design-daemon",
+  };
+  assertEngineForLane("design", out.engine);
+  return out;
 }
 
 /**
  * Logo Workshop ONLY.
- * OpenAI first → Gemini fallback on quota/auth errors. Never the OD daemon.
+ * OpenAI first → Gemini fallback on quota/auth errors. Never the OD daemon. Never strategy key.
+ * @see docs/11-ai-lanes.md
  */
 export async function generateLogoText(
-  params: Omit<Parameters<typeof generateText>[0], "lane">
+  params: Omit<Parameters<typeof generateText>[0], "lane"> & {
+    /** Creativity for logo candidates (default 0.95). Judge calls can pass lower. */
+    temperature?: number;
+  }
 ): Promise<GenerateTextResult> {
   const logo = getLogoApiConfig();
   const model = params.model ?? MODELS.logo;
+  const temperature = params.temperature ?? 0.95;
 
   async function primaryOpenAi(): Promise<GenerateTextResult> {
     if (!logo.apiKey) {
       throw new Error(
-        "No OpenAI logo key — save an OpenAI API key in Settings (graphics / OpenAI-compatible), or set OPENAI_API_KEY."
+        "No OpenAI logo key — save an OpenAI API key in Settings (Logo Workshop), or set OPENAI_API_KEY."
       );
     }
     return callOpenAiCompatible({
@@ -310,6 +347,7 @@ export async function generateLogoText(
       system: params.system,
       messages: params.messages,
       engine: "openai-direct",
+      temperature,
     });
   }
 
@@ -317,19 +355,23 @@ export async function generateLogoText(
   if (!logo.apiKey) {
     if (hasGeminiKey()) {
       console.warn("[ai] no OpenAI logo key — using Gemini");
-      return callGemini({
+      const result = await callGemini({
         maxTokens: params.maxTokens,
         system: params.system,
         messages: params.messages,
       });
+      assertEngineForLane("logo", result.engine);
+      return result;
     }
     throw new Error(
-      "No logo AI key — save OpenAI in Settings, or set GEMINI_API_KEY in .env.local as fallback."
+      "No logo AI key — save OpenAI in Settings, or set GEMINI_API_KEY in .env.local as fallback. Strategy and Design Studio keys are not used for logos."
     );
   }
 
   try {
-    return await primaryOpenAi();
+    const result = await primaryOpenAi();
+    assertEngineForLane("logo", result.engine);
+    return result;
   } catch (primaryError) {
     if (!hasGeminiKey() || !isRetriableProviderError(primaryError)) {
       throw primaryError;
@@ -337,11 +379,13 @@ export async function generateLogoText(
     const reason = primaryError instanceof Error ? primaryError.message : String(primaryError);
     console.warn("[ai] OpenAI logo failed; falling back to Gemini:", reason.slice(0, 160));
     try {
-      return await callGemini({
+      const result = await callGemini({
         maxTokens: params.maxTokens,
         system: params.system,
         messages: params.messages,
       });
+      assertEngineForLane("logo", result.engine);
+      return result;
     } catch (geminiError) {
       const gMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
       throw new Error(

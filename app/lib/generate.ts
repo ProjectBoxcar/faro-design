@@ -1,4 +1,5 @@
 import "server-only";
+// Strategy lane only — never logo or Open Design. See docs/11-ai-lanes.md
 import { generateText, MODELS } from "@/lib/ai";
 
 import { methodology, getSection, getPillarOf, readsOf, canGenerate } from "@/lib/methodology";
@@ -107,12 +108,14 @@ function buildStaticSystem(): string {
   ].join("\n\n");
 }
 
-export type GenerateMode = "draft" | "polish";
+export type GenerateMode = "draft" | "polish" | "alternative";
 
 // Turn the owner's rough notes for one section into clear, well-articulated
 // brand-strategy content, grounded in the methodology + any upstream steps.
 // mode "polish": improve the owner's current wording in place — never revert to
 // a prior AI draft or regenerate solely from upstream context.
+// mode "alternative": draft a different take (same strategy, new angle/phrase) —
+// used when the owner likes the brief but wants another brand concept statement.
 export async function generateSection(
   projectId: string,
   sectionKey: string,
@@ -194,6 +197,14 @@ export async function generateSection(
     parts.push(`IT SHOULD ANSWER:\n${section.triggerQuestions.map((q) => `- ${q}`).join("\n")}`);
   if (upstream) parts.push(`CONTEXT FROM EARLIER STEPS (build on this, stay consistent):\n${upstream}`);
   if (strictness) parts.push(strictness);
+  // Silent category grounding when intake was thin — not a product feature / not shown in UI.
+  try {
+    const { formatStrategyResearchForPrompt } = await import("@/lib/strategy-research");
+    const research = formatStrategyResearchForPrompt(projectId, sectionKey);
+    if (research) parts.push(research);
+  } catch {
+    /* research optional */
+  }
   try {
     const { formatMemoryForPrompt } = await import("@/lib/brand-memory");
     const memory = formatMemoryForPrompt("strategy", {
@@ -215,6 +226,41 @@ export async function generateSection(
         "Do NOT revert to an earlier AI draft if it conflicts with what they wrote.",
         "Only fill empty fields from context; every non-empty field must stay recognizably theirs — just better written.",
         `THE OWNER'S CURRENT TEXT (polish this — do not replace with unrelated content):\n${JSON.stringify(rough ?? {}, null, 2)}`,
+      ].join("\n")
+    );
+  } else if (mode === "alternative") {
+    const prevStatement =
+      typeof rough?.statement === "string" ? rough.statement.trim() : "";
+    const prevDescription =
+      typeof rough?.description === "string" ? rough.description.trim() : "";
+    parts.push(
+      [
+        "MODE: FRESH ALTERNATIVE (same strategy, different expression).",
+        "The owner likes how the strategy describes the business, but wants a DIFFERENT brand concept — especially a sharper statement phrase.",
+        "Ground the new concept in the CONTEXT FROM EARLIER STEPS (Brief, Communication, pillars). Stay true to the Main Tension, Central Pattern, and facts.",
+        "Do NOT merely rephrase the previous concept. Find another true guiding idea or a distinctly better phrase for the same territory.",
+        "Prefer a short, memorable statement (a few words to one line) over a vague marketing sentence.",
+        "description should explain how the new statement holds the strategy together (2–4 sentences).",
+        "If evaluation tables are present, re-score honestly against the Brief for this new concept.",
+        prevStatement || prevDescription
+          ? `PREVIOUS CONCEPT TO BEAT / AVOID REPEATING:\n${JSON.stringify(
+              {
+                statement: prevStatement || undefined,
+                description: prevDescription || undefined,
+              },
+              null,
+              2
+            )}`
+          : "No previous concept was provided — draft a strong first concept from context.",
+        `Any extra notes from the owner:\n${JSON.stringify(
+          Object.fromEntries(
+            Object.entries(rough ?? {}).filter(
+              ([k]) => k !== "statement" && k !== "description" && k !== "distillation"
+            )
+          ),
+          null,
+          2
+        )}`,
       ].join("\n")
     );
   } else {

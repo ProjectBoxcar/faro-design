@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getProject, getSections, listEvaluations, listStudioAssets } from "@/lib/queries";
-import { studioBlockedReason } from "@/lib/studio";
+import { studioBlockedReason, hasApprovedLogo } from "@/lib/studio";
 import { methodology } from "@/lib/methodology";
 import {
   phaseProgress,
@@ -23,6 +23,10 @@ import { FullPlan } from "@/components/FullPlan";
 import { DeleteProjectButton } from "@/components/DeleteProjectButton";
 import { PublishPanel } from "@/components/PublishPanel";
 import { ViabilityPanel } from "@/components/ViabilityPanel";
+import { listAssets } from "@/lib/design";
+import { finalDeliverableIssue } from "@/lib/design-deliverable";
+import { getCurrentSnapshotForProject } from "@/lib/publish-snapshot";
+import { needsNameWorkshop } from "@/lib/naming-propose";
 
 export const dynamic = "force-dynamic";
 
@@ -54,8 +58,14 @@ export default async function ProjectHub({
   const approvedAssets = allAssets.filter((a) => a.status === "approved").length;
   const approvedLogoSvg = allAssets.find((a) => a.kind === "logo" && a.status === "approved")?.payload?.svg;
 
-  // Up-next card — points at the next review GROUP (one of four screens).
+  // Up-next card — review groups first; after strategy, point at name / logo / design.
   const reviewGroupId = firstIncompleteReviewGroup(statusMap);
+  const logoUnlocked = !studioBlockedReason(id, "logo");
+  const logoApproved = hasApprovedLogo(id);
+  const nameNeeded = needsNameWorkshop(id);
+  const designPackageReady = finalDeliverableIssue(listAssets(id)) === null;
+  const snap = getCurrentSnapshotForProject(id);
+  const snapshotPackageReady = snap?.payload?.package?.ready ?? null;
   let next: UpNext | null = null;
   if (reviewGroupId) {
     const g = getReviewGroup(reviewGroupId)!;
@@ -68,6 +78,44 @@ export default async function ProjectHub({
       whatItIs: g.blurb,
       overall,
     };
+  } else if (logoUnlocked || studioUnlocked) {
+    if (nameNeeded && !logoApproved) {
+      next = {
+        projectId: id,
+        href: `/projects/${id}/name`,
+        name: "Brand name",
+        label: "Next stage",
+        whatItIs: "Confirm or pick a brand name before logos.",
+        overall,
+      };
+    } else if (!logoApproved) {
+      next = {
+        projectId: id,
+        href: `/projects/${id}/studio`,
+        name: "Logo Workshop",
+        label: "Next stage",
+        whatItIs: "Generate logo directions and approve one.",
+        overall,
+      };
+    } else if (!designPackageReady) {
+      next = {
+        projectId: id,
+        href: `/projects/${id}/design`,
+        name: "Design Studio",
+        label: "Next stage",
+        whatItIs: "Build identity, landing page, and brand deck.",
+        overall,
+      };
+    } else {
+      next = {
+        projectId: id,
+        href: `/projects/${id}/handover`,
+        name: "Brand Handover",
+        label: "Finish line",
+        whatItIs: "Download the package or publish the frozen share link.",
+        overall,
+      };
+    }
   }
 
   // Phase accordion
@@ -178,7 +226,14 @@ export default async function ProjectHub({
           view the brief, copy the link, download in any format. */}
       {handoffReady && (
         <div className="mb-8">
-          <PublishPanel projectId={id} initialToken={project.share_token} prominent />
+          <PublishPanel
+            projectId={id}
+            initialToken={project.share_token}
+            prominent
+            initialPackageReady={designPackageReady}
+            initialSnapshotPackageReady={snapshotPackageReady}
+            initialVersion={snap?.version ?? null}
+          />
         </div>
       )}
 
@@ -211,7 +266,13 @@ export default async function ProjectHub({
                 Hand off to your designer
               </h2>
               {project.share_token ? (
-                <PublishPanel projectId={id} initialToken={project.share_token} />
+                <PublishPanel
+                  projectId={id}
+                  initialToken={project.share_token}
+                  initialPackageReady={designPackageReady}
+                  initialSnapshotPackageReady={snapshotPackageReady}
+                  initialVersion={snap?.version ?? null}
+                />
               ) : (
                 <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
                   This is the finish line. Once you&apos;ve worked through your strategy, you&apos;ll create a private,

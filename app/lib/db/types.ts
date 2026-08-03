@@ -39,3 +39,56 @@ export type AssetPayload = {
     feedback?: string;
   };
 };
+
+/** Field shape stored inside a publish snapshot (enough for SectionReadout). */
+export type SnapshotField = {
+  id: string;
+  label: string;
+  type: string;
+  columns?: { id: string; label: string }[];
+  options?: string[];
+};
+
+export type SnapshotSection = {
+  id: string;
+  name: string;
+  fields: SnapshotField[];
+  value: Record<string, unknown>;
+};
+
+export type SnapshotGroup = {
+  heading: string;
+  sections: SnapshotSection[];
+};
+
+export type SnapshotPackageAsset = {
+  kind: "design_system" | "landing_page" | "deck";
+  id: string;
+  name: string;
+  variant: string | null;
+  html: string;
+};
+
+/** Immutable package frozen at publish time. See lib/publish-snapshot.ts. */
+export type PublishSnapshotPayload = {
+  schemaVersion: 1;
+  version: number;
+  publishedAt: string;
+  project: {
+    id: string;
+    name: string;
+    client_name: string | null;
+  };
+  brief: {
+    groups: SnapshotGroup[];
+    markdown: string;
+  };
+  package: {
+    ready: boolean;
+    assets: SnapshotPackageAsset[];
+    implementPack: {
+      downloadName: string;
+      files: { path: string; content: string }[];
+    } | null;
+  };
+};

@@ -10,6 +10,7 @@ import {
 import { methodology } from "@/lib/methodology";
 import { getProject, getSections, listStudioAssets } from "@/lib/queries";
 import { designStudioBlockedReason, hasApprovedLogo, studioBlockedReason } from "@/lib/studio";
+import { hasConfirmedBrandName, needsNameWorkshop } from "@/lib/naming-propose";
 
 /** Shared stage state for every journey item (strategy, logo, design, handover). */
 export type StageStatus = "locked" | "todo" | "current" | "done";
@@ -60,9 +61,18 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
   const nextReviewGroup = firstIncompleteReviewGroup(statusMap);
   const designAssets = listDesignAssets(projectId);
 
+  // Palette gate = strategy content only (concept/plan/brief). Logo gate also
+  // requires name confirm for first-time generation.
+  const strategyContentBlocked = studioBlockedReason(projectId, "palette");
   const logoBlocked = studioBlockedReason(projectId, "logo");
   const logoUnlocked = !logoBlocked;
   const logoApproved = hasApprovedLogo(projectId);
+  const logoHasWork = listStudioAssets(projectId, "logo").some((a) => a.status !== "discarded");
+  // Once the owner has entered naming or logos, never hard-lock those rows —
+  // they must be able to come back like Strategy.
+  const nameConfirmed = hasConfirmedBrandName(projectId);
+  const nameStillNeeded = needsNameWorkshop(projectId);
+  const strategyContentReady = !strategyContentBlocked;
   const designBlocked = designStudioBlockedReason(projectId);
   const designUnlocked = !designBlocked;
 
@@ -75,9 +85,16 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
   const handoverUnlocked = designUnlocked; // open once design is available
   const handoverDone = designDone; // package complete when all finals chosen
 
-  // Strategy is complete when the logo workshop unlocks (or later stages already passed).
+  // Strategy is complete when strategy content is ready (name/logo gates are separate).
   const strategyDone =
-    logoUnlocked || logoApproved || designUnlocked || designDone || project.current_phase === "finished";
+    strategyContentReady ||
+    logoUnlocked ||
+    logoApproved ||
+    designUnlocked ||
+    designDone ||
+    project.current_phase === "planning" ||
+    project.current_phase === "design" ||
+    project.current_phase === "finished";
 
   // Strategy pillar steps (same status rules)
   const groupById = new Map(reviewGroups().map((g) => [g.id, g]));
@@ -209,20 +226,38 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       steps: strategySteps,
     },
     {
+      id: "name",
+      name: "2. Brand name",
+      href: `/projects/${projectId}/name`,
+      // Open when strategy content is ready (not when logo generate is fully unblocked).
+      locked: !strategyContentReady && !logoHasWork && !logoApproved && !nameConfirmed,
+      // Only confirmed (or logo already approved as legacy escape) counts as done.
+      done: nameConfirmed || logoApproved,
+      lockHint: strategyContentBlocked ?? "Finish strategy first",
+      doneDetail: "Name confirmed for logos",
+      todoDetail: nameStillNeeded
+        ? "Confirm this name or pick another"
+        : "Confirm name for logos",
+    },
+    {
       id: "logo",
-      name: "2. Logo Workshop",
+      name: "3. Logo Workshop",
+      // Always go to studio when clickable. Name gate is a soft page redirect only
+      // on first entry (no logo work yet) — never freeze this stage forever.
       href: `/projects/${projectId}/studio`,
-      locked: !logoUnlocked,
+      locked: !logoUnlocked && !logoHasWork && !logoApproved,
       done: logoApproved,
       lockHint: logoBlocked ?? "Finish strategy first",
       doneDetail: "Logo approved",
-      todoDetail: listStudioAssets(projectId, "logo").some((a) => a.status !== "discarded")
+      todoDetail: logoHasWork
         ? "Choose and approve a logo"
-        : "Generate logo candidates",
+        : nameStillNeeded
+          ? "Confirm name first, then generate logos"
+          : "Generate logo candidates",
     },
     {
       id: "design",
-      name: "3. Design Studio",
+      name: "4. Design Studio",
       href: `/projects/${projectId}/design`,
       locked: !designUnlocked,
       done: designDone,
@@ -235,16 +270,20 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
     },
     {
       id: "handover",
-      name: "4. Brand Handover",
+      name: "5. Brand Handover",
       href: `/projects/${projectId}/handover`,
       locked: !handoverUnlocked,
       done: handoverDone,
       lockHint: "Unlocks with Design Studio",
       doneDetail: project.share_token
-        ? "Package ready · published"
+        ? "Package ready · brand package published"
         : "Package ready · download or publish",
       todoDetail: designUnlocked
-        ? "Finish Design Studio finals"
+        ? designDone
+          ? project.share_token
+            ? "Update freeze or download package"
+            : "Publish brand package or download"
+          : "Finish Design Studio finals"
         : "Complete design first",
     },
   ];

@@ -42,12 +42,23 @@ export function ProjectMobileBar({
           <ArrowLeft size={18} />
         </Link>
         <span className="flex-1 truncate text-sm font-medium">{projectName}</span>
-        {assetStudioUnlocked && !designStudioUnlocked && (
+        {assetStudioUnlocked && (
           <Link
             href={`/projects/${projectId}/studio`}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition active:bg-[var(--accent-hover)]"
+            aria-label="Logo Workshop"
+            aria-current={path.startsWith(`/projects/${projectId}/studio`) ? "page" : undefined}
+            className={
+              designStudioUnlocked
+                ? `inline-flex h-8 w-8 items-center justify-center rounded-full transition active:bg-[var(--surface-2)] ${
+                    path.startsWith(`/projects/${projectId}/studio`)
+                      ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                      : "text-[var(--muted)]"
+                  }`
+                : "inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition active:bg-[var(--accent-hover)]"
+            }
           >
-            <PenTool size={13} /> Logo
+            <PenTool size={designStudioUnlocked ? 16 : 13} />
+            {!designStudioUnlocked ? "Logo" : null}
           </Link>
         )}
         {designStudioUnlocked && (

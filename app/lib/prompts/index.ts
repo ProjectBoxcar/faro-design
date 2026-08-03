@@ -29,8 +29,9 @@ STRATEGIC BRIEF QUALITY BAR:
 const CONCEPT_ADDON = `
 BRAND CONCEPT QUALITY BAR:
 - The concept is one guiding idea the whole brand is measured against.
-- "statement": a short memorable phrase (not a paragraph).
+- "statement": a short memorable phrase (not a paragraph) — the line people remember. Prefer punch and clarity over a full sentence of explanation.
 - "description": 2–4 sentences that explain how the statement holds the strategy together.
+- When the owner asks for an ALTERNATIVE, change the idea or the phrasing enough that it feels new; do not synonym-swap the last statement.
 - When filling eval-against-brief / filter-test tables, score honestly against each Brief field — note gaps, don't rubber-stamp.
 - recognition-test: would a stranger grasp the idea in one read? Write the test answer, not fluff.
 - Distillation notes can be brief process bullets; the statement + description are the product.

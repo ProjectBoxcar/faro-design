@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Loader2, Pencil, Sparkles, Square, X } from "lucide-react";
+import { FaroLoaderPanel } from "@/components/FaroLoader";
+import { countBasedPercent } from "@/lib/generation-progress";
 
 // One value block of a strategy section, already reduced to plain JSON.
 export type ExpressSection = {
@@ -26,6 +28,10 @@ export type ExpressStateDto = {
   current: string | null;
   currentName: string | null;
   error: string | null;
+  resumable?: boolean;
+  errorCode?: string | null;
+  errorHint?: string | null;
+  engine?: "strategy-direct";
 };
 
 export type RefineStateDto = {
@@ -303,6 +309,8 @@ function CardShell({
   readyBusy,
   rewriteBusy,
   draftSaving,
+  /** Extra actions in view mode (e.g. Try a different concept). */
+  viewActions,
   children,
 }: {
   title: string;
@@ -316,6 +324,7 @@ function CardShell({
   readyBusy: boolean;
   rewriteBusy: boolean;
   draftSaving?: boolean;
+  viewActions?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const editLocked = readyBusy || rewriteBusy;
@@ -379,18 +388,224 @@ function CardShell({
             <RewriteHint saving={draftSaving} />
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={onEdit}
-            disabled={updating}
-            className="inline-flex items-center gap-1 text-xs text-[var(--subtle)] transition hover:text-[var(--foreground)] disabled:opacity-40"
-          >
-            <Pencil size={12} /> Edit
-          </button>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            {viewActions}
+            <button
+              type="button"
+              onClick={onEdit}
+              disabled={updating}
+              className="inline-flex items-center gap-1 text-xs text-[var(--subtle)] transition hover:text-[var(--foreground)] disabled:opacity-40"
+            >
+              <Pencil size={12} /> Edit
+            </button>
+          </div>
         )}
       </div>
       {children}
     </section>
+  );
+}
+
+/** First-draft wait screen after the 6 questions — large beacon + monotonic progress. */
+function ExpressDraftingScreen({
+  projectId,
+  projectName,
+  state,
+  setState,
+  running,
+  stopping,
+  stopGeneration,
+}: {
+  projectId: string;
+  projectName: string;
+  state: ExpressStateDto;
+  setState: Dispatch<SetStateAction<ExpressStateDto>>;
+  running: boolean;
+  stopping: boolean;
+  stopGeneration: () => void | Promise<void>;
+}) {
+  const [peakPct, setPeakPct] = useState(0);
+  const [secondsInCurrent, setSecondsInCurrent] = useState(0);
+  const lastDoneRef = useRef(state.done);
+  const unitStartedAtRef = useRef(Date.now());
+
+  useEffect(() => {
+    const tick = () => {
+      setSecondsInCurrent(Math.floor((Date.now() - unitStartedAtRef.current) / 1000));
+    };
+    tick();
+    const t = window.setInterval(tick, 1000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    if (state.done !== lastDoneRef.current) {
+      lastDoneRef.current = state.done;
+      unitStartedAtRef.current = Date.now();
+      setSecondsInCurrent(0);
+    }
+  }, [state.done]);
+
+  const rawPct =
+    state.total > 0
+      ? countBasedPercent({
+          done: state.done,
+          total: state.total,
+          secondsInCurrent,
+          secondsPerUnit: 35,
+        })
+      : 2;
+  useEffect(() => {
+    setPeakPct((p) => Math.max(p, rawPct));
+  }, [rawPct]);
+  const pct = Math.max(peakPct, rawPct);
+
+  // Stage bullets: a stage is done when progress has passed its band (aligned to %).
+  const stageCount = PIPELINE_STAGES.length;
+  const progress01 = pct / 100;
+  const activeFromCurrent = stageIndexOf(state.current);
+
+  const stopped = state.status === "cancelled";
+
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center px-6 py-16">
+      <FaroLoaderPanel
+        beaconSize="hero"
+        title={
+          stopped
+            ? "Strategy drafting stopped"
+            : state.status === "failed"
+              ? "Strategy drafting paused"
+              : `Drafting the ${projectName} strategy`
+        }
+        description={
+          stopped
+            ? "You stopped generation. Sections already drafted are kept — resume when you are ready."
+            : state.status === "failed"
+              ? "Something went wrong mid-run. Progress so far is kept — you can resume from here."
+              : "Your answers are becoming a complete brand strategy and design plan. This takes a few minutes — you'll review everything on one page when it's ready."
+        }
+        progressPercent={pct}
+        progressLabel={
+          state.total > 0
+            ? `${state.done} of ${state.total} sections${
+                state.currentName && running ? ` · ${state.currentName}` : ""
+              }`
+            : undefined
+        }
+      >
+        <ol className="mt-10 w-full max-w-md space-y-3 text-left">
+          {PIPELINE_STAGES.map((stage, i) => {
+            // Prefer real current section when available; otherwise map from % bands.
+            const bandStart = i / stageCount;
+            const bandEnd = (i + 1) / stageCount;
+            let stageDone =
+              activeFromCurrent > i ||
+              (activeFromCurrent < 0 && progress01 >= bandEnd - 0.001);
+            let active =
+              running &&
+              (activeFromCurrent === i ||
+                (activeFromCurrent < 0 && progress01 >= bandStart && progress01 < bandEnd));
+            // If we have a current section, force later stages pending even if soft % crept ahead.
+            if (activeFromCurrent >= 0 && i > activeFromCurrent) {
+              stageDone = false;
+              active = false;
+            }
+            if (activeFromCurrent >= 0 && i < activeFromCurrent) {
+              stageDone = true;
+              active = false;
+            }
+            return (
+              <li key={stage.label} className="flex items-center gap-3 text-sm">
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                    stageDone
+                      ? "bg-[var(--accent)] text-white"
+                      : active
+                        ? "border border-[var(--accent)] text-[var(--accent)]"
+                        : "border border-[var(--border-strong)] text-[var(--subtle)]"
+                  }`}
+                >
+                  {stageDone ? (
+                    <Check size={13} />
+                  ) : active ? (
+                    <span className="faro-generation-dot h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                  ) : (
+                    i + 1
+                  )}
+                </span>
+                <span className={active ? "font-medium" : stageDone ? "" : "text-[var(--muted)]"}>
+                  {stage.label}
+                  {active && state.currentName ? (
+                    <span className="text-[var(--subtle)]"> — {state.currentName}…</span>
+                  ) : null}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+        {running && (
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <button
+              type="button"
+              onClick={() => void stopGeneration()}
+              disabled={stopping}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-5 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+            >
+              {stopping ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" /> Stopping…
+                </>
+              ) : (
+                <>
+                  <Square size={12} fill="currentColor" /> Stop generation
+                </>
+              )}
+            </button>
+            <p className="text-xs text-[var(--subtle)]">
+              Stops after the current section finishes. Progress so far is kept.
+            </p>
+          </div>
+        )}
+        {(state.status === "failed" || state.status === "cancelled") && (
+          <div
+            className={`mt-8 w-full max-w-md rounded-2xl border px-5 py-4 text-left text-sm ${
+              state.status === "failed"
+                ? "border-[var(--danger)]/40 bg-[var(--danger)]/10"
+                : "border-[var(--border-strong)] bg-[var(--surface)]"
+            }`}
+          >
+            <p>
+              {state.status === "failed"
+                ? state.error ?? "Strategy drafting failed."
+                : "Generation stopped. You can resume from where it left off."}
+            </p>
+            {state.errorHint && state.status === "failed" ? (
+              <p className="mt-2 text-xs text-[var(--muted)]">{state.errorHint}</p>
+            ) : null}
+            <button
+              onClick={async () => {
+                setState({
+                  ...state,
+                  status: "running",
+                  error: null,
+                  errorCode: null,
+                  errorHint: null,
+                });
+                await fetch(`/api/projects/${projectId}/express`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "start" }),
+                });
+              }}
+              className="mt-3 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)]"
+            >
+              Resume drafting
+            </button>
+          </div>
+        )}
+      </FaroLoaderPanel>
+    </main>
   );
 }
 
@@ -420,6 +635,8 @@ export function ExpressJourney({
   const [readyBusy, setReadyBusy] = useState(false);
   const [rewriteBusy, setRewriteBusy] = useState(false);
   const [draftSaving, setDraftSaving] = useState(false);
+  const [conceptBusy, setConceptBusy] = useState(false);
+  const [conceptNote, setConceptNote] = useState<string | null>(null);
   const [refine, setRefine] = useState<RefineStateDto | null>(null);
   const running = state.status === "running" || state.status === "idle";
   const refining = refine?.status === "running";
@@ -496,6 +713,7 @@ export function ExpressJourney({
   }, [draft, editingId, projectId, rewriteBusy]);
 
   // While the pipeline runs, poll for progress; refresh the page data once done.
+  // Merge so done/total never jump backward from a transient poll response.
   useEffect(() => {
     if (state.status === "done" || state.status === "failed" || state.status === "cancelled") return;
     let cancelled = false;
@@ -506,13 +724,28 @@ export function ExpressJourney({
         const data = await res.json();
         if (cancelled) return;
         if (res.ok && data.state) {
-          setState(data.state);
+          setState((prev) => {
+            const next = data.state as ExpressStateDto;
+            if (next.status === "running" && prev.status === "running") {
+              return {
+                ...next,
+                done: Math.max(prev.done, next.done),
+                total: Math.max(prev.total, next.total),
+              };
+            }
+            return next;
+          });
           if (data.sections) setSections(data.sections);
           if (data.state.status === "done") {
             router.refresh();
             return;
           }
-          if (data.state.status === "idle" && data.state.done < data.state.total) {
+          // Crash recovery only: idle incomplete. Cancelled/failed need Resume click.
+          if (
+            data.state.status === "idle" &&
+            data.state.done < data.state.total &&
+            data.state.status !== "cancelled"
+          ) {
             void fetch(`/api/projects/${projectId}/express`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -599,6 +832,88 @@ export function ExpressJourney({
     setDraftSaving(false);
   }
 
+  /**
+   * New brand concept from the same strategy (different phrase/angle).
+   * Saves as draft and opens edit so the owner can Ready → cascade manifesto/plan.
+   */
+  async function tryDifferentConcept() {
+    if (conceptBusy || readyBusy || rewriteBusy || refining) {
+      setError(
+        refining
+          ? "Wait for the current strategy update to finish."
+          : "Wait for the current action to finish."
+      );
+      return;
+    }
+    if (editingId && editingId !== "concept") {
+      setError("Finish or cancel the card you're editing first.");
+      return;
+    }
+    const current = sections["concept"];
+    if (!current) return;
+    // Prefer live edit draft so "try another" avoids the phrase on screen now.
+    const previous =
+      editingId === "concept"
+        ? { ...(current.value ?? {}), ...draftRef.current }
+        : (current.value ?? {});
+    setConceptBusy(true);
+    setConceptNote(null);
+    setError(null);
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          key: "concept",
+          value: previous,
+          mode: "alternative",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Couldn't draft another concept");
+      const values = data.values as Record<string, unknown> | undefined;
+      if (!values || Object.keys(values).length === 0) {
+        throw new Error("The AI didn't return a usable concept. Try again.");
+      }
+      const nextValue = { ...previous, ...values };
+      // Persist draft so refresh keeps the alternative.
+      const saveRes = await fetch("/api/sections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          key: "concept",
+          value: nextValue,
+          status: "draft",
+          aiGenerated: true,
+        }),
+      });
+      if (!saveRes.ok) {
+        const saveData = await saveRes.json().catch(() => ({}));
+        throw new Error(
+          (saveData as { error?: string }).error ?? "Couldn't save the new concept"
+        );
+      }
+      setSections((prev) => {
+        const existing = prev.concept;
+        if (!existing) return prev;
+        return { ...prev, concept: { ...existing, value: nextValue } };
+      });
+      // Open edit mode so Ready can cascade manifesto / design plan.
+      setDraft(nextValue);
+      draftRef.current = nextValue;
+      setEditingId("concept");
+      setConceptNote(
+        "New concept draft. Edit if you like, then hit Ready so the manifesto and design plan follow this idea — or try another concept."
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't draft another concept");
+    } finally {
+      setConceptBusy(false);
+    }
+  }
+
   /** Polish the owner's current edit in place — does not cascade until Ready. */
   async function rewriteWithAi() {
     if (!editingId || readyBusy || rewriteBusy) return;
@@ -658,6 +973,7 @@ export function ExpressJourney({
       if (data.warning) setError(data.warning);
       setEditingId(null);
       setDraft({});
+      setConceptNote(null);
       // If nothing to cascade, we're done immediately.
       if (!data.refine || data.refine.status !== "running") {
         setReadyBusy(false);
@@ -687,7 +1003,12 @@ export function ExpressJourney({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Approval failed");
-      router.push(`/projects/${projectId}/studio`);
+      // Temporary/generic working titles go to name workshop first; real names skip to logos.
+      const next =
+        typeof data.nextPath === "string" && data.nextPath
+          ? data.nextPath
+          : `/projects/${projectId}/studio`;
+      router.push(next);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Approval failed");
       setApproving(false);
@@ -715,119 +1036,16 @@ export function ExpressJourney({
   }
 
   if (running || state.status === "failed" || state.status === "cancelled") {
-    const activeStage = stageIndexOf(state.current);
-    const pct = state.total > 0 ? Math.round((state.done / state.total) * 100) : 0;
-    const stopped = state.status === "cancelled";
     return (
-      <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center px-6 py-16">
-        <div className="text-center">
-          <Sparkles className="mx-auto animate-pulse text-[var(--accent)]" size={32} />
-          <h1 className="mt-4 font-serif text-3xl font-medium tracking-tight">
-            {stopped ? "Strategy drafting stopped" : `Drafting the ${projectName} strategy`}
-          </h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">
-            {stopped
-              ? "You stopped generation. Sections already drafted are kept — resume when you are ready."
-              : "Your answers are becoming a complete brand strategy and design plan. This takes a few minutes — you'll review everything on one page when it's ready."}
-          </p>
-        </div>
-        <div className="mt-8 flex items-center gap-3">
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
-            <div
-              className="h-full rounded-full bg-[var(--accent)] transition-all duration-700"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <span
-            className="shrink-0 text-sm font-semibold tabular-nums text-[var(--foreground)]"
-            aria-live="polite"
-          >
-            {pct}%
-          </span>
-        </div>
-        <p className="mt-2 text-center text-xs text-[var(--subtle)]">
-          {state.done} of {state.total} sections
-          {state.currentName && !stopped ? ` · ${state.currentName}` : ""}
-        </p>
-        <ol className="mt-8 space-y-3">
-          {PIPELINE_STAGES.map((stage, i) => {
-            const stageDone = activeStage > i;
-            const active = !stopped && activeStage === i;
-            return (
-              <li key={stage.label} className="flex items-center gap-3 text-sm">
-                <span
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                    stageDone
-                      ? "bg-[var(--accent)] text-white"
-                      : active
-                      ? "border border-[var(--accent)] text-[var(--accent)]"
-                      : "border border-[var(--border-strong)] text-[var(--subtle)]"
-                  }`}
-                >
-                  {stageDone ? <Check size={13} /> : active ? <Loader2 size={13} className="animate-spin" /> : i + 1}
-                </span>
-                <span className={active ? "font-medium" : stageDone ? "" : "text-[var(--muted)]"}>
-                  {stage.label}
-                  {active && state.currentName ? (
-                    <span className="text-[var(--subtle)]"> — {state.currentName}…</span>
-                  ) : null}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-        {running && (
-          <div className="mt-8 flex flex-col items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void stopGeneration()}
-              disabled={stopping}
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-5 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
-            >
-              {stopping ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" /> Stopping…
-                </>
-              ) : (
-                <>
-                  <Square size={12} fill="currentColor" /> Stop generation
-                </>
-              )}
-            </button>
-            <p className="text-xs text-[var(--subtle)]">
-              Stops after the current section finishes. Progress so far is kept.
-            </p>
-          </div>
-        )}
-        {(state.status === "failed" || state.status === "cancelled") && (
-          <div
-            className={`mt-8 rounded-2xl border px-5 py-4 text-sm ${
-              state.status === "failed"
-                ? "border-[var(--danger)]/40 bg-[var(--danger)]/10"
-                : "border-[var(--border-strong)] bg-[var(--surface)]"
-            }`}
-          >
-            <p>
-              {state.status === "failed"
-                ? state.error ?? "Strategy drafting failed."
-                : "Generation stopped. You can resume from where it left off."}
-            </p>
-            <button
-              onClick={async () => {
-                setState({ ...state, status: "running", error: null });
-                await fetch(`/api/projects/${projectId}/express`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ action: "start" }),
-                });
-              }}
-              className="mt-2 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)]"
-            >
-              Resume drafting
-            </button>
-          </div>
-        )}
-      </main>
+      <ExpressDraftingScreen
+        projectId={projectId}
+        projectName={projectName}
+        state={state}
+        setState={setState}
+        running={running}
+        stopping={stopping}
+        stopGeneration={stopGeneration}
+      />
     );
   }
 
@@ -866,9 +1084,9 @@ export function ExpressJourney({
           fix wording,{" "}
           <span className="font-medium text-[var(--foreground)]">Rewrite with AI</span> to polish
           your draft, then <span className="font-medium text-[var(--foreground)]">Ready</span> — the
-          rest of the strategy updates from your change. When you approve, you go to the{" "}
-          <span className="font-medium text-[var(--foreground)]">Logo Workshop</span> next (Design
-          Studio unlocks after you approve a logo).
+          rest of the strategy updates from your change. When you approve, we&apos;ll check your brand
+          name (and suggest better options if it still looks temporary), then open the{" "}
+          <span className="font-medium text-[var(--foreground)]">Logo Workshop</span>.
         </p>
       </header>
 
@@ -910,7 +1128,7 @@ export function ExpressJourney({
             title="Brand concept"
             accent
             editing={editingId === "concept"}
-            updating={cardUpdating("concept")}
+            updating={cardUpdating("concept") || conceptBusy}
             onEdit={() => beginEdit(concept)}
             onCancel={cancelEdit}
             onReady={markReady}
@@ -918,6 +1136,22 @@ export function ExpressJourney({
             readyBusy={readyBusy && editingId === "concept"}
             rewriteBusy={rewriteBusy && editingId === "concept"}
             draftSaving={draftSaving && editingId === "concept"}
+            viewActions={
+              <button
+                type="button"
+                onClick={() => void tryDifferentConcept()}
+                disabled={conceptBusy || refining || readyBusy || rewriteBusy}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+                title="Keep the strategy; draft a different concept phrase"
+              >
+                {conceptBusy ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  <Sparkles size={12} />
+                )}
+                {conceptBusy ? "Finding another concept…" : "Try a different concept"}
+              </button>
+            }
           >
             {editingId === "concept" ? (
               <SectionEditorInline
@@ -936,8 +1170,35 @@ export function ExpressJourney({
                     {concept.value["description"]}
                   </p>
                 )}
+                {conceptNote ? (
+                  <p className="mt-3 rounded-xl bg-[var(--surface)]/80 px-3 py-2 text-xs leading-relaxed text-[var(--muted)]">
+                    {conceptNote}
+                  </p>
+                ) : null}
               </>
             )}
+            {editingId === "concept" ? (
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--border)]/60 pt-4">
+                <button
+                  type="button"
+                  onClick={() => void tryDifferentConcept()}
+                  disabled={conceptBusy || readyBusy || rewriteBusy}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+                >
+                  {conceptBusy ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={12} />
+                  )}
+                  {conceptBusy ? "Finding another…" : "Try another concept"}
+                </button>
+                <p className="text-[11px] text-[var(--subtle)]">
+                  Strategy stays the same — only the concept phrase changes. Then hit{" "}
+                  <strong className="font-medium text-[var(--muted)]">Ready</strong> to update the
+                  rest.
+                </p>
+              </div>
+            ) : null}
           </CardShell>
         )}
 
@@ -1124,7 +1385,7 @@ export function ExpressJourney({
           className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {approving ? <Loader2 size={15} className="animate-spin" /> : approved ? <Check size={15} /> : null}
-          {approved ? "Re-approve & open the Logo Workshop" : "Approve & open the Logo Workshop"}
+          {approved ? "Re-approve & continue" : "Approve strategy & continue"}
           <ArrowRight size={15} />
         </button>
       </div>

@@ -12,7 +12,7 @@ export type UpNext = {
 };
 
 export function UpNextCard({ next }: { next: UpNext | null }) {
-  // Whole guided review complete.
+  // Fallback only when the hub has no review groups and no post-strategy stage.
   if (!next) {
     return (
       <div className="rounded-2xl border border-[var(--ok)]/40 bg-[var(--surface)] p-6">
@@ -21,7 +21,9 @@ export function UpNextCard({ next }: { next: UpNext | null }) {
           <span className="font-medium">You&apos;ve reviewed your whole strategy</span>
         </div>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Everything&apos;s in place. When you&apos;re ready, hand the brief to your designer.
+          Next: confirm your brand name if needed, approve a logo, then finish Design Studio. Use
+          Brand Handover when the package is ready — a strategy brief share is not the full brand
+          package.
         </p>
       </div>
     );

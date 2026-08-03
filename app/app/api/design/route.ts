@@ -201,7 +201,9 @@ export async function GET(req: Request) {
   if (jobId) {
     const job = getDesignJob(projectId, jobId);
     if (!job) return NextResponse.json({ error: "Design job not found" }, { status: 404 });
-    if (job.status === "queued" || job.status === "running") void startDesignJob(job.id);
+    if (job.status === "queued" || job.status === "running") {
+      void startDesignJob(job.id, { resume: true });
+    }
     const refreshed = getDesignJob(projectId, jobId)!;
     return NextResponse.json({
       job: serializeDesignJob(refreshed),

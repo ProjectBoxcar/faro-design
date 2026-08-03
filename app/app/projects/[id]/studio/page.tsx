@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowRight, Lock, Palette, PenTool, Type, MessageSquareText, Shapes, Camera } from "lucide-react";
 import { getProject, listStudioAssets } from "@/lib/queries";
 import { studioBlockedReason, clearedName } from "@/lib/studio";
+import { needsNameWorkshop } from "@/lib/naming-propose";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,17 @@ export default async function StudioHub({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const project = getProject(id);
   if (!project) notFound();
+
+  // Soft name gate: only on first entry (no logo work yet). Never trap owners
+  // who already generated candidates or approved a mark.
+  const hasLogoWork = listStudioAssets(id, "logo").some((a) => a.status !== "discarded");
+  if (
+    needsNameWorkshop(id) &&
+    !studioBlockedReason(id, "logo") &&
+    !hasLogoWork
+  ) {
+    redirect(`/projects/${id}/name`);
+  }
 
   const blocked = studioBlockedReason(id, "logo");
   const name = clearedName(id);
@@ -56,7 +68,7 @@ export default async function StudioHub({ params }: { params: Promise<{ id: stri
       ) : (
         name && (
           <p className="mb-8 text-sm text-[var(--muted)]">
-            Designing for: <strong className="text-[var(--foreground)]">{name}</strong> (availability check passed)
+            Designing for: <strong className="text-[var(--foreground)]">{name}</strong>
           </p>
         )
       )}

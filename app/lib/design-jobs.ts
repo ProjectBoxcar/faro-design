@@ -11,12 +11,15 @@ import {
   generateLandingPageProposals,
   getAsset,
   listAssets,
+  selectAsset,
   type AssetRow,
 } from "@/lib/design";
 import { finalDeliverableIssue } from "@/lib/design-deliverable";
 import { getProject, setProjectPhase } from "@/lib/queries";
 import { viabilityActionBlockedReason } from "@/lib/project-gates";
 import type { DesignJobKind, DesignJobState } from "@/lib/design-job-types";
+import { classifyAiFailure, formatClassifiedFailure } from "@/lib/ai-failure";
+import { shouldResumeDesignJob } from "@/lib/design-job-resume-pure";
 
 export type DesignJobRow = typeof design_jobs.$inferSelect;
 
@@ -99,6 +102,36 @@ function updateJob(jobId: string, values: Partial<typeof design_jobs.$inferInser
     .run();
 }
 
+/** Failed job with partial proposals that can continue on Open Design only. */
+function findResumableFailedJob(
+  projectId: string,
+  kind: DesignJobKind,
+  designSystemId?: string
+): DesignJobRow | undefined {
+  const row = db
+    .select()
+    .from(design_jobs)
+    .where(
+      and(
+        eq(design_jobs.project_id, projectId),
+        eq(design_jobs.kind, kind),
+        eq(design_jobs.status, "failed")
+      )
+    )
+    .orderBy(desc(design_jobs.created_at))
+    .get();
+  if (!row) return undefined;
+  if (designSystemId && row.design_system_id && row.design_system_id !== designSystemId) {
+    return undefined;
+  }
+  const have = (row.asset_ids ?? []).filter((id) => Boolean(getAsset(projectId, id))).length;
+  // Keep partial progress; also allow full retry when failed with zero assets.
+  if (have >= row.count && have > 0) return undefined;
+  // Owner-stopped with nothing yet → fresh start is fine via new job.
+  if (have === 0 && /stopped/i.test(row.error ?? "")) return undefined;
+  return row;
+}
+
 export function createDesignJob(input: {
   projectId: string;
   kind: DesignJobKind;
@@ -107,6 +140,8 @@ export function createDesignJob(input: {
   /** Owner notes when refining a liked identity proposal. */
   feedback?: string;
   refineFromAssetId?: string;
+  /** Force a clean job (wipe/retry from zero). Default: resume partial failed job. */
+  forceNew?: boolean;
 }): DesignJobRow {
   const project = getProject(input.projectId);
   if (!project) throw new Error("Project not found");
@@ -126,8 +161,34 @@ export function createDesignJob(input: {
     .orderBy(desc(design_jobs.created_at))
     .get();
   if (active) {
-    void startDesignJob(active.id);
+    // Never wipe mid-flight work when re-attaching to an active job.
+    void startDesignJob(active.id, { resume: true });
     return active;
+  }
+
+  // Resume same Open Design job when proposals already landed mid-run.
+  // Skip when refining (feedback) — that always wants a fresh proposal set.
+  if (!input.forceNew && !input.feedback?.trim() && !input.refineFromAssetId) {
+    const resumable = findResumableFailedJob(
+      input.projectId,
+      input.kind,
+      input.designSystemId
+    );
+    if (resumable) {
+      cancelledJobs.delete(resumable.id);
+      const kept = (resumable.asset_ids ?? []).filter((id) =>
+        Boolean(getAsset(input.projectId, id))
+      );
+      updateJob(resumable.id, {
+        status: "queued",
+        error: null,
+        asset_ids: kept,
+        count: Math.max(resumable.count, input.count),
+        design_system_id: input.designSystemId ?? resumable.design_system_id,
+      });
+      void startDesignJob(resumable.id, { resume: true });
+      return getDesignJob(input.projectId, resumable.id)!;
+    }
   }
 
   const id = nanoid();
@@ -158,12 +219,17 @@ export function createDesignJob(input: {
   return db.select().from(design_jobs).where(eq(design_jobs.id, id)).get()!;
 }
 
-export function startDesignJob(jobId: string): Promise<void> {
+export function startDesignJob(
+  jobId: string,
+  options?: { resume?: boolean }
+): Promise<void> {
   const existing = activeRuns.get(jobId);
   if (existing) return existing;
 
   const job = db.select().from(design_jobs).where(eq(design_jobs.id, jobId)).get();
-  if (!job || job.status === "failed") return Promise.resolve();
+  // Resume path re-queues failed jobs before calling start.
+  if (!job) return Promise.resolve();
+  if (job.status === "failed" && !options?.resume) return Promise.resolve();
   // Finished jobs are never auto-restarted (missing assets usually mean the
   // owner deleted proposals — not a crash). Start a new job via createDesignJob.
   if (job.status === "complete") return Promise.resolve();
@@ -175,14 +241,26 @@ export function startDesignJob(jobId: string): Promise<void> {
   });
   if (conflicting) return conflicting[1];
 
+  // Pack 3: orphaned queued/running jobs (page refresh / server restart) must
+  // keep landed assets. Only a brand-new empty job may start without resume.
+  const landedAtStart = (job.asset_ids ?? []).filter((id) =>
+    Boolean(getAsset(job.project_id, id))
+  ).length;
+  const resume = shouldResumeDesignJob({
+    status: job.status,
+    explicitResume: Boolean(options?.resume),
+    isOrphan: true, // no activeRuns entry if we reached here
+    landedAssetCount: landedAtStart,
+  });
+
   const run = (async () => {
     // Re-read: owner may have cancelled between queue start and this tick.
     const latest = db.select().from(design_jobs).where(eq(design_jobs.id, jobId)).get();
-    if (!latest || latest.status === "failed") {
-      if (latest?.error === "Generation stopped." || cancelledJobs.has(jobId)) {
+    if (!latest) throw new Error("Design job not found");
+    if (latest.status === "failed" && !resume) {
+      if (latest.error === "Generation stopped." || cancelledJobs.has(jobId)) {
         throw new DesignGenerationCancelled();
       }
-      if (!latest) throw new Error("Design job not found");
       return;
     }
     const project = getProject(latest.project_id);
@@ -191,13 +269,33 @@ export function startDesignJob(jobId: string): Promise<void> {
     if (blocked) throw new Error(blocked);
     throwIfJobCancelled(jobId);
 
-    for (const assetId of latest.asset_ids ?? []) deleteAsset(latest.project_id, assetId);
+    // Always re-check landed assets at run time (IDs may have been deleted by owner).
+    const landedIds = (latest.asset_ids ?? []).filter((id) =>
+      Boolean(getAsset(latest.project_id, id))
+    );
+    // Never wipe proposals that already exist — force resume if anything landed.
+    const effectiveResume = resume || landedIds.length > 0;
+    if (!effectiveResume && landedIds.length === 0) {
+      // Brand-new empty job: clear any stale dangling ids (assets already gone).
+      for (const assetId of latest.asset_ids ?? []) {
+        if (getAsset(latest.project_id, assetId)) deleteAsset(latest.project_id, assetId);
+      }
+    } else if (!resume && landedIds.length > 0) {
+      console.warn(
+        `[design-jobs] refusing to wipe ${landedIds.length} landed asset(s) on job ${jobId}; forcing resume`
+      );
+    }
+    const safeKept = effectiveResume ? landedIds : [];
     // Avoid clobbering a concurrent cancel that already marked the job failed.
     if (cancelledJobs.has(jobId)) throw new DesignGenerationCancelled();
     const still = db.select().from(design_jobs).where(eq(design_jobs.id, jobId)).get();
-    if (!still || still.status === "failed") throw new DesignGenerationCancelled();
-    updateJob(job.id, { status: "running", asset_ids: [], error: null });
-    const assetIds: string[] = [];
+    if (!still || (still.status === "failed" && !resume)) throw new DesignGenerationCancelled();
+    updateJob(job.id, {
+      status: "running",
+      asset_ids: safeKept,
+      error: null,
+    });
+    const assetIds: string[] = [...safeKept];
     const onAsset = (asset: AssetRow) => {
       throwIfJobCancelled(jobId);
       assetIds.push(asset.id);
@@ -206,54 +304,121 @@ export function startDesignJob(jobId: string): Promise<void> {
       updateJob(job.id, { asset_ids: [...assetIds] });
     };
 
-    let generated: AssetRow[];
-    if (latest.kind === "design_system") {
+    const remaining = Math.max(0, latest.count - safeKept.length);
+    let generated: AssetRow[] = [];
+
+    if (remaining === 0 && safeKept.length > 0) {
+      generated = safeKept.map((id) => getAsset(latest.project_id, id)!).filter(Boolean);
+    } else if (latest.kind === "design_system") {
       const refine = jobRefineMeta.get(jobId);
-      generated = await generateDesignSystemProposals(
+      const fresh = await generateDesignSystemProposals(
         latest.project_id,
-        latest.count,
+        remaining || latest.count,
         onAsset,
         refine
           ? { feedback: refine.feedback, baseHtml: refine.baseHtml }
           : null
       );
       jobRefineMeta.delete(jobId);
+      generated = [...safeKept.map((id) => getAsset(latest.project_id, id)!).filter(Boolean), ...fresh];
     } else if (latest.kind === "mockups") {
       if (!latest.design_system_id) throw new Error("A final Brand Identity System is required.");
-      generated = await generateApplicationMockups(latest.project_id, latest.design_system_id, onAsset);
+      // Resume mockups: only generate missing landing / deck.
+      const existingAssets = safeKept
+        .map((id) => getAsset(latest.project_id, id))
+        .filter((a): a is AssetRow => Boolean(a));
+      const hasLanding = existingAssets.some((a) => a.kind === "landing_page");
+      const hasDeck = existingAssets.some((a) => a.kind === "deck");
+      if (!hasLanding && !hasDeck) {
+        generated = await generateApplicationMockups(
+          latest.project_id,
+          latest.design_system_id,
+          onAsset
+        );
+      } else {
+        generated = [...existingAssets];
+        if (!hasLanding) {
+          const [landing] = await generateLandingPageProposals(
+            latest.project_id,
+            latest.design_system_id,
+            1,
+            onAsset
+          );
+          if (landing) {
+            selectAsset(latest.project_id, landing.id);
+            generated.push(getAsset(latest.project_id, landing.id)!);
+          }
+        }
+        if (!hasDeck) {
+          const [deck] = await generateBrandDeckProposals(
+            latest.project_id,
+            latest.design_system_id,
+            1,
+            onAsset
+          );
+          if (deck) {
+            selectAsset(latest.project_id, deck.id);
+            generated.push(getAsset(latest.project_id, deck.id)!);
+          }
+        }
+      }
     } else if (latest.kind === "landing_page") {
       if (!latest.design_system_id) throw new Error("A final Brand Identity System is required.");
-      generated = await generateLandingPageProposals(
+      const fresh = await generateLandingPageProposals(
         latest.project_id,
         latest.design_system_id,
-        latest.count,
+        remaining || latest.count,
         onAsset
       );
+      generated = [
+        ...safeKept.map((id) => getAsset(latest.project_id, id)!).filter(Boolean),
+        ...fresh,
+      ];
     } else {
       if (!latest.design_system_id) throw new Error("A final Brand Identity System is required.");
-      generated = await generateBrandDeckProposals(
+      const fresh = await generateBrandDeckProposals(
         latest.project_id,
         latest.design_system_id,
-        latest.count,
+        remaining || latest.count,
         onAsset
       );
+      generated = [
+        ...safeKept.map((id) => getAsset(latest.project_id, id)!).filter(Boolean),
+        ...fresh,
+      ];
     }
     throwIfJobCancelled(jobId);
-    updateJob(job.id, { status: "complete", asset_ids: generated.map((asset) => asset.id) });
-    // The journey completes when the full package — strategy already
-    // published, plus every final design output — is on file.
-    const finished = getProject(job.project_id);
-    if (finished?.share_token && !finalDeliverableIssue(listAssets(job.project_id))) {
-      setProjectPhase(job.project_id, "finished");
+    updateJob(job.id, {
+      status: "complete",
+      asset_ids: generated.map((asset) => asset.id),
+    });
+    // When finals land (especially auto-selected mockups), refresh phase and
+    // re-freeze the share package if a strategy brief was already published.
+    try {
+      const { syncProjectLifecycle } = await import("@/lib/project-lifecycle");
+      syncProjectLifecycle(job.project_id);
+    } catch (e) {
+      console.warn("[lifecycle] design job complete sync failed:", e);
+      const finished = getProject(job.project_id);
+      if (finished?.share_token && !finalDeliverableIssue(listAssets(job.project_id))) {
+        setProjectPhase(job.project_id, "finished");
+      }
     }
   })()
     .catch((error) => {
       if (error instanceof DesignGenerationCancelled || cancelledJobs.has(jobId)) {
-        updateJob(job.id, { status: "failed", error: "Generation stopped." });
+        const c = classifyAiFailure(error, "design");
+        updateJob(job.id, {
+          status: "failed",
+          error: formatClassifiedFailure(c),
+        });
         return;
       }
-      const message = error instanceof Error ? error.message : "Design generation failed";
-      updateJob(job.id, { status: "failed", error: message });
+      const c = classifyAiFailure(error, "design");
+      updateJob(job.id, {
+        status: "failed",
+        error: formatClassifiedFailure(c),
+      });
     })
     .finally(() => {
       activeRuns.delete(jobId);
@@ -265,6 +430,10 @@ export function startDesignJob(jobId: string): Promise<void> {
 }
 
 export function serializeDesignJob(job: DesignJobRow): DesignJobState {
+  const have = (job.asset_ids ?? []).length;
+  const failed = job.status === "failed";
+  const partial = failed && have > 0 && have < job.count;
+  const classified = job.error ? classifyAiFailure(new Error(job.error), "design") : null;
   return {
     id: job.id,
     project_id: job.project_id,
@@ -274,5 +443,9 @@ export function serializeDesignJob(job: DesignJobRow): DesignJobState {
     status: job.status,
     asset_ids: job.asset_ids,
     error: job.error,
+    engine: "open-design-daemon",
+    resumable: failed && (partial || Boolean(job.error && !/stopped/i.test(job.error))),
+    errorCode: classified?.code ?? null,
+    errorHint: classified?.hint ?? null,
   };
 }

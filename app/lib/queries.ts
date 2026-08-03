@@ -169,6 +169,8 @@ export function resetViabilityPending(id: string): void {
 
 // Publish a project: mint an unguessable share token (reuse if one already exists)
 // and (re)stamp published_at. Returns the share token for the public handover link.
+// Call createPublishSnapshot(projectId, token) after this to freeze the handover
+// (done in /api/publish — keeps queries free of circular imports).
 export function publishProject(id: string): string {
   const existing = getProject(id);
   const token = existing?.share_token ?? nanoid();
@@ -192,6 +194,7 @@ export function setProjectPhase(
 }
 
 // Unpublish: revoke the share link by clearing the token and published timestamp.
+// Snapshot current flags are cleared in /api/publish (history retained).
 export function unpublishProject(id: string): void {
   db.update(projects)
     .set({ share_token: null, published_at: null, updated_at: new Date() })

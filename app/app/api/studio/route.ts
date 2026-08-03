@@ -88,6 +88,15 @@ export async function POST(req: Request) {
         discardStudioAsset(input.projectId, input.assetId);
         break;
     }
+    // Logo approve unlocks Design Studio → phase "design"; revoke can step back.
+    if (input.action === "approve" || input.action === "revoke-approval") {
+      try {
+        const { syncProjectLifecycle } = await import("@/lib/project-lifecycle");
+        syncProjectLifecycle(input.projectId);
+      } catch (e) {
+        console.warn("[lifecycle] studio sync failed:", e);
+      }
+    }
     return NextResponse.json({ workspace: logoWorkspace(input.projectId) });
   } catch (e) {
     if (e instanceof Error && (e.name === "LogoGenerationCancelled" || e.message === "Generation stopped.")) {

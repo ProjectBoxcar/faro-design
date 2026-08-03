@@ -32,6 +32,7 @@ export function FinalPackageViewer({
   embedded = false,
   briefHref,
   projectId,
+  snapshotVersion,
 }: {
   token?: string | null;
   projectName: string;
@@ -43,6 +44,8 @@ export function FinalPackageViewer({
   briefHref?: string;
   /** When set, overview offers the Brand Implement Pack download. */
   projectId?: string;
+  /** When set, content is a frozen publish snapshot (public share). */
+  snapshotVersion?: number;
 }) {
   const [active, setActive] = useState<ViewId>("overview");
   const [fullscreen, setFullscreen] = useState(false);
@@ -113,6 +116,11 @@ export function FinalPackageViewer({
             </p>
             <h1 className="truncate font-serif text-xl font-medium tracking-tight sm:text-2xl">
               {projectName}
+              {snapshotVersion != null ? (
+                <span className="ml-2 align-middle text-sm font-sans font-normal text-[var(--subtle)]">
+                  v{snapshotVersion} · frozen
+                </span>
+              ) : null}
             </h1>
             {clientName && (
               <p className="truncate text-xs text-[var(--muted)]">Prepared for {clientName}</p>

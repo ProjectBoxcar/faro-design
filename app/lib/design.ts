@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { assets, design_jobs } from "@/lib/db/schema";
 import { eq, and, desc, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
+// Design Studio only — Open Design + Anthropic BYOK; never OpenAI/Gemini. See docs/11-ai-lanes.md
 import { generateDesignText, hasOpenDesignKey } from "@/lib/ai";
 import { getSectionRow, getProject } from "@/lib/queries";
 import { designSystemPrompt, landingPagePrompt, brandDeckPrompt } from "@/lib/design-prompts";
