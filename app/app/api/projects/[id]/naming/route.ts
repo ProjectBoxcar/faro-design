@@ -18,7 +18,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const project = getProject(id);
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
-  const strategyBlocked = studioBlockedReason(id, "logo");
+  // Palette kind = strategy content gates only (concept/plan/brief). Do NOT use
+  // "logo" here — that also requires name confirm and creates a circular block
+  // (cannot confirm name because name is unconfirmed).
+  const strategyBlocked = studioBlockedReason(id, "palette");
   return NextResponse.json({
     workingName: project.name,
     isGeneric: isGenericBrandName(project.name),
@@ -50,7 +53,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const strategyBlocked = studioBlockedReason(id, "logo");
+  const strategyBlocked = studioBlockedReason(id, "palette");
   if (strategyBlocked) {
     return NextResponse.json({ error: strategyBlocked }, { status: 409 });
   }

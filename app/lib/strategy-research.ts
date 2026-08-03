@@ -15,7 +15,9 @@ import { getProject, getSectionRow, saveSection } from "@/lib/queries";
 import type { SectionValue } from "@/lib/db/types";
 import { readIntakeAnswers, type IntakeAnswers } from "@/lib/intake";
 import {
+  STRATEGY_RESEARCH_BRIEF_MAX_CHARS,
   STRATEGY_RESEARCH_SECTION_KEY,
+  sanitizeStrategyResearchBrief,
   sectionUsesStrategyResearch,
   shouldRunStrategyResearch,
   type StrategyResearchPayload,
@@ -23,9 +25,13 @@ import {
 
 export {
   STRATEGY_RESEARCH_SECTION_KEY,
+  sanitizeStrategyResearchBrief,
   sectionUsesStrategyResearch,
   shouldRunStrategyResearch,
 } from "@/lib/strategy-research-pure";
+
+/** Soft deadline so a hung search never freezes Express forever. */
+const RESEARCH_TIMEOUT_MS = 40_000;
 
 export function readStrategyResearchBrief(projectId: string): string | null {
   const row = getSectionRow(projectId, STRATEGY_RESEARCH_SECTION_KEY);
@@ -46,13 +52,28 @@ export function formatStrategyResearchForPrompt(projectId: string, sectionKey: s
     "If this block conflicts with their words, prefer their words.",
     "Do not invent customers, revenue, trademarks, or stats not supported here or in their notes.",
     "Do not say you searched the web or cite this as external research in the draft.",
+    "Working brand names are provisional — do not treat name collision notes as strategy facts.",
     "",
     brief,
   ].join("\n");
 }
 
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /**
- * Run only when thin. Safe to call from intake after expand — never throws to caller path.
+ * Run only when thin. Safe to call from intake/express — never throws to caller path.
  * Returns true if a brief was saved.
  */
 export async function maybeRunStrategyResearch(projectId: string): Promise<boolean> {
@@ -83,11 +104,19 @@ export async function maybeRunStrategyResearch(projectId: string): Promise<boole
     console.info(
       `[strategy-research] run project=${projectId} reasons=${gate.reasons.join(",")}`
     );
-    const brief = await fetchStrategyResearchBrief(project.name, answers);
+    const raw = await withTimeout(
+      fetchStrategyResearchBrief(project.name, answers),
+      RESEARCH_TIMEOUT_MS
+    );
+    if (raw === null) {
+      console.warn(`[strategy-research] timeout after ${RESEARCH_TIMEOUT_MS}ms — continuing without brief`);
+      return false;
+    }
+    const brief = sanitizeStrategyResearchBrief(raw, STRATEGY_RESEARCH_BRIEF_MAX_CHARS);
     if (!brief || brief.length < 40) return false;
 
     const payload: StrategyResearchPayload = {
-      brief: brief.slice(0, 6000),
+      brief,
       reasons: gate.reasons,
       model: MODELS.reasoning,
       createdAt: new Date().toISOString(),
@@ -118,15 +147,22 @@ async function fetchStrategyResearchBrief(
     "You are a discreet brand researcher supporting a strategist.",
     "The business owner will never see that research ran — produce a short internal briefing only.",
     "Use web search lightly (a few targeted queries). Prefer category norms, typical competitors, and common positioning language.",
-    "Be factual and cautious. Mark uncertainty. Never invent specific company financials or trademark status.",
-    "Respond with plain text only (no JSON, no markdown fences): 8–14 short bullets under these headings:",
-    "Category · Typical competitors or alternatives · Positioning patterns · Language the audience uses · Risks / clichés to avoid · Gaps still unknown.",
+    "Be factual and cautious. Mark uncertainty.",
+    "CRITICAL OUTPUT RULES:",
+    "- Respond with ONLY the briefing body. No preambles, no 'I'll research', no tool narration, no first-person process.",
+    "- Start with the line: INTERNAL BRIEFING",
+    "- Then 8–14 short bullets under: Category · Typical competitors or alternatives · Positioning patterns · Language the audience uses · Risks / clichés to avoid · Gaps still unknown.",
+    "NAME POLICY:",
+    "- Any working brand name is PROVISIONAL. Do not run trademark clearance or legal name research.",
+    "- Do not dig into famous same-name conglomerates unless the category itself is that company.",
+    "- At most one short bullet if the provisional name is obviously a global consumer brand: 'Working name may need workshop — defer to naming.'",
+    "- Never invent specific company financials.",
   ].join("\n");
 
   const user = [
-    `WORKING BRAND NAME: ${brandName}`,
+    `PROVISIONAL WORKING LABEL (not final brand name — ignore for trademark research): ${brandName}`,
     "",
-    "OWNER ANSWERS (primary truth — research only fills gaps):",
+    "OWNER ANSWERS (primary truth — research only fills category gaps):",
     `Offering / who for: ${answers.offering || "(thin)"}`,
     `Story: ${answers.story || "(thin)"}`,
     `Difference / beliefs: ${answers.difference || "(thin)"}`,
@@ -134,7 +170,7 @@ async function fetchStrategyResearchBrief(
     `Hard-to-copy edge: ${answers.edge || "(thin)"}`,
     `Taste: ${answers.taste || "(thin)"}`,
     "",
-    "Search only what is needed to ground a first strategy draft for this kind of business.",
+    "Ground a first strategy draft for this *kind of business* (category), not the working label.",
   ].join("\n");
 
   const client = new Anthropic({ apiKey });
@@ -160,9 +196,10 @@ async function fetchStrategyResearchBrief(
     });
   }
 
-  const text = resp.content
-    .map((b) => (b.type === "text" ? b.text : ""))
-    .join("")
-    .trim();
+  // Prefer the last text block (final answer after tool turns), not intermediate chatter.
+  const textBlocks = resp.content
+    .filter((b): b is { type: "text"; text: string } => b.type === "text" && Boolean(b.text?.trim()))
+    .map((b) => b.text.trim());
+  const text = (textBlocks[textBlocks.length - 1] || textBlocks.join("\n") || "").trim();
   return text || null;
 }

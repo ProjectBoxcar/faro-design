@@ -85,7 +85,7 @@ On success, callers may assert `result.engine` is in the allowed set for that la
 
 ### Silent strategy grounding (not a product feature)
 
-When Quick Start answers are **thin**, the pipeline may run a short Anthropic web-search briefing and store it on `internal.strategy-research`. It is **never** shown in the owner UI as “research” or a journey step. It injects only into strategy generation prompts (owner answers win on conflict). Rich intakes skip it. Failures are non-blocking. Code: `lib/strategy-research.ts`, gates: `lib/strategy-research-pure.ts`.
+When Quick Start answers are **thin** (core volume signals — not empty edge alone), Express may run a short Anthropic web-search briefing and store it on `internal.strategy-research`. It is **never** shown in the owner UI as “research” or a journey step. Intake does **not** await it (owner response stays fast); Express step 0a awaits with a soft timeout. Briefs are sanitized (no tool chatter); working names are provisional (no trademark digression). Injects only into strategy generation prompts (owner answers win on conflict). Rich intakes skip it. Failures are non-blocking. Code: `lib/strategy-research.ts`, gates: `lib/strategy-research-pure.ts`.
 
 ---
 

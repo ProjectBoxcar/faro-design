@@ -332,8 +332,8 @@ export function startExpress(projectId: string): ExpressState {
   });
 
   const promise = (async () => {
-    // 0a) Silent thin-context research if intake skipped it (resume / blank path).
-    // Never blocks; never surfaces as a product feature.
+    // 0a) Silent thin-context research (not a product feature). Soft timeout inside
+    // maybeRunStrategyResearch so Express never hangs; owner answers still win.
     try {
       const { maybeRunStrategyResearch } = await import("@/lib/strategy-research");
       await maybeRunStrategyResearch(projectId);
