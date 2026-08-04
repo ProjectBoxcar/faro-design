@@ -1,6 +1,10 @@
 import type { BrandProfile } from "@/lib/content-studio/types";
+import { sanitizeStudioSvg } from "@/lib/studio-svg";
 
 export function BrandProfileStrip({ profile }: { profile: BrandProfile }) {
+  const safeLogo = profile.logoSvgPreview
+    ? sanitizeStudioSvg(profile.logoSvgPreview)
+    : null;
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -14,10 +18,10 @@ export function BrandProfileStrip({ profile }: { profile: BrandProfile }) {
             {profile.locked ? "Locked" : "Unlocked"}
           </p>
         </div>
-        {profile.logoSvgPreview ? (
+        {safeLogo ? (
           <div
             className="flex h-14 w-36 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 [&_svg]:max-h-full [&_svg]:max-w-full"
-            dangerouslySetInnerHTML={{ __html: profile.logoSvgPreview }}
+            dangerouslySetInnerHTML={{ __html: safeLogo }}
           />
         ) : null}
       </div>

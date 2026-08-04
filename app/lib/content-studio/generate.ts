@@ -76,6 +76,12 @@ export function generateMonth(
   if (!profile.locked) {
     throw new Error("Brand profile must be locked before generating content.");
   }
+  const withFiles = assets.filter((a) => Boolean(a.storagePath));
+  if (withFiles.length === 0) {
+    throw new Error(
+      "Add at least one stored photo or video before generating a month (files must be saved on disk)."
+    );
+  }
   const platforms = options.platforms?.length ? options.platforms : DEFAULT_PLATFORMS;
   const postsPerWeek = options.postsPerWeek ?? 4;
   const total = Math.max(1, postsPerWeek * 4);
@@ -85,7 +91,7 @@ export function generateMonth(
   for (let i = 1; i <= total; i++) {
     const day = Math.min(28, 1 + Math.floor(((i - 1) * 28) / total));
     const dateIso = `${options.year}-${String(options.month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const asset = assets.length ? assets[(i - 1) % assets.length] : null;
+    const asset = withFiles[(i - 1) % withFiles.length] ?? null;
     const caption = generateCaption(profile, i, asset);
     posts.push({
       id: nanoid(),

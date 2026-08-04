@@ -15,17 +15,22 @@ export function ContentCalendarView({
   const [error, setError] = useState<string | null>(null);
 
   const byWeek = useMemo(() => {
-    const weeks: { label: string; posts: ContentPost[] }[] = [];
-    const sorted = [...calendar.posts].sort((a, b) => a.dayIndex - b.dayIndex);
-    for (let w = 0; w < 4; w++) {
-      const slice = sorted.filter((p) => Math.floor((p.dayIndex - 1) / 4) === w);
-      weeks.push({ label: `Week ${w + 1}`, posts: slice });
+    const sorted = [...calendar.posts].sort((a, b) => a.dateIso.localeCompare(b.dateIso));
+    const buckets = new Map<string, ContentPost[]>();
+    for (const p of sorted) {
+      const d = new Date(p.dateIso + "T12:00:00");
+      const start = new Date(d);
+      start.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // Monday-based week
+      const key = start.toISOString().slice(0, 10);
+      const list = buckets.get(key) ?? [];
+      list.push(p);
+      buckets.set(key, list);
     }
-    // leftover days
-    const assigned = new Set(weeks.flatMap((w) => w.posts.map((p) => p.id)));
-    const rest = sorted.filter((p) => !assigned.has(p.id));
-    if (rest.length) weeks.push({ label: "More", posts: rest });
-    return weeks.filter((w) => w.posts.length > 0);
+    return [...buckets.entries()].map(([start, posts], i) => ({
+      label: `Week of ${start}`,
+      posts,
+      i,
+    }));
   }, [calendar.posts]);
 
   async function patchPost(postId: string, patch: Partial<ContentPost>) {
@@ -116,7 +121,21 @@ export function ContentCalendarView({
                     }
                   }}
                 />
-                <p className="mt-2 text-[11px] text-[var(--subtle)]">{post.hashtags.join(" ")}</p>
+                <input
+                  className="mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--field)] px-2 py-1.5 text-[11px] text-[var(--muted)] outline-none focus:border-[var(--accent)]"
+                  defaultValue={post.hashtags.join(" ")}
+                  disabled={busyId === post.id}
+                  onBlur={(e) => {
+                    const tags = e.target.value
+                      .split(/\s+/)
+                      .map((t) => t.trim())
+                      .filter(Boolean)
+                      .map((t) => (t.startsWith("#") ? t : `#${t}`));
+                    if (tags.join(" ") !== post.hashtags.join(" ")) {
+                      void patchPost(post.id, { hashtags: tags });
+                    }
+                  }}
+                />
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {post.variants.map((v) => (
                     <span
@@ -128,7 +147,7 @@ export function ContentCalendarView({
                     </span>
                   ))}
                 </div>
-                <div className="mt-3 flex gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
                     disabled={busyId === post.id}
@@ -144,6 +163,14 @@ export function ContentCalendarView({
                     className="rounded-full border border-[var(--border-strong)] px-3 py-1.5 text-xs font-medium text-[var(--muted)] disabled:opacity-50"
                   >
                     Keep draft
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busyId === post.id}
+                    onClick={() => void patchPost(post.id, { status: "rejected" })}
+                    className="rounded-full border border-[var(--danger)]/40 px-3 py-1.5 text-xs font-medium text-[var(--danger)] disabled:opacity-50"
+                  >
+                    Reject
                   </button>
                 </div>
               </li>

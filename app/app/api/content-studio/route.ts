@@ -14,7 +14,14 @@ import {
   saveContentProfile,
   updatePost,
 } from "@/lib/content-studio/store";
+import {
+  importDirectoryToProfile,
+  kindFromMime,
+  mimeFromFilename,
+  writeRawAssetFile,
+} from "@/lib/content-studio/storage";
 import { getProject } from "@/lib/queries";
+import path from "path";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +33,6 @@ const BodySchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("lock-inferred"),
     brandName: z.string().min(1).max(80),
-    // Client lists filenames after upload placeholder — real upload comes later
     assets: z
       .array(
         z.object({
@@ -41,6 +47,14 @@ const BodySchema = z.discriminatedUnion("action", [
     profileId: z.string().min(1),
     filename: z.string().min(1),
     mimeType: z.string().default("application/octet-stream"),
+    storagePath: z.string().optional(),
+  }),
+  /** Copy files from a server-side folder into profile storage + register DB rows. */
+  z.object({
+    action: z.literal("import-folder"),
+    profileId: z.string().min(1),
+    /** Absolute or app-relative path (e.g. data/content-studio/.../raw or F:/.../raw) */
+    sourceDir: z.string().min(1),
   }),
   z.object({
     action: z.literal("generate-month"),
@@ -59,10 +73,9 @@ const BodySchema = z.discriminatedUnion("action", [
   }),
 ]);
 
-function mimeKind(mime: string): "image" | "video" | "unknown" {
-  if (mime.startsWith("image/")) return "image";
-  if (mime.startsWith("video/")) return "video";
-  return "unknown";
+function resolveSourceDir(sourceDir: string): string {
+  if (path.isAbsolute(sourceDir)) return sourceDir;
+  return path.join(process.cwd(), sourceDir);
 }
 
 export async function GET(req: Request) {
@@ -84,6 +97,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       profile: profile.payload,
       profileId: profile.id,
+      projectId: profile.project_id,
       assets,
     });
   }
@@ -116,6 +130,43 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const contentType = req.headers.get("content-type") || "";
+
+  // Multipart upload: real file bytes → disk + DB
+  if (contentType.includes("multipart/form-data")) {
+    try {
+      const form = await req.formData();
+      const profileId = String(form.get("profileId") || "");
+      if (!profileId || !getContentProfile(profileId)) {
+        return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+      }
+      const profileRow = getContentProfile(profileId)!;
+      const file = form.get("file");
+      if (!(file instanceof File)) {
+        return NextResponse.json({ error: "Missing file" }, { status: 400 });
+      }
+      const buf = Buffer.from(await file.arrayBuffer());
+      const written = writeRawAssetFile({
+        projectId: profileRow.project_id,
+        profileId,
+        filename: file.name,
+        bytes: buf,
+      });
+      const mimeType = file.type || mimeFromFilename(written.filename);
+      const asset = insertRawAsset({
+        profileId,
+        filename: written.filename,
+        mimeType,
+        kind: kindFromMime(mimeType),
+        storagePath: written.storagePath,
+      });
+      return NextResponse.json({ asset });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Upload failed";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = BodySchema.safeParse(body);
   if (!parsed.success) {
@@ -128,25 +179,27 @@ export async function POST(req: Request) {
       const blocked = contentStudioBlockedReason(input.projectId);
       if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
       const profile = ingestBrandProfileFromProject(input.projectId);
-      const { id } = saveContentProfile({ projectId: input.projectId, profile });
+      const { id } = saveContentProfile({
+        projectId: input.projectId,
+        profile,
+        replaceLatest: true,
+      });
       return NextResponse.json({ profileId: id, profile });
     }
 
     if (input.action === "lock-inferred") {
       const stubs = input.assets.map((a) => ({
         filename: a.filename,
-        kind: mimeKind(a.mimeType),
+        kind: kindFromMime(a.mimeType),
       }));
+      if (stubs.length === 0) {
+        return NextResponse.json(
+          { error: "Add at least one media file before locking an inferred profile." },
+          { status: 400 }
+        );
+      }
       const profile = inferBrandProfileFromAssets(input.brandName, stubs);
       const { id } = saveContentProfile({ projectId: null, profile });
-      for (const a of input.assets) {
-        insertRawAsset({
-          profileId: id,
-          filename: a.filename,
-          mimeType: a.mimeType,
-          kind: mimeKind(a.mimeType),
-        });
-      }
       return NextResponse.json({ profileId: id, profile });
     }
 
@@ -158,10 +211,37 @@ export async function POST(req: Request) {
         profileId: input.profileId,
         filename: input.filename,
         mimeType: input.mimeType,
-        kind: mimeKind(input.mimeType),
-        storagePath: null, // real upload storage later
+        kind: kindFromMime(input.mimeType),
+        storagePath: input.storagePath ?? null,
       });
       return NextResponse.json({ asset });
+    }
+
+    if (input.action === "import-folder") {
+      const row = getContentProfile(input.profileId);
+      if (!row) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+      const sourceDir = resolveSourceDir(input.sourceDir);
+      const files = importDirectoryToProfile({
+        projectId: row.project_id,
+        profileId: input.profileId,
+        sourceDir,
+      });
+      if (files.length === 0) {
+        return NextResponse.json(
+          { error: `No media files found in ${sourceDir}` },
+          { status: 400 }
+        );
+      }
+      const assets = files.map((f) =>
+        insertRawAsset({
+          profileId: input.profileId,
+          filename: f.filename,
+          mimeType: f.mimeType,
+          kind: f.kind,
+          storagePath: f.storagePath,
+        })
+      );
+      return NextResponse.json({ imported: assets.length, assets, sourceDir });
     }
 
     if (input.action === "generate-month") {

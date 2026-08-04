@@ -104,18 +104,15 @@ export function ContentStudioWorkspace({
     setError(null);
     try {
       for (const file of list) {
+        const form = new FormData();
+        form.set("profileId", profileId);
+        form.set("file", file);
         const res = await fetch("/api/content-studio", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "register-asset",
-            profileId,
-            filename: file.name,
-            mimeType: file.type || "application/octet-stream",
-          }),
+          body: form,
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Upload register failed");
+        if (!res.ok) throw new Error(data.error || "Upload failed");
         setAssets((prev) => [data.asset, ...prev]);
       }
     } catch (e) {
@@ -279,7 +276,7 @@ export function ContentStudioWorkspace({
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              disabled={busy !== null}
+              disabled={busy !== null || assets.filter((a) => a.storagePath).length === 0}
               onClick={() => void runGenerate()}
               className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
             >
@@ -291,9 +288,12 @@ export function ContentStudioWorkspace({
               Generate month ({year}-{String(month).padStart(2, "0")})
             </button>
             <span className="text-xs text-[var(--subtle)]">
-              Captions · hashtags · Instagram / TikTok / LinkedIn crop recipes
+              Needs stored media · captions · hashtags · Instagram / TikTok / LinkedIn crops
             </span>
           </div>
+          {assets.filter((a) => a.storagePath).length === 0 ? (
+            <p className="text-xs text-[var(--danger)]">Upload or import at least one photo/video first.</p>
+          ) : null}
 
           {calendar ? <ContentCalendarView calendar={calendar} onUpdated={setCalendar} /> : null}
         </>

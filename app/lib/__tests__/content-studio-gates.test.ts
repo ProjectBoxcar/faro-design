@@ -20,10 +20,20 @@ const lockedProfile: BrandProfile = {
 };
 
 describe("content studio generateMonth", () => {
-  it("builds a calendar of draft posts for a locked profile", () => {
+  const storedAsset = {
+    id: "a1",
+    profileId: "profile-1",
+    filename: "hero.jpg",
+    mimeType: "image/jpeg",
+    kind: "image" as const,
+    storagePath: "content-studio/_standalone/profile-1/raw/hero.jpg",
+    createdAt: new Date().toISOString(),
+  };
+
+  it("builds a calendar of draft posts for a locked profile with stored media", () => {
     const cal = generateMonth(
       lockedProfile,
-      [],
+      [storedAsset],
       { year: 2026, month: 8, postsPerWeek: 2 },
       "profile-1"
     );
@@ -38,10 +48,16 @@ describe("content studio generateMonth", () => {
     expect(() =>
       generateMonth(
         { ...lockedProfile, locked: false },
-        [],
+        [storedAsset],
         { year: 2026, month: 8 },
         "p"
       )
     ).toThrow(/locked/i);
+  });
+
+  it("refuses generate with no stored files", () => {
+    expect(() =>
+      generateMonth(lockedProfile, [], { year: 2026, month: 8 }, "p")
+    ).toThrow(/stored/i);
   });
 });

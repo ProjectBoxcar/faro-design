@@ -25,7 +25,24 @@ import type {
 export function saveContentProfile(input: {
   projectId: string | null;
   profile: BrandProfile;
+  /** When true and projectId set, reuse the latest profile row for that project. */
+  replaceLatest?: boolean;
 }): { id: string } {
+  if (input.replaceLatest && input.projectId) {
+    const existing = listProfilesForProject(input.projectId)[0];
+    if (existing) {
+      db.update(content_profiles)
+        .set({
+          source: input.profile.source,
+          brand_name: input.profile.brandName,
+          locked: input.profile.locked,
+          payload: input.profile,
+        })
+        .where(eq(content_profiles.id, existing.id))
+        .run();
+      return { id: existing.id };
+    }
+  }
   const id = nanoid();
   db.insert(content_profiles)
     .values({
@@ -102,6 +119,18 @@ export function listRawAssets(profileId: string): ContentRawAsset[] {
 }
 
 export function saveCalendar(calendar: ContentCalendar): void {
+  // Replace existing calendar for same profile + year + month (idempotent regenerate).
+  const prior = db
+    .select()
+    .from(content_calendars)
+    .where(eq(content_calendars.profile_id, calendar.profileId))
+    .all()
+    .filter((c) => c.year === calendar.year && c.month === calendar.month);
+  for (const old of prior) {
+    db.delete(content_posts).where(eq(content_posts.calendar_id, old.id)).run();
+    db.delete(content_calendars).where(eq(content_calendars.id, old.id)).run();
+  }
+
   db.insert(content_calendars)
     .values({
       id: calendar.id,
