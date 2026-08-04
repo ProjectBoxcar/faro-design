@@ -28,5 +28,8 @@ Thumbs.db
 # Large third-party reference clones (not product source)
 external/
 
+# Local pilot media drop folder (never commit client photos/video)
+/raw/
+
 # Machine-specific Devin CLI local permissions
 .devin/config.local.json

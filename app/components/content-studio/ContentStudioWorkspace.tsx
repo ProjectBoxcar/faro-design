@@ -295,7 +295,13 @@ export function ContentStudioWorkspace({
             <p className="text-xs text-[var(--danger)]">Upload or import at least one photo/video first.</p>
           ) : null}
 
-          {calendar ? <ContentCalendarView calendar={calendar} onUpdated={setCalendar} /> : null}
+          {calendar ? (
+            <ContentCalendarView
+              key={calendar.id}
+              calendar={calendar}
+              onUpdated={setCalendar}
+            />
+          ) : null}
         </>
       )}
     </div>

@@ -100,6 +100,58 @@ export function insertRawAsset(input: {
   };
 }
 
+/** Find existing asset for profile by filename (for import de-dupe). */
+export function findRawAssetByFilename(
+  profileId: string,
+  filename: string
+): ContentRawAsset | null {
+  const row = db
+    .select()
+    .from(content_raw_assets)
+    .where(eq(content_raw_assets.profile_id, profileId))
+    .all()
+    .find((r) => r.filename === filename);
+  if (!row) return null;
+  return {
+    id: row.id,
+    profileId: row.profile_id,
+    filename: row.filename,
+    mimeType: row.mime_type,
+    kind: row.kind as ContentRawAsset["kind"],
+    storagePath: row.storage_path,
+    createdAt:
+      row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+  };
+}
+
+/**
+ * Insert asset or return existing row with same filename for the profile.
+ * When existing and storagePath provided, updates path if it was null.
+ */
+export function upsertRawAssetByFilename(input: {
+  profileId: string;
+  filename: string;
+  mimeType: string;
+  kind: "image" | "video" | "unknown";
+  storagePath?: string | null;
+}): { asset: ContentRawAsset; created: boolean } {
+  const existing = findRawAssetByFilename(input.profileId, input.filename);
+  if (existing) {
+    if (input.storagePath && !existing.storagePath) {
+      db.update(content_raw_assets)
+        .set({ storage_path: input.storagePath })
+        .where(eq(content_raw_assets.id, existing.id))
+        .run();
+      return {
+        asset: { ...existing, storagePath: input.storagePath },
+        created: false,
+      };
+    }
+    return { asset: existing, created: false };
+  }
+  return { asset: insertRawAsset(input), created: true };
+}
+
 export function listRawAssets(profileId: string): ContentRawAsset[] {
   return db
     .select()

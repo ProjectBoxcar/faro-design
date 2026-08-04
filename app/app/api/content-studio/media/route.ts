@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { readFileSync, existsSync } from "fs";
-import { absoluteFromStoragePath, mimeFromFilename } from "@/lib/content-studio/storage";
+import { readFileSync } from "fs";
+import { mimeFromFilename, resolveContainedStoragePath } from "@/lib/content-studio/storage";
 import { listRawAssets, getContentProfile } from "@/lib/content-studio/store";
 
 export const dynamic = "force-dynamic";
@@ -20,9 +20,9 @@ export async function GET(req: Request) {
   if (!asset?.storagePath) {
     return NextResponse.json({ error: "Asset not found on disk" }, { status: 404 });
   }
-  const abs = absoluteFromStoragePath(asset.storagePath);
-  if (!existsSync(abs)) {
-    return NextResponse.json({ error: "File missing on disk" }, { status: 404 });
+  const abs = resolveContainedStoragePath(asset.storagePath);
+  if (!abs) {
+    return NextResponse.json({ error: "File missing or path not allowed" }, { status: 404 });
   }
   const buf = readFileSync(abs);
   const mime = asset.mimeType || mimeFromFilename(asset.filename);

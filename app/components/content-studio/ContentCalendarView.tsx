@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ContentCalendar, ContentPost, ContentPostStatus } from "@/lib/content-studio/types";
 
 export function ContentCalendarView({
@@ -13,6 +13,11 @@ export function ContentCalendarView({
   const [calendar, setCalendar] = useState(initial);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Remount-equivalent: when parent regenerates, calendar.id changes — resync local state.
+  useEffect(() => {
+    setCalendar(initial);
+  }, [initial.id]);
 
   const byWeek = useMemo(() => {
     const sorted = [...calendar.posts].sort((a, b) => a.dateIso.localeCompare(b.dateIso));

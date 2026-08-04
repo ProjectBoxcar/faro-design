@@ -4,12 +4,37 @@
  * Never commit this folder (gitignored).
  */
 import "server-only";
-import { mkdirSync, readdirSync, writeFileSync, existsSync, copyFileSync } from "fs";
+import {
+  mkdirSync,
+  readdirSync,
+  writeFileSync,
+  existsSync,
+  copyFileSync,
+  statSync,
+  realpathSync,
+} from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
 
 export function contentStudioDataRoot(): string {
   return path.join(process.cwd(), "data", "content-studio");
+}
+
+/** Roots that import-folder may read from (resolved at call time). */
+export function importAllowlistRoots(): string[] {
+  const roots = [
+    contentStudioDataRoot(),
+    path.join(process.cwd(), "data"),
+    // User drop-folder next to app (e.g. F:\Faro Design\raw when cwd is app/)
+    path.join(process.cwd(), "..", "raw"),
+  ];
+  return roots.map((r) => {
+    try {
+      return existsSync(r) ? realpathSync(r) : path.resolve(r);
+    } catch {
+      return path.resolve(r);
+    }
+  });
 }
 
 export function profileRawDir(opts: {
@@ -24,15 +49,54 @@ export function ensureDir(dir: string): void {
   mkdirSync(dir, { recursive: true });
 }
 
+/** True if candidate path is inside root (after resolve). */
+export function isPathInside(root: string, candidate: string): boolean {
+  const r = path.resolve(root);
+  const c = path.resolve(candidate);
+  const rel = path.relative(r, c);
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
+/**
+ * Resolve a storage path to an absolute file under data/, rejecting traversal.
+ * Returns null if path escapes data/ or does not exist.
+ */
+export function resolveContainedStoragePath(storagePath: string): string | null {
+  if (!storagePath || storagePath.includes("\0")) return null;
+  // Reject absolute and parent-segment paths before join
+  const parts = storagePath.split(/[/\\]+/).filter(Boolean);
+  if (parts.some((p) => p === ".." || p === ".")) return null;
+  if (path.isAbsolute(storagePath)) return null;
+  const dataRoot = path.join(process.cwd(), "data");
+  const abs = path.join(dataRoot, ...parts);
+  if (!isPathInside(dataRoot, abs)) return null;
+  if (!existsSync(abs)) return null;
+  try {
+    const real = realpathSync(abs);
+    if (!isPathInside(dataRoot, real)) return null;
+    return real;
+  } catch {
+    return null;
+  }
+}
+
 /** Relative path stored in DB (posix-style, under data/). */
 export function toStoragePath(absolutePath: string): string {
   const root = path.join(process.cwd(), "data");
   const rel = path.relative(root, absolutePath);
+  if (rel.startsWith("..") || path.isAbsolute(rel)) {
+    throw new Error("Storage path escapes data root");
+  }
   return rel.split(path.sep).join("/");
 }
 
+/** @deprecated Prefer resolveContainedStoragePath — does not enforce containment alone. */
 export function absoluteFromStoragePath(storagePath: string): string {
-  return path.join(process.cwd(), "data", ...storagePath.split("/"));
+  const contained = resolveContainedStoragePath(storagePath);
+  if (contained) return contained;
+  // Fallback for callers that check existsSync themselves — still strip ".."
+  const parts = storagePath.split(/[/\\]+/).filter((p) => p && p !== ".." && p !== ".");
+  return path.join(process.cwd(), "data", ...parts);
 }
 
 export function safeFilename(name: string): string {
@@ -58,6 +122,19 @@ export function kindFromMime(mime: string): "image" | "video" | "unknown" {
   return "unknown";
 }
 
+export function isAllowedMediaMime(mime: string): boolean {
+  return mime.startsWith("image/") || mime.startsWith("video/");
+}
+
+/** Unique dest name if file already exists (upload collision). */
+function uniqueDest(dir: string, filename: string): string {
+  const dest = path.join(dir, filename);
+  if (!existsSync(dest)) return filename;
+  const ext = path.extname(filename);
+  const stem = path.basename(filename, ext);
+  return `${stem}-${nanoid(6)}${ext}`;
+}
+
 /** Write uploaded bytes into the profile raw folder. Returns relative storage path. */
 export function writeRawAssetFile(opts: {
   projectId: string | null;
@@ -67,7 +144,7 @@ export function writeRawAssetFile(opts: {
 }): { storagePath: string; absolutePath: string; filename: string } {
   const dir = profileRawDir(opts);
   ensureDir(dir);
-  const filename = safeFilename(opts.filename);
+  const filename = uniqueDest(dir, safeFilename(opts.filename));
   const absolutePath = path.join(dir, filename);
   writeFileSync(absolutePath, opts.bytes);
   return {
@@ -78,8 +155,37 @@ export function writeRawAssetFile(opts: {
 }
 
 /**
- * Import every file from a source directory into the profile raw folder
- * (copy, not move). Returns list of written files.
+ * Resolve and validate sourceDir for import-folder (must sit under allowlisted roots).
+ */
+export function resolveImportSourceDir(sourceDir: string): string {
+  const resolved = path.isAbsolute(sourceDir)
+    ? path.resolve(sourceDir)
+    : path.resolve(process.cwd(), sourceDir);
+  if (!existsSync(resolved)) {
+    throw new Error(`Import folder not found: ${sourceDir}`);
+  }
+  let real: string;
+  try {
+    real = realpathSync(resolved);
+  } catch {
+    throw new Error(`Cannot resolve import folder: ${sourceDir}`);
+  }
+  const st = statSync(real);
+  if (!st.isDirectory()) {
+    throw new Error("Import path must be a directory");
+  }
+  const allowed = importAllowlistRoots().some((root) => isPathInside(root, real));
+  if (!allowed) {
+    throw new Error(
+      "Import folder must be under data/content-studio or the project raw drop folder"
+    );
+  }
+  return real;
+}
+
+/**
+ * Import media files from a source directory into the profile raw folder
+ * (copy, not move). Skips non-files and non-media. Returns list of written files.
  */
 export function importDirectoryToProfile(opts: {
   projectId: string | null;
@@ -98,10 +204,18 @@ export function importDirectoryToProfile(opts: {
   for (const name of readdirSync(opts.sourceDir)) {
     if (name.startsWith(".")) continue;
     const src = path.join(opts.sourceDir, name);
+    let st;
+    try {
+      st = statSync(src);
+    } catch {
+      continue;
+    }
+    if (!st.isFile()) continue;
     const filename = safeFilename(name);
+    const mimeType = mimeFromFilename(filename);
+    if (!isAllowedMediaMime(mimeType)) continue;
     const dest = path.join(dir, filename);
     copyFileSync(src, dest);
-    const mimeType = mimeFromFilename(filename);
     out.push({
       filename,
       storagePath: toStoragePath(dest),

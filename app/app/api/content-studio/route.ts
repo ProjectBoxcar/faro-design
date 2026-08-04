@@ -13,15 +13,16 @@ import {
   saveCalendar,
   saveContentProfile,
   updatePost,
+  upsertRawAssetByFilename,
 } from "@/lib/content-studio/store";
 import {
   importDirectoryToProfile,
   kindFromMime,
   mimeFromFilename,
+  resolveImportSourceDir,
   writeRawAssetFile,
 } from "@/lib/content-studio/storage";
 import { getProject } from "@/lib/queries";
-import path from "path";
 
 export const dynamic = "force-dynamic";
 
@@ -42,18 +43,18 @@ const BodySchema = z.discriminatedUnion("action", [
       )
       .default([]),
   }),
+  /** Metadata-only registration — storagePath is server-owned (ignored if client sends one). */
   z.object({
     action: z.literal("register-asset"),
     profileId: z.string().min(1),
     filename: z.string().min(1),
     mimeType: z.string().default("application/octet-stream"),
-    storagePath: z.string().optional(),
   }),
-  /** Copy files from a server-side folder into profile storage + register DB rows. */
+  /** Copy files from an allowlisted server-side folder into profile storage + register DB rows. */
   z.object({
     action: z.literal("import-folder"),
     profileId: z.string().min(1),
-    /** Absolute or app-relative path (e.g. data/content-studio/.../raw or F:/.../raw) */
+    /** Absolute or app-relative path under data/content-studio or project raw drop folder */
     sourceDir: z.string().min(1),
   }),
   z.object({
@@ -72,11 +73,6 @@ const BodySchema = z.discriminatedUnion("action", [
     notes: z.string().nullable().optional(),
   }),
 ]);
-
-function resolveSourceDir(sourceDir: string): string {
-  if (path.isAbsolute(sourceDir)) return sourceDir;
-  return path.join(process.cwd(), sourceDir);
-}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -207,12 +203,13 @@ export async function POST(req: Request) {
       if (!getContentProfile(input.profileId)) {
         return NextResponse.json({ error: "Profile not found" }, { status: 404 });
       }
+      // Never accept client-supplied storagePath (path injection). Use multipart or import-folder.
       const asset = insertRawAsset({
         profileId: input.profileId,
         filename: input.filename,
         mimeType: input.mimeType,
         kind: kindFromMime(input.mimeType),
-        storagePath: input.storagePath ?? null,
+        storagePath: null,
       });
       return NextResponse.json({ asset });
     }
@@ -220,7 +217,7 @@ export async function POST(req: Request) {
     if (input.action === "import-folder") {
       const row = getContentProfile(input.profileId);
       if (!row) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
-      const sourceDir = resolveSourceDir(input.sourceDir);
+      const sourceDir = resolveImportSourceDir(input.sourceDir);
       const files = importDirectoryToProfile({
         projectId: row.project_id,
         profileId: input.profileId,
@@ -232,16 +229,23 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
-      const assets = files.map((f) =>
-        insertRawAsset({
-          profileId: input.profileId,
-          filename: f.filename,
-          mimeType: f.mimeType,
-          kind: f.kind,
-          storagePath: f.storagePath,
-        })
+      const assets = files.map(
+        (f) =>
+          upsertRawAssetByFilename({
+            profileId: input.profileId,
+            filename: f.filename,
+            mimeType: f.mimeType,
+            kind: f.kind,
+            storagePath: f.storagePath,
+          }).asset
       );
-      return NextResponse.json({ imported: assets.length, assets, sourceDir });
+      const created = assets.length; // count returned rows (existing re-used)
+      return NextResponse.json({
+        imported: created,
+        assets,
+        sourceDir,
+        note: "Existing filenames are de-duped (not re-inserted).",
+      });
     }
 
     if (input.action === "generate-month") {
