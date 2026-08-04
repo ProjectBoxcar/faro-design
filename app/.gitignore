@@ -24,3 +24,7 @@ tsconfig.tsbuildinfo
 # Local brand exports from project DB
 data/faro-brand-export/
 
+
+# Content Studio local media
+data/content-studio/
+
