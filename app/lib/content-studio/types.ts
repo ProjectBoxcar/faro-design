@@ -55,6 +55,21 @@ export type ContentPost = {
   notes: string | null;
 };
 
+/** Monthly organic content strategy (Strategy AI) — shown above the calendar. */
+export type ContentMonthStrategy = {
+  monthlyTheme: string;
+  /** 2 or 3 — target posts per week */
+  postsPerWeek: number;
+  /** e.g. "Tue / Thu / Sat · organic, not daily" */
+  cadenceLabel: string;
+  goals: string[];
+  pillars: { name: string; description: string }[];
+  channelMix: string;
+  mediaPlan: string;
+  voiceNotes: string;
+  weekOutline: string[];
+};
+
 export type ContentCalendar = {
   id: string;
   profileId: string;
@@ -62,11 +77,14 @@ export type ContentCalendar = {
   month: number;
   status: "draft" | "generating" | "ready" | "exported";
   posts: ContentPost[];
+  /** Organic month strategy produced with the calendar */
+  strategy?: ContentMonthStrategy | null;
 };
 
 export type GenerateMonthOptions = {
   year: number;
   month: number;
+  /** Target posts per week (2–3 for organic). Default 3. */
   postsPerWeek?: number;
   platforms?: ContentPlatform[];
 };

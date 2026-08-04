@@ -15,6 +15,7 @@ import {
 import type {
   BrandProfile,
   ContentCalendar,
+  ContentMonthStrategy,
   ContentPlatform,
   ContentPost,
   ContentPostStatus,
@@ -190,6 +191,7 @@ export function saveCalendar(calendar: ContentCalendar): void {
       year: calendar.year,
       month: calendar.month,
       status: calendar.status,
+      strategy: (calendar.strategy ?? null) as Record<string, unknown> | null,
     })
     .run();
 
@@ -247,6 +249,7 @@ export function getCalendarWithPosts(calendarId: string): ContentCalendar | null
     month: cal.month,
     status: cal.status as ContentCalendar["status"],
     posts,
+    strategy: (cal.strategy as ContentMonthStrategy | null | undefined) ?? null,
   };
 }
 
@@ -261,7 +264,7 @@ export function listCalendarsForProfile(profileId: string) {
 
 export function updatePost(
   postId: string,
-  patch: Partial<Pick<ContentPost, "caption" | "hashtags" | "status" | "notes">>
+  patch: Partial<Pick<ContentPost, "caption" | "hashtags" | "status" | "notes" | "variants">>
 ): void {
   const row = db.select().from(content_posts).where(eq(content_posts.id, postId)).get();
   if (!row) throw new Error("Post not found");
@@ -271,6 +274,7 @@ export function updatePost(
       hashtags: patch.hashtags ?? row.hashtags,
       status: patch.status ?? row.status,
       notes: patch.notes !== undefined ? patch.notes : row.notes,
+      variants: patch.variants !== undefined ? patch.variants : row.variants,
       updated_at: new Date(),
     })
     .where(eq(content_posts.id, postId))

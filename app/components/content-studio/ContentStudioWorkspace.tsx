@@ -38,6 +38,8 @@ export function ContentStudioWorkspace({
   const now = new Date();
   const [year] = useState(now.getFullYear());
   const [month] = useState(now.getMonth() + 1);
+  /** Organic: 2 or 3 posts per week across the full month (~9–13 posts). */
+  const [postsPerWeek, setPostsPerWeek] = useState<2 | 3>(3);
 
   async function lockFromProject() {
     if (!projectId) return;
@@ -127,6 +129,7 @@ export function ContentStudioWorkspace({
     setBusy("generate");
     setError(null);
     try {
+      // Phase 1: Strategy AI — full month strategy + 2–3×/week posts (uses all media)
       const res = await fetch("/api/content-studio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -135,12 +138,46 @@ export function ContentStudioWorkspace({
           profileId,
           year,
           month,
-          postsPerWeek: 4,
+          postsPerWeek,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Generation failed");
-      setCalendar(data.calendar);
+      if (!res.ok) throw new Error(data.error || "Month plan failed");
+      let cal = data.calendar as ContentCalendar;
+      setCalendar(cal);
+
+      // Phase 2: Open Design each post (one request each — reliable for ~9–13 posts)
+      setBusy("design");
+      const posts = cal.posts || [];
+      for (let i = 0; i < posts.length; i++) {
+        const post = posts[i]!;
+        setError(`Designing ${i + 1}/${posts.length} · ${post.dateIso}…`);
+        try {
+          const dres = await fetch("/api/content-studio", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "design-post",
+              profileId,
+              postId: post.id,
+              calendarId: cal.id,
+            }),
+          });
+          const ddata = await dres.json();
+          if (!dres.ok) throw new Error(ddata.error || "Design failed");
+          cal = {
+            ...cal,
+            posts: cal.posts.map((p) =>
+              p.id === post.id ? { ...p, variants: ddata.variants } : p
+            ),
+          };
+          setCalendar(cal);
+        } catch (de) {
+          console.warn("design-post failed", post.id, de);
+        }
+      }
+      setCalendar({ ...cal, status: "ready" });
+      setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generation failed");
     } finally {
@@ -275,6 +312,18 @@ export function ContentStudioWorkspace({
           </section>
 
           <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-xs text-[var(--muted)]">
+              Cadence
+              <select
+                value={postsPerWeek}
+                disabled={busy !== null}
+                onChange={(e) => setPostsPerWeek(Number(e.target.value) === 2 ? 2 : 3)}
+                className="rounded-full border border-[var(--border-strong)] bg-[var(--field)] px-3 py-1.5 text-sm text-[var(--foreground)]"
+              >
+                <option value={2}>2× / week (~9 posts)</option>
+                <option value={3}>3× / week (~13 posts)</option>
+              </select>
+            </label>
             <button
               type="button"
               disabled={busy !== null || assets.filter((a) => a.storagePath).length === 0}
@@ -286,15 +335,17 @@ export function ContentStudioWorkspace({
               ) : (
                 <CalendarDays size={16} />
               )}
-              Generate month ({year}-{String(month).padStart(2, "0")})
+              Generate full month ({year}-{String(month).padStart(2, "0")})
             </button>
             <span className="text-xs text-[var(--subtle)]">
-              Strategy AI (copy · hashtags · channels · sizes) + Open Design (visuals) · may take several minutes
+              Uses all {assets.filter((a) => a.storagePath).length} media · strategy + calendar · Open Design per post · several minutes
             </span>
           </div>
-          {busy === "generate" ? (
+          {busy === "generate" || busy === "design" ? (
             <p className="text-xs text-[var(--muted)]">
-              Planning the month with Strategy AI, then rendering each post in Open Design…
+              {busy === "generate"
+                ? `Writing the month strategy (${postsPerWeek}×/week across ~30 days, all media)…`
+                : "Open Design is rendering each post (this can take a few minutes)…"}
             </p>
           ) : null}
           {assets.filter((a) => a.storagePath).length === 0 ? (

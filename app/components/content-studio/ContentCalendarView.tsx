@@ -71,15 +71,79 @@ export function ContentCalendarView({
     }
   }
 
+  const strategy = calendar.strategy;
+
   return (
     <div className="space-y-6">
+      {strategy ? (
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
+            Content strategy
+          </p>
+          <h3 className="mt-1 font-serif text-xl font-medium tracking-tight">
+            {strategy.monthlyTheme}
+          </h3>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            {strategy.cadenceLabel} · {strategy.postsPerWeek}× per week · {calendar.posts.length}{" "}
+            posts this month
+          </p>
+          {strategy.goals?.length ? (
+            <ul className="mt-3 list-inside list-disc space-y-0.5 text-xs text-[var(--muted)]">
+              {strategy.goals.map((g) => (
+                <li key={g}>{g}</li>
+              ))}
+            </ul>
+          ) : null}
+          {strategy.pillars?.length ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {strategy.pillars.map((p) => (
+                <span
+                  key={p.name}
+                  title={p.description}
+                  className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1 text-[11px] text-[var(--muted)]"
+                >
+                  {p.name}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <div className="mt-4 grid gap-3 text-[11px] leading-relaxed text-[var(--subtle)] md:grid-cols-2">
+            {strategy.channelMix ? (
+              <p>
+                <span className="font-medium text-[var(--muted)]">Channels · </span>
+                {strategy.channelMix}
+              </p>
+            ) : null}
+            {strategy.mediaPlan ? (
+              <p>
+                <span className="font-medium text-[var(--muted)]">Media · </span>
+                {strategy.mediaPlan}
+              </p>
+            ) : null}
+            {strategy.voiceNotes ? (
+              <p>
+                <span className="font-medium text-[var(--muted)]">Voice · </span>
+                {strategy.voiceNotes}
+              </p>
+            ) : null}
+          </div>
+          {strategy.weekOutline?.length ? (
+            <ol className="mt-4 space-y-1 border-t border-[var(--border)] pt-3 text-[11px] text-[var(--muted)]">
+              {strategy.weekOutline.map((w) => (
+                <li key={w}>{w}</li>
+              ))}
+            </ol>
+          ) : null}
+        </section>
+      ) : null}
+
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h3 className="font-serif text-xl font-medium tracking-tight">
             Content calendar · {calendar.year}-{String(calendar.month).padStart(2, "0")}
           </h3>
           <p className="text-xs text-[var(--muted)]">
-            {calendar.posts.length} posts · status {calendar.status} · edit captions, approve before export
+            {calendar.posts.length} posts across the month · {calendar.status} · edit, approve before export
           </p>
         </div>
       </div>

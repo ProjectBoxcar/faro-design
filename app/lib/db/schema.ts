@@ -375,6 +375,8 @@ export const content_calendars = sqliteTable(
     })
       .notNull()
       .default("draft"),
+    /** ContentMonthStrategy JSON (organic month plan) */
+    strategy: text("strategy", { mode: "json" }).$type<Record<string, unknown>>(),
     created_at: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),

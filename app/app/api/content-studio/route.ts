@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ingestBrandProfileFromProject, inferBrandProfileFromAssets } from "@/lib/content-studio/brand-profile";
 import { contentStudioBlockedReason } from "@/lib/content-studio/gates";
-import { generateMonth } from "@/lib/content-studio/generate";
+import { designOnePost, planMonthOnly } from "@/lib/content-studio/generate";
 import {
   getCalendarWithPosts,
   getContentProfile,
@@ -64,7 +64,15 @@ const BodySchema = z.discriminatedUnion("action", [
     profileId: z.string().min(1),
     year: z.number().int().min(2020).max(2100),
     month: z.number().int().min(1).max(12),
-    postsPerWeek: z.number().int().min(1).max(14).optional(),
+    /** Organic cadence: 2 or 3 posts per week across the real month length. */
+    postsPerWeek: z.number().int().min(2).max(3).optional(),
+  }),
+  /** Open Design one calendar post (primary platform). Call after generate-month. */
+  z.object({
+    action: z.literal("design-post"),
+    profileId: z.string().min(1),
+    postId: z.string().min(1),
+    calendarId: z.string().min(1),
   }),
   z.object({
     action: z.literal("update-post"),
@@ -255,8 +263,8 @@ export async function POST(req: Request) {
       if (!row) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
       const profile = row.payload as unknown as import("@/lib/content-studio/types").BrandProfile;
       const assets = listRawAssets(input.profileId);
-      // Strategy AI (copy/hashtags/channels/dimensions) + Open Design (visuals from user media)
-      const calendar = await generateMonth(
+      // Strategy AI only — full strategy + 2–3×/week posts. Client then calls design-post per item.
+      const { calendar } = await planMonthOnly(
         profile,
         assets,
         {
@@ -264,19 +272,63 @@ export async function POST(req: Request) {
           month: input.month,
           postsPerWeek: input.postsPerWeek,
         },
-        input.profileId,
-        { projectId: row.project_id }
+        input.profileId
       );
-      saveCalendar(calendar);
       return NextResponse.json({
         calendar,
         meta: {
-          pipeline: "strategy-ai + open-design",
+          pipeline: "strategy-ai",
           posts: calendar.posts.length,
-          designs: calendar.posts.filter((p) =>
-            p.variants.some((v) => Boolean(v.previewUri))
-          ).length,
+          postsPerWeek: calendar.strategy?.postsPerWeek ?? input.postsPerWeek ?? 3,
+          next: "design-post for each calendar post (Open Design)",
         },
+      });
+    }
+
+    if (input.action === "design-post") {
+      const row = getContentProfile(input.profileId);
+      if (!row) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+      const calendar = getCalendarWithPosts(input.calendarId);
+      if (!calendar || calendar.profileId !== input.profileId) {
+        return NextResponse.json({ error: "Calendar not found" }, { status: 404 });
+      }
+      const post = calendar.posts.find((p) => p.id === input.postId);
+      if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
+      const assets = listRawAssets(input.profileId);
+      const asset =
+        assets.find((a) => post.sourceAssetIds.includes(a.id) && a.storagePath) ||
+        assets.find((a) => a.storagePath);
+      if (!asset) {
+        return NextResponse.json({ error: "No stored media for this post" }, { status: 400 });
+      }
+      const profile = row.payload as unknown as import("@/lib/content-studio/types").BrandProfile;
+      const variants = await designOnePost({
+        profile,
+        profileId: input.profileId,
+        projectId: row.project_id,
+        post,
+        asset,
+      });
+      updatePost(post.id, { variants });
+      const designedCount = calendar.posts.filter((p) =>
+        p.id === post.id
+          ? variants.some((v) => v.previewUri)
+          : p.variants.some((v) => v.previewUri)
+      ).length;
+      // Mark calendar ready when all posts have at least one design attempt stored
+      const refreshed = getCalendarWithPosts(input.calendarId);
+      if (refreshed) {
+        const allTried = refreshed.posts.every(
+          (p) => p.variants.some((v) => v.previewUri) || p.id === post.id
+        );
+        if (allTried && refreshed.status !== "ready") {
+          saveCalendar({ ...refreshed, status: "ready" });
+        }
+      }
+      return NextResponse.json({
+        postId: post.id,
+        variants,
+        designedCount,
       });
     }
 

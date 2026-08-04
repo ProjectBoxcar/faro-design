@@ -38,7 +38,9 @@ describe("content studio generateMonth", () => {
       "profile-1"
     );
     expect(cal.status).toBe("ready");
-    expect(cal.posts.length).toBe(8);
+    // Aug 31 days · 2/wk ≈ 9 posts (organic, not daily)
+    expect(cal.posts.length).toBeGreaterThanOrEqual(8);
+    expect(cal.posts.length).toBeLessThanOrEqual(10);
     expect(cal.posts[0].caption).toContain("Example");
     expect(cal.posts[0].variants.length).toBe(3);
     expect(cal.posts.every((p) => p.status === "draft")).toBe(true);
