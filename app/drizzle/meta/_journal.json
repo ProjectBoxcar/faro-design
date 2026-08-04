@@ -85,6 +85,13 @@
       "when": 1785400000000,
       "tag": "0011_publish_snapshots",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1785600000000,
+      "tag": "0012_content_studio",
+      "breakpoints": true
     }
   ]
 }

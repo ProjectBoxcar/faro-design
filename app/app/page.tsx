@@ -176,6 +176,12 @@ export default async function Home() {
           </Link>
           <div className="flex shrink-0 items-center gap-2">
             <Link
+              href="/content-studio"
+              className="hidden rounded-[var(--radius-md)] border border-[var(--border-strong)] px-3 py-1.5 text-xs font-medium text-[var(--muted)] transition hover:border-[var(--faro-accent)] hover:text-[var(--faro-accent)] sm:inline-flex"
+            >
+              Content Studio
+            </Link>
+            <Link
               href="/settings"
               aria-label="Settings"
               className="inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-strong)] text-[var(--muted)] transition hover:border-[var(--faro-accent)] hover:text-[var(--faro-accent)]"

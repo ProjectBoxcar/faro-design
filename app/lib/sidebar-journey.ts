@@ -11,6 +11,8 @@ import { methodology } from "@/lib/methodology";
 import { getProject, getSections, listStudioAssets } from "@/lib/queries";
 import { designStudioBlockedReason, hasApprovedLogo, studioBlockedReason } from "@/lib/studio";
 import { hasConfirmedBrandName, needsNameWorkshop } from "@/lib/naming-propose";
+import { contentStudioBlockedReason } from "@/lib/content-studio/gates";
+import { latestCalendarForProject, listProfilesForProject } from "@/lib/content-studio/store";
 
 /** Shared stage state for every journey item (strategy, logo, design, handover). */
 export type StageStatus = "locked" | "todo" | "current" | "done";
@@ -84,6 +86,16 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
   const designDone = identityOk && landingOk && deckOk;
   const handoverUnlocked = designUnlocked; // open once design is available
   const handoverDone = designDone; // package complete when all finals chosen
+  const contentBlocked = contentStudioBlockedReason(projectId);
+  const contentUnlocked = !contentBlocked;
+  let contentHasWork = false;
+  try {
+    contentHasWork =
+      listProfilesForProject(projectId).length > 0 || Boolean(latestCalendarForProject(projectId));
+  } catch {
+    /* tables may not exist until migrate */
+  }
+  const contentDone = Boolean(latestCalendarForProject(projectId)?.posts?.length);
 
   // Strategy is complete when strategy content is ready (name/logo gates are separate).
   const strategyDone =
@@ -285,6 +297,18 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
             : "Publish brand package or download"
           : "Finish Design Studio finals"
         : "Complete design first",
+    },
+    {
+      id: "content",
+      name: "6. Content Studio",
+      href: `/projects/${projectId}/content`,
+      locked: !contentUnlocked && !contentHasWork,
+      done: contentDone,
+      lockHint: contentBlocked ?? "Finish brand package first",
+      doneDetail: "Content calendar ready",
+      todoDetail: contentHasWork
+        ? "Continue calendar & approve posts"
+        : "Lock brand profile and generate social content",
     },
   ];
 

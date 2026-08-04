@@ -321,3 +321,91 @@ export const brand_memory = sqliteTable(
     index("brand_memory_project_idx").on(t.project_id),
   ]
 );
+
+// ── Content Studio (scaffold — see docs/12-content-studio.md) ───────────────
+// Locked brand profile + raw media → monthly social content calendar.
+// project_id null = Workflow B (inferred starter brand, no FARO package).
+
+export const content_profiles = sqliteTable(
+  "content_profiles",
+  {
+    id: text("id").primaryKey(),
+    project_id: text("project_id").references(() => projects.id, { onDelete: "cascade" }),
+    source: text("source", { enum: ["project", "inferred"] }).notNull(),
+    brand_name: text("brand_name").notNull(),
+    locked: integer("locked", { mode: "boolean" }).notNull().default(true),
+    // Full BrandProfile JSON (lib/content-studio/types.ts)
+    payload: text("payload", { mode: "json" }).$type<Record<string, unknown>>().notNull(),
+    created_at: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("content_profiles_project_idx").on(t.project_id)]
+);
+
+export const content_raw_assets = sqliteTable(
+  "content_raw_assets",
+  {
+    id: text("id").primaryKey(),
+    profile_id: text("profile_id")
+      .notNull()
+      .references(() => content_profiles.id, { onDelete: "cascade" }),
+    filename: text("filename").notNull(),
+    mime_type: text("mime_type").notNull(),
+    kind: text("kind", { enum: ["image", "video", "unknown"] }).notNull().default("unknown"),
+    storage_path: text("storage_path"),
+    created_at: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("content_raw_assets_profile_idx").on(t.profile_id)]
+);
+
+export const content_calendars = sqliteTable(
+  "content_calendars",
+  {
+    id: text("id").primaryKey(),
+    profile_id: text("profile_id")
+      .notNull()
+      .references(() => content_profiles.id, { onDelete: "cascade" }),
+    year: integer("year").notNull(),
+    month: integer("month").notNull(),
+    status: text("status", {
+      enum: ["draft", "generating", "ready", "exported"],
+    })
+      .notNull()
+      .default("draft"),
+    created_at: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("content_calendars_profile_idx").on(t.profile_id)]
+);
+
+export const content_posts = sqliteTable(
+  "content_posts",
+  {
+    id: text("id").primaryKey(),
+    calendar_id: text("calendar_id")
+      .notNull()
+      .references(() => content_calendars.id, { onDelete: "cascade" }),
+    day_index: integer("day_index").notNull(),
+    date_iso: text("date_iso").notNull(),
+    platforms: text("platforms", { mode: "json" }).$type<string[]>().default([]),
+    caption: text("caption").notNull().default(""),
+    hashtags: text("hashtags", { mode: "json" }).$type<string[]>().default([]),
+    variants: text("variants", { mode: "json" }).$type<unknown[]>().default([]),
+    source_asset_ids: text("source_asset_ids", { mode: "json" }).$type<string[]>().default([]),
+    status: text("status", { enum: ["draft", "approved", "rejected"] })
+      .notNull()
+      .default("draft"),
+    notes: text("notes"),
+    created_at: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updated_at: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("content_posts_calendar_idx").on(t.calendar_id)]
+);
