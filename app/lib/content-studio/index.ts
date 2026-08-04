@@ -4,4 +4,4 @@ export {
   ingestBrandProfileFromProject,
   inferBrandProfileFromAssets,
 } from "@/lib/content-studio/brand-profile";
-export { generateMonth } from "@/lib/content-studio/generate";
+export { generateMonth, generateMonthPlaceholder } from "@/lib/content-studio/generate";

@@ -149,9 +149,40 @@ export function ContentCalendarView({
                       title={v.cropHint}
                     >
                       {v.platform} · {v.aspectRatio}
+                      {v.cropHint.includes("x") ? ` · ${v.cropHint.split("·").pop()?.trim()}` : ""}
                     </span>
                   ))}
                 </div>
+                {post.variants.some((v) => v.previewUri) ? (
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {post.variants
+                      .filter((v) => v.previewUri)
+                      .map((v) => (
+                        <a
+                          key={v.platform + (v.previewUri || "")}
+                          href={v.previewUri!}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)]"
+                        >
+                          <div className="px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--subtle)]">
+                            Design · {v.platform}
+                          </div>
+                          <iframe
+                            title={`${v.platform} design`}
+                            src={v.previewUri!}
+                            className="h-48 w-full border-0 bg-white"
+                            sandbox="allow-same-origin"
+                          />
+                        </a>
+                      ))}
+                  </div>
+                ) : null}
+                {post.notes ? (
+                  <p className="mt-2 whitespace-pre-wrap text-[11px] leading-relaxed text-[var(--subtle)]">
+                    {post.notes}
+                  </p>
+                ) : null}
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"

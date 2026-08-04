@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateMonth } from "@/lib/content-studio/generate";
+import { generateMonthPlaceholder } from "@/lib/content-studio/generate";
 import type { BrandProfile } from "@/lib/content-studio/types";
 
 const lockedProfile: BrandProfile = {
@@ -31,7 +31,7 @@ describe("content studio generateMonth", () => {
   };
 
   it("builds a calendar of draft posts for a locked profile with stored media", () => {
-    const cal = generateMonth(
+    const cal = generateMonthPlaceholder(
       lockedProfile,
       [storedAsset],
       { year: 2026, month: 8, postsPerWeek: 2 },
@@ -46,7 +46,7 @@ describe("content studio generateMonth", () => {
 
   it("refuses unlocked profiles", () => {
     expect(() =>
-      generateMonth(
+      generateMonthPlaceholder(
         { ...lockedProfile, locked: false },
         [storedAsset],
         { year: 2026, month: 8 },
@@ -57,7 +57,7 @@ describe("content studio generateMonth", () => {
 
   it("refuses generate with no stored files", () => {
     expect(() =>
-      generateMonth(lockedProfile, [], { year: 2026, month: 8 }, "p")
+      generateMonthPlaceholder(lockedProfile, [], { year: 2026, month: 8 }, "p")
     ).toThrow(/stored/i);
   });
 });

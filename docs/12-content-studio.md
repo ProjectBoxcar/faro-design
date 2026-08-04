@@ -1,8 +1,17 @@
 # 12 — Content Studio
 
-**Status:** Scaffold on `feature/content-studio`. Not a full product yet — structure, gates, and placeholders only.
+**Status:** Live generation on `feature/content-studio` — Strategy AI + Open Design (not placeholders).
 
-Content Studio turns a **locked brand profile** + **raw media** into a **monthly social content calendar**. It never invents a new brand system from scratch when a FARO project is complete; it **consumes** strategy, logo, and visual system as inputs.
+Content Studio turns a **locked brand profile** + **raw media** into a **monthly organic social content calendar**. It never invents a new brand system from scratch when a FARO project is complete; it **consumes** strategy, logo, and visual system as inputs.
+
+## Generation lanes
+
+| Step | Engine | Produces |
+|------|--------|----------|
+| Month plan | **Strategy AI** (Anthropic / Settings strategy provider) | Themes, channels, captions, hashtags, dimensions, creative direction, asset assignment |
+| Post visuals | **Open Design** (daemon + Anthropic BYOK) | HTML social designs using **user media** + locked brand palette/logo |
+
+Do not use OpenAI/Gemini for post graphics (same rule as Design Studio). Logo lane stays separate.
 
 ## Workflows
 
@@ -62,4 +71,9 @@ Tables (migration `0012_content_studio.sql`):
 
 ## AI lanes
 
-Content generation is a **new lane candidate** (strategy / logo / design remain untouched). Scaffold uses placeholders only — wire Anthropic/OpenAI/Gemini later without mixing logo OD or strategy keys accidentally. Document final lane choice in `docs/11-ai-lanes.md` when implementing.
+Content Studio **reuses** existing lanes (does not invent a fourth provider path):
+
+- **Creative/technical** → `generateStrategyText` (strategy Settings key)
+- **Designs** → `generateDesignText` / Open Design daemon (same as Design Studio)
+
+See `lib/content-studio/ai-plan.ts`, `od-designs.ts`, `generate.ts`.

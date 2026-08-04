@@ -250,7 +250,8 @@ export function ContentStudioWorkspace({
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
             <h3 className="font-medium">Raw media</h3>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              Upload photos and video. Generation uses placeholders until model APIs are wired.
+              Upload photos and video. Strategy AI writes copy, hashtags, channels, and dimensions;
+              Open Design builds the post visuals from your media + locked brand.
             </p>
             <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2 text-sm font-medium text-[var(--muted)] hover:bg-[var(--surface-2)]">
               <Upload size={15} />
@@ -288,9 +289,14 @@ export function ContentStudioWorkspace({
               Generate month ({year}-{String(month).padStart(2, "0")})
             </button>
             <span className="text-xs text-[var(--subtle)]">
-              Needs stored media · captions · hashtags · Instagram / TikTok / LinkedIn crops
+              Strategy AI (copy · hashtags · channels · sizes) + Open Design (visuals) · may take several minutes
             </span>
           </div>
+          {busy === "generate" ? (
+            <p className="text-xs text-[var(--muted)]">
+              Planning the month with Strategy AI, then rendering each post in Open Design…
+            </p>
+          ) : null}
           {assets.filter((a) => a.storagePath).length === 0 ? (
             <p className="text-xs text-[var(--danger)]">Upload or import at least one photo/video first.</p>
           ) : null}

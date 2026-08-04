@@ -25,6 +25,8 @@ import {
 import { getProject } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
+/** Strategy plan + Open Design per post can exceed default serverless limits. */
+export const maxDuration = 800;
 
 const BodySchema = z.discriminatedUnion("action", [
   z.object({
@@ -253,7 +255,8 @@ export async function POST(req: Request) {
       if (!row) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
       const profile = row.payload as unknown as import("@/lib/content-studio/types").BrandProfile;
       const assets = listRawAssets(input.profileId);
-      const calendar = generateMonth(
+      // Strategy AI (copy/hashtags/channels/dimensions) + Open Design (visuals from user media)
+      const calendar = await generateMonth(
         profile,
         assets,
         {
@@ -261,10 +264,20 @@ export async function POST(req: Request) {
           month: input.month,
           postsPerWeek: input.postsPerWeek,
         },
-        input.profileId
+        input.profileId,
+        { projectId: row.project_id }
       );
       saveCalendar(calendar);
-      return NextResponse.json({ calendar });
+      return NextResponse.json({
+        calendar,
+        meta: {
+          pipeline: "strategy-ai + open-design",
+          posts: calendar.posts.length,
+          designs: calendar.posts.filter((p) =>
+            p.variants.some((v) => Boolean(v.previewUri))
+          ).length,
+        },
+      });
     }
 
     if (input.action === "update-post") {
