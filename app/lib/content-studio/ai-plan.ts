@@ -49,24 +49,25 @@ function daysInMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
 }
 
+/** Canonical sizes — Open Design enforces these; plan should match. */
 function defaultDimensions(platforms: ContentPlatform[]): PlannedDimension[] {
   const map: Record<ContentPlatform, PlannedDimension> = {
     instagram: {
       platform: "instagram",
-      aspectRatio: "1:1",
-      cropHint: "Centered square; leave safe margin for UI",
-      pixelSize: "1080x1080",
+      aspectRatio: "4:5",
+      cropHint: "Portrait feed 1080×1350; center third; 80px safe margin",
+      pixelSize: "1080x1350",
     },
     tiktok: {
       platform: "tiktok",
       aspectRatio: "9:16",
-      cropHint: "Vertical; subject in upper two-thirds",
+      cropHint: "Full vertical 1080×1920; keep type above lower 250px chrome",
       pixelSize: "1080x1920",
     },
     linkedin: {
       platform: "linkedin",
       aspectRatio: "1.91:1",
-      cropHint: "Landscape; margin for feed chrome",
+      cropHint: "Landscape 1200×627; type readable at half scale",
       pixelSize: "1200x627",
     },
   };
@@ -142,7 +143,9 @@ Rules:
 - Write organic, human captions suited to each channel (not ads, not corporate fluff).
 - Match tone of voice and personality from the brand profile.
 - Assign real channels from: instagram, tiktok, linkedin (subset per post is OK).
-- Specify technical dimensions per channel (aspect ratio + pixel size + crop guidance).
+- Use these exact dimensions only:
+  instagram = 4:5 / 1080x1350, tiktok = 9:16 / 1080x1920, linkedin = 1.91:1 / 1200x627.
+- Specify crop guidance per channel; do not invent other pixel sizes.
 - Use only the provided media indices (0..n-1). Rotate assets thoughtfully across the month.
 - Mix content roles: story, value, behind-the-scenes, proof, education, soft CTA — organic cadence.
 - Hashtags: 4–8 relevant, mix brand + discovery; no spam.

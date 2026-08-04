@@ -154,28 +154,58 @@ export function ContentCalendarView({
                   ))}
                 </div>
                 {post.variants.some((v) => v.previewUri) ? (
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     {post.variants
                       .filter((v) => v.previewUri)
-                      .map((v) => (
-                        <a
-                          key={v.platform + (v.previewUri || "")}
-                          href={v.previewUri!}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)]"
-                        >
-                          <div className="px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--subtle)]">
-                            Design · {v.platform}
-                          </div>
-                          <iframe
-                            title={`${v.platform} design`}
-                            src={v.previewUri!}
-                            className="h-48 w-full border-0 bg-white"
-                            sandbox="allow-same-origin"
-                          />
-                        </a>
-                      ))}
+                      .map((v) => {
+                        // Real artboard pixels (must match od-designs PLATFORM_SPECS)
+                        const size =
+                          v.platform === "tiktok"
+                            ? { w: 1080, h: 1920 }
+                            : v.platform === "linkedin"
+                              ? { w: 1200, h: 627 }
+                              : v.aspectRatio === "1:1"
+                                ? { w: 1080, h: 1080 }
+                                : { w: 1080, h: 1350 };
+                        const previewW = 280;
+                        const scale = previewW / size.w;
+                        const previewH = Math.round(size.h * scale);
+                        return (
+                          <a
+                            key={v.platform + (v.previewUri || "")}
+                            href={v.previewUri!}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)]"
+                          >
+                            <div className="flex items-center justify-between gap-2 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--subtle)]">
+                              <span>
+                                OD · {v.platform} · {size.w}×{size.h}
+                              </span>
+                              <span className="normal-case tracking-normal text-[var(--muted)]">
+                                Full size ↗
+                              </span>
+                            </div>
+                            <div
+                              className="relative mx-auto overflow-hidden bg-[#111]"
+                              style={{ width: previewW, height: previewH }}
+                            >
+                              <iframe
+                                title={`${v.platform} ${size.w}x${size.h}`}
+                                src={v.previewUri!}
+                                className="pointer-events-none absolute left-0 top-0 border-0 bg-white"
+                                style={{
+                                  width: size.w,
+                                  height: size.h,
+                                  transform: `scale(${scale})`,
+                                  transformOrigin: "top left",
+                                }}
+                                sandbox="allow-same-origin"
+                              />
+                            </div>
+                          </a>
+                        );
+                      })}
                   </div>
                 ) : null}
                 {post.notes ? (
