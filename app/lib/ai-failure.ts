@@ -83,7 +83,7 @@ export function classifyAiFailure(
       code: "open_design_down",
       lane: lane ?? "design",
       message: "Open Design daemon is not running.",
-      hint: "Start start-open-design.ps1 or npm run od:ensure (port 7456). Design Studio will not fall back to OpenAI or Gemini.",
+      hint: "Run start.bat / start.ps1, or start-open-design.ps1 / npm run od:ensure (port 7456). Design Studio will not fall back to OpenAI or Gemini.",
       retriable: true,
     };
   }

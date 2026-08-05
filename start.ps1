@@ -1,4 +1,4 @@
-# Faro Design / Brand App — PowerShell quick start
+# Faro Design / Brand App — Start
 # Starts Open Design + Next.js on :3100 and opens the browser when ready.
 
 $ErrorActionPreference = "Stop"

@@ -297,7 +297,7 @@ export async function generateDesignText(
   }
   if (!(await isOpenDesignDaemonUp())) {
     throw new Error(
-      "Open Design daemon is not running. Start start-open-design.ps1 (port 7456). Identity systems and mockups require the OD engine — not OpenAI or Gemini. See docs/11-ai-lanes.md."
+      "Open Design daemon is not running. Run start.bat / start.ps1, or start-open-design.ps1 (port 7456). Identity systems and mockups require the OD engine — not OpenAI or Gemini. See docs/11-ai-lanes.md."
     );
   }
 

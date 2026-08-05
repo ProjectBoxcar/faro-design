@@ -4,7 +4,7 @@ import { classifyAiFailure, formatClassifiedFailure } from "@/lib/ai-failure";
 describe("classifyAiFailure", () => {
   it("never suggests using OpenAI/Gemini when Open Design is down", () => {
     const c = classifyAiFailure(
-      new Error("Open Design daemon is not running. Start start-open-design.ps1 (port 7456)."),
+      new Error("Open Design daemon is not running. Run start.bat / start.ps1, or start-open-design.ps1 (port 7456)."),
       "design"
     );
     expect(c.code).toBe("open_design_down");

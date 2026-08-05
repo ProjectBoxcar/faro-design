@@ -1,54 +1,62 @@
-# Brand App — Finisterra Methodology Workspace
+# Faro Design — Brand App
 
-A guided brand-building web app that takes a business owner from plain answers about their business to a complete brand: AI-drafted strategy, generated design systems, landing pages, decks, and logo concepts, plus a shareable read-only brief for a graphic designer.
+A guided brand-building workspace: strategy → logo → design system → **Content Studio**, built on the Finisterra methodology.
 
-## Status
+## Run the app (one way)
 
-Early build. Design docs in `docs/` (`01`–`09`) are the source of truth for scope and data model.
+| How | Command |
+|-----|---------|
+| **Double-click** | `start.bat` |
+| **PowerShell** | `.\start.ps1` |
+| **Manual** | `cd app` → `npm run dev` |
 
-## Quick start
+Both launchers install deps if needed, migrate the DB if needed, start **Open Design** (port 7456) and the app on **http://localhost:3100**, and open the browser.
+
+Open Design only (if graphics fail):
 
 ```powershell
-cd "F:\Faro Design\app"
-npm install
-npm run db:migrate     # create the SQLite schema
-npm run dev            # http://localhost:3100
+.\start-open-design.ps1
+# or: cd app; npm run od:ensure
 ```
 
-`ANTHROPIC_API_KEY` goes in `F:\Faro Design\app\.env.local` (gitignored). Without it, capture and
-evaluation work; AI-draft buttons are disabled.
+### Network access
+
+Once running:
+
+- Local: http://localhost:3100  
+- Same Wi‑Fi: http://YOUR_LAN_IP:3100  
+- Tailscale: http://YOUR_TAILSCALE_IP:3100  
+
+Keys go in `app/.env.local` (gitignored): strategy Anthropic key, logo OpenAI/Gemini, etc. See `docs/11-ai-lanes.md`.
+
+### If `.bat` / `.ps1` open in an editor
+
+Right-click → Open with → Command Prompt / PowerShell → “Always use this app”.
 
 ## Layout
 
 ```
-Brand App/
-├── app/                       # Next.js product
-├── docs/                      # Product design docs + intake notes
-├── reference/finisterra/      # Spanish Finisterra sources (read-only)
-├── external/                  # Third-party reference clones (gitignored)
-├── .devin/                    # Organize agents/skills
-├── README.md
-└── CLAUDE.md
+Faro Design/
+├── start.bat / start.ps1   # only entrypoints you need
+├── start-open-design.ps1   # optional OD daemon only
+├── app/                    # Next.js product
+├── docs/                   # Product design docs
+├── services/               # Python Content Studio scaffold
+├── reference/              # Finisterra sources (read-only)
+├── external/               # third-party clones (gitignored)
+├── local/                  # machine-only media & pilot scripts (gitignored)
+└── CLAUDE.md               # agent rules
 ```
-
-## Where the methodology lives
-
-- Original source: `reference/finisterra/` (18 Spanish `.md` files — **read-only reference, never edited**).
-- In-app, translated to English and structured as data: `app/data/methodology.json`.
 
 ## Docs
 
 | File | What |
-|---|---|
-| `docs/01-mvp-scope.md` | What's in / out for v1 |
-| `docs/02-methodology-model.md` | The Finisterra methodology as an English data taxonomy |
-| `docs/03-user-flows.md` | How a project moves through the app |
-| `docs/04-data-model.md` | Drizzle / SQLite schema |
-| `docs/05-ai-architecture.md` | Synthesis prompts, model choice, hybrid AI |
-| `docs/06-tech-stack.md` | Stack and why |
-| `docs/07-roadmap.md` | Build order |
-| `docs/08-handover-spec.md` | The shareable brief output (snapshot-on-publish) |
-| `docs/09-open-questions.md` | Decisions still pending |
-| `docs/10-asset-studio.md` | Logo Workshop + brand asset pipeline |
-| `docs/11-ai-lanes.md` | **Three engines invariant** (strategy / logo / Open Design) |
-| `docs/gut-intake-answers.md` | Reconstructed Gut quick-start intake answers |
+|------|------|
+| `docs/01`–`09` | Scope, methodology, flows, data, AI, stack, roadmap |
+| `docs/10-asset-studio.md` | Logo Workshop + assets |
+| `docs/11-ai-lanes.md` | Strategy / logo / Open Design engines |
+| `docs/12-content-studio.md` | Content Studio |
+
+## Status
+
+Active product branch work (e.g. Content Studio) lands via PRs to `main`. Local media under `local/` is never committed.

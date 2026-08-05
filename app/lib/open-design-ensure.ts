@@ -60,7 +60,7 @@ export async function ensureOpenDesignDaemon(opts: { timeoutMs?: number } = {}):
 export function openDesignNotRunningMessage(): string {
   return (
     `Open Design daemon is not running at ${openDesignDaemonUrl()}. ` +
-    `Faro tried to start it automatically — if it still fails, run start-open-design.ps1 ` +
+    `Faro tried to start it automatically — if it still fails, run start.bat or start-open-design.ps1 ` +
     `or: npm run od:ensure`
   );
 }
