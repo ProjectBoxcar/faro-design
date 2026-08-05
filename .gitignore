@@ -28,11 +28,10 @@ Thumbs.db
 # Large third-party reference clones (not product source)
 external/
 
-# Local pilot media drop folder (never commit client photos/video)
-/raw/
-
-# Local-only workspace: media archive, pilot scripts, retest reports
+# Local-only workspace (media library, pilot scripts, reports, tmp)
+# Canonical media: local/media/<client>/source/ — do not also keep a root /raw/
 /local/
+/raw/
 
 # Machine-specific Devin CLI local permissions
 .devin/config.local.json

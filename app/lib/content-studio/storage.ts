@@ -25,9 +25,7 @@ export function importAllowlistRoots(): string[] {
   const roots = [
     contentStudioDataRoot(),
     path.join(process.cwd(), "data"),
-    // User drop-folder next to app (e.g. F:\Faro Design\raw when cwd is app/)
-    path.join(process.cwd(), "..", "raw"),
-    // Organized pilot media archive (local-only)
+    // Sole local media library (never commit): local/media/<client>/source/
     path.join(process.cwd(), "..", "local", "media"),
   ];
   return roots.map((r) => {
