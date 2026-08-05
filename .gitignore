@@ -31,5 +31,8 @@ external/
 # Local pilot media drop folder (never commit client photos/video)
 /raw/
 
+# Local-only workspace: media archive, pilot scripts, retest reports
+/local/
+
 # Machine-specific Devin CLI local permissions
 .devin/config.local.json
