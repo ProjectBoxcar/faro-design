@@ -155,18 +155,41 @@ export async function planMonthOnly(
   }
 
   const { planOrganicMonth } = await import("@/lib/content-studio/ai-plan");
+  const { ensureAssetsAnalyzed } = await import("@/lib/content-studio/media-analysis");
   const optionsResolved = {
     ...options,
     postsPerWeek: Math.min(3, Math.max(2, options.postsPerWeek ?? 3)),
   };
 
-  const plan = await planOrganicMonth(profile, withFiles, optionsResolved);
+  // P0: vision cards before strategy — plan from what is actually in the photos
+  const analyzed = await ensureAssetsAnalyzed(withFiles, profile);
+  const analyzedFiles = analyzed.assets.filter((a) => Boolean(a.storagePath));
+
+  // P4: owner exclude + optional drop weak brand-fit
+  const { filterAssetsForPlan } = await import("@/lib/content-studio/owner-controls-pure");
+  const filtered = filterAssetsForPlan(analyzedFiles, {
+    excludeWeakFit: optionsResolved.excludeWeakFit === true,
+  });
+  const mediaReady = filtered.eligible;
+  if (mediaReady.length === 0) {
+    throw new Error(
+      "No eligible media left after owner excludes / weak-fit filter. Un-exclude assets or turn off excludeWeakFit."
+    );
+  }
+  if (filtered.droppedExcluded || filtered.droppedWeak) {
+    console.info(
+      `[content-studio] owner filter: eligible=${mediaReady.length} excluded=${filtered.droppedExcluded} weakDropped=${filtered.droppedWeak}`
+    );
+  }
+
+  const plan = await planOrganicMonth(profile, mediaReady, optionsResolved);
   const calendarId = nanoid();
   const planSnapshots: PlanMonthResult["planSnapshots"] = [];
 
   const posts: ContentPost[] = plan.posts.map((planned) => {
-    const asset = withFiles[planned.sourceAssetIndex % withFiles.length]!;
+    const asset = mediaReady[planned.sourceAssetIndex % mediaReady.length]!;
     const postId = nanoid();
+    const card = asset.analysis;
     const notes = [
       planned.pillar ? `Pillar: ${planned.pillar}` : null,
       `Theme: ${planned.theme}`,
@@ -176,6 +199,13 @@ export async function planMonthOnly(
       `Month theme: ${plan.strategy.monthlyTheme}`,
       `Cadence: ${plan.strategy.cadenceLabel}`,
       `Media: ${asset.filename}`,
+      card?.summary ? `Media seen: ${card.summary}` : null,
+      card?.cluster ? `Media cluster: ${card.cluster} · fit=${card.brandFit}` : null,
+      card?.doNotClaim?.length ? `Do not claim: ${card.doNotClaim.slice(0, 3).join("; ")}` : null,
+      asset.ownerMeta?.tags?.length ? `Owner tags: ${asset.ownerMeta.tags.join(", ")}` : null,
+      optionsResolved.monthBrief?.goal ? `Month goal: ${optionsResolved.monthBrief.goal}` : null,
+      `Owner filter: excluded=${filtered.droppedExcluded} weakDropped=${filtered.droppedWeak} reuse=${optionsResolved.reusePolicy || "unique-first"}`,
+      `Vision: analyzed=${analyzed.analyzed} skipped=${analyzed.skipped} failed=${analyzed.failed}`,
       `Plan engine: ${plan.engine} · ${plan.model}`,
     ]
       .filter(Boolean)

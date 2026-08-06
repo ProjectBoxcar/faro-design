@@ -13,6 +13,19 @@ import type {
   ContentRawAsset,
   GenerateMonthOptions,
 } from "@/lib/content-studio/types";
+import {
+  enforceMediaConsistency,
+  formatMediaCardForPlan,
+  isUsableAnalysis,
+  rankAssetIndicesByFit,
+  unanalyzedCard,
+} from "@/lib/content-studio/media-analysis-pure";
+import {
+  formatAssetOwnerLine,
+  formatMonthBriefForPlan,
+  orderAssetsForReuse,
+  reusePolicyPromptLine,
+} from "@/lib/content-studio/owner-controls-pure";
 
 const ALL_PLATFORMS: ContentPlatform[] = ["instagram", "tiktok", "linkedin"];
 
@@ -244,9 +257,27 @@ export async function planOrganicMonth(
     year: "numeric",
   });
 
+  const reusePolicy = options.reusePolicy || "unique-first";
+  const briefBlock = formatMonthBriefForPlan(options.monthBrief ?? null);
+
   const mediaList = withFiles
-    .map((a, i) => `  [${i}] ${a.filename} (${a.kind}, ${a.mimeType})`)
-    .join("\n");
+    .map((a, i) => {
+      const card = formatMediaCardForPlan(
+        i,
+        a.filename,
+        a.kind,
+        a.analysis ?? unanalyzedCard("not analyzed yet", { kind: a.kind, filename: a.filename })
+      );
+      return `${card}\n  OWNER: ${formatAssetOwnerLine(a)}`;
+    })
+    .join("\n\n");
+
+  const usableCount = withFiles.filter((a) => isUsableAnalysis(a.analysis ?? null)).length;
+  const preferredOrder =
+    reusePolicy === "prefer-strong"
+      ? orderAssetsForReuse(withFiles, "prefer-strong")
+      : rankAssetIndicesByFit(withFiles.map((a) => a.analysis ?? null));
+  const reuseLine = reusePolicyPromptLine(reusePolicy, withFiles.length, total);
 
   const palette =
     profile.palette?.map((c) => `${c.name}:${c.hex}`).join(", ") ||
@@ -255,15 +286,24 @@ export async function planOrganicMonth(
   const system = `You are a senior social content strategist for organic brand content (not paid ads).
 You write a real MONTHLY CONTENT STRATEGY first, then a calendar at ${postsPerWeek} posts per week.
 
-Rules:
+Rules (non-negotiable):
 - Consume the locked brand only. Do NOT invent a new brand name, logo, or visual system.
+- OWNER MONTH BRIEF (if present) is source of truth for goals, offer, taboos, and language.
+- MEDIA-FIRST: Every post is grounded in the VISION ANALYSIS of its assigned asset (SEEN / subjects / doNotClaim).
+- Respect OWNER tags: hero → high-visibility posts; bts/process only if tag or cluster supports it; no-ads → avoid hard sell; product → product-led angles.
+- NEVER invent subjects, places, sketches, strategy workshops, whiteboards, logo process, or client work that the media card does not show.
+- If an asset is a dog, street, cinema night, or personal lifestyle shot — write angles that HONESTLY fit that frame, or mark soft brand bridge without lying about the photo.
+- Prefer strong/moderate brand-fit assets for proof/hero posts; weak-fit assets for soft lifestyle or skip inventing "case study" claims.
 - Cadence is organic: ${postsPerWeek}× per week across a ${dim}-day month = exactly ${total} posts (NOT daily).
 - Spread posts across the full month using the suggested dates when possible.
-- Every media index 0..${withFiles.length - 1} MUST be used at least once when there are enough posts.
-- Mix content pillars (story, value/education, BTS/process, proof, soft CTA) — balanced month.
+- Every media index 0..${withFiles.length - 1} MUST be used at least once when there are enough posts (${withFiles.length} assets, ${usableCount} with usable vision cards).
+- ${reuseLine}
+- Pillars should emerge from the media inventory + brand + owner brief — not a fixed template of BTS/process if no process media exists.
 - Channels: instagram, tiktok, linkedin (subset per post OK).
 - Dimensions only: IG 4:5 1080x1350 · TikTok 9:16 1080x1920 · LinkedIn 1.91:1 1200x627.
-- Organic human captions; hook first; 4–8 hashtags; no spam.
+- creativeDirection MUST reference what is SEEN in that asset (crop, subject placement) + brand overlay rules.
+- Organic human captions; hook first; 4–8 hashtags; no spam; no fake KPI goals (no "book 8 calls").
+- Goals must be qualitative or engagement-oriented and realistic for organic — not invented sales quotas. Align with owner brief when provided.
 - Output ONLY valid JSON. No markdown fences.`;
 
   const user = `Create the ${monthName} organic content plan for this brand.
@@ -275,9 +315,14 @@ BRAND (locked):
 - Personality: ${profile.personalityTraits.join(", ") || "n/a"}
 - Promise: ${profile.promise || "n/a"}
 - Palette: ${palette}
+${profile.strategyContext ? `\nBRAND STRATEGY CONTEXT (from FARO package — do not invent beyond this):\n${profile.strategyContext}\n` : ""}
+${briefBlock ? `\n${briefBlock}\n` : ""}
 
-MEDIA LIBRARY (${withFiles.length} files — use ALL of them across the month):
+MEDIA LIBRARY WITH VISION ANALYSIS (${withFiles.length} files — plan FROM what is SEEN; already filtered by owner exclude/weak rules):
 ${mediaList}
+
+Preferred deploy order (${reusePolicy}): ${preferredOrder.join(", ")}
+${reuseLine}
 
 CHANNELS: ${platforms.join(", ")}
 CADENCE: ${postsPerWeek} posts/week → exactly ${total} posts in ${monthName} (${dim} days)
@@ -287,15 +332,15 @@ ${suggestedDates.map((d, i) => `  ${i + 1}. ${d}`).join("\n")}
 JSON schema:
 {
   "strategy": {
-    "monthlyTheme": "one-line theme for the month",
+    "monthlyTheme": "one-line theme grounded in brand + real media inventory",
     "postsPerWeek": ${postsPerWeek},
     "cadenceLabel": "e.g. Tue / Thu / Sat · organic",
-    "goals": ["3–5 measurable content goals"],
+    "goals": ["3–5 realistic organic content goals — no fake sales quotas"],
     "pillars": [
-      { "name": "pillar name", "description": "what this pillar does for the brand" }
+      { "name": "pillar name", "description": "what this pillar does — must fit available media clusters" }
     ],
     "channelMix": "how IG / TikTok / LinkedIn are used this month",
-    "mediaPlan": "how the ${withFiles.length} photos/video are deployed (mention video if present)",
+    "mediaPlan": "how each analyzed asset is deployed (reference clusters/subjects; never invent unseen content)",
     "voiceNotes": "tone rules for captions this month",
     "weekOutline": ["Week 1: …", "Week 2: …", "Week 3: …", "Week 4: …", "optional Week 5"]
   },
@@ -305,11 +350,11 @@ JSON schema:
       "dateIso": "YYYY-MM-DD",
       "platforms": ["instagram"],
       "pillar": "pillar name",
-      "caption": "full organic copy with hook",
+      "caption": "full organic copy with hook — must fit the assigned photo/video",
       "hashtags": ["#tag"],
       "theme": "short theme",
       "hook": "first line",
-      "creativeDirection": "how to use the specific photo/video",
+      "creativeDirection": "what is SEEN + crop + overlay; no invented subjects",
       "channelRationale": "why these channels",
       "sourceAssetIndex": 0,
       "dimensions": [
@@ -319,7 +364,7 @@ JSON schema:
   ]
 }
 
-Return strategy + exactly ${total} posts. Use every media index at least once.`;
+Return strategy + exactly ${total} posts. Use every media index at least once. Captions must match the vision cards.`;
 
   const result = await generateStrategyText({
     model: MODELS.reasoning,
@@ -484,6 +529,51 @@ Return strategy + exactly ${total} posts. Use every media index at least once.`;
     .map((p, i) => ({ ...p, dayIndex: i + 1 }));
 
   posts = coverAllAssets(posts, withFiles.length);
+
+  // P2 hard gate: replace inventing captions with media-grounded copy
+  const cards = withFiles.map((a) => a.analysis ?? null);
+  const enforced = enforceMediaConsistency({
+    posts,
+    cards,
+    brandName: profile.brandName,
+  });
+  posts = enforced.posts;
+
+  if (enforced.issues.length) {
+    console.warn(
+      `[content-studio] media consistency: repaired=${enforced.repaired} remaining=${enforced.errorsRemaining}`,
+      enforced.issues.slice(0, 8).map((x) => x.message)
+    );
+  }
+
+  const warnCount = enforced.issues.filter((i) => i.severity === "warn").length;
+  strategy.consistency = {
+    repaired: enforced.repaired,
+    warnings: warnCount,
+    errorsRemaining: enforced.errorsRemaining,
+    issues: enforced.issues.slice(0, 12).map((i) => ({
+      severity: i.severity,
+      message: i.message,
+    })),
+  };
+
+  if (enforced.issues.length) {
+    strategy.mediaPlan = [
+      strategy.mediaPlan,
+      `Consistency gate: ${enforced.repaired} post(s) hard-repaired to media-grounded copy; ${warnCount} warning(s); ${enforced.errorsRemaining} error(s) remaining.`,
+      ...enforced.issues.slice(0, 6).map((i) => `· ${i.message}`),
+    ]
+      .filter(Boolean)
+      .join("\n")
+      .slice(0, 2000);
+  }
+
+  // Hard fail only if errors remain after repair (e.g. missing analysis on all)
+  if (enforced.errorsRemaining > 0 && enforced.repaired === 0) {
+    console.warn(
+      "[content-studio] consistency errors remain and none could be repaired — shipping with warnings"
+    );
+  }
 
   return {
     posts,

@@ -65,6 +65,8 @@ export function ingestBrandProfileFromProject(projectId: string): BrandProfile {
   const toneList = listStrings(tone?.characteristics ?? tone?.traits ?? tone);
   const personalityList = listStrings(personality?.traits ?? personality);
 
+  const strategyContext = buildStrategyContext(projectId);
+
   return {
     source: "project",
     projectId,
@@ -81,7 +83,35 @@ export function ingestBrandProfileFromProject(projectId: string): BrandProfile {
     designSystemId: designSystem?.id ?? null,
     locked: true,
     notes: "Ingested from completed FARO brand package. Do not regenerate brand here.",
+    strategyContext,
   };
+}
+
+/** Pull richer (but capped) strategy snippets from the live project for content planning. */
+function buildStrategyContext(projectId: string): string | null {
+  const keys = [
+    "strategy.positioning",
+    "strategy.audience",
+    "strategy.competitors",
+    "strategy.purpose",
+    "strategy.vision",
+    "communication.manifesto",
+    "concept",
+    "identity.territory",
+  ];
+  const blocks: string[] = [];
+  for (const key of keys) {
+    const row = getSectionRow(projectId, key);
+    if (!row?.value || typeof row.value !== "object") continue;
+    const v = row.value as Record<string, unknown>;
+    const snippet =
+      fieldString(v, "statement", "description", "summary", "positioning", "audience", "text") ||
+      JSON.stringify(v).slice(0, 400);
+    if (snippet.trim().length < 12) continue;
+    blocks.push(`${key}: ${snippet.slice(0, 420)}`);
+  }
+  if (blocks.length === 0) return null;
+  return blocks.join("\n").slice(0, 3500);
 }
 
 /** Workflow B placeholder: infer starter profile from filenames/kinds only. */

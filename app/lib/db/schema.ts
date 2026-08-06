@@ -354,6 +354,10 @@ export const content_raw_assets = sqliteTable(
     mime_type: text("mime_type").notNull(),
     kind: text("kind", { enum: ["image", "video", "unknown"] }).notNull().default("unknown"),
     storage_path: text("storage_path"),
+    /** MediaAnalysisCard JSON — vision pass before month plan */
+    analysis: text("analysis", { mode: "json" }).$type<Record<string, unknown>>(),
+    /** AssetOwnerMeta JSON — tags / exclude (P4) */
+    owner_meta: text("owner_meta", { mode: "json" }).$type<Record<string, unknown>>(),
     created_at: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),

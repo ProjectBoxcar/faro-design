@@ -2,9 +2,25 @@
 
 import { useState } from "react";
 import { CalendarDays, Loader2, Lock, Upload } from "lucide-react";
-import type { BrandProfile, ContentCalendar, ContentRawAsset } from "@/lib/content-studio/types";
+import type {
+  BrandProfile,
+  ContentAssetTag,
+  ContentCalendar,
+  ContentRawAsset,
+  MediaReusePolicy,
+  MonthBrief,
+} from "@/lib/content-studio/types";
 import { BrandProfileStrip } from "@/components/content-studio/BrandProfileStrip";
 import { ContentCalendarView } from "@/components/content-studio/ContentCalendarView";
+
+const ASSET_TAG_OPTIONS: { id: ContentAssetTag; label: string }[] = [
+  { id: "hero", label: "Hero" },
+  { id: "bts", label: "BTS" },
+  { id: "product", label: "Product" },
+  { id: "lifestyle", label: "Lifestyle" },
+  { id: "event", label: "Event" },
+  { id: "no-ads", label: "No ads" },
+];
 
 type Props = {
   mode: "project" | "standalone";
@@ -40,6 +56,16 @@ export function ContentStudioWorkspace({
   const [month] = useState(now.getMonth() + 1);
   /** Organic: 2 or 3 posts per week across the full month (~9–13 posts). */
   const [postsPerWeek, setPostsPerWeek] = useState<2 | 3>(3);
+  /** P4 owner controls */
+  const [monthBrief, setMonthBrief] = useState<MonthBrief>({
+    goal: "",
+    offer: "",
+    taboo: "",
+    language: "",
+    notes: "",
+  });
+  const [reusePolicy, setReusePolicy] = useState<MediaReusePolicy>("unique-first");
+  const [excludeWeakFit, setExcludeWeakFit] = useState(false);
 
   async function lockFromProject() {
     if (!projectId) return;
@@ -124,12 +150,77 @@ export function ContentStudioWorkspace({
     }
   }
 
+  async function refreshAssets(pid: string) {
+    const get = await fetch(`/api/content-studio?profileId=${encodeURIComponent(pid)}`);
+    const body = await get.json();
+    if (get.ok) setAssets(body.assets || []);
+  }
+
+  async function runAnalyzeMedia() {
+    if (!profileId) return;
+    setBusy("analyze");
+    setError(null);
+    try {
+      const res = await fetch("/api/content-studio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "analyze-media", profileId, force: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Media analysis failed");
+      await refreshAssets(profileId);
+      const ff = data.pipeline?.ffmpeg;
+      setError(
+        null
+      );
+      if (ff && !ff.available) {
+        setError("Vision ran on stills. Video needs ffmpeg (bundled static preferred) — check server logs if video stayed unanalyzed.");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Analyze failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function patchAssetMeta(
+    assetId: string,
+    patch: { tags?: ContentAssetTag[]; excluded?: boolean; note?: string | null }
+  ) {
+    if (!profileId) return;
+    setBusy(`asset-${assetId}`);
+    setError(null);
+    try {
+      const res = await fetch("/api/content-studio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update-asset-meta",
+          profileId,
+          assetId,
+          ...patch,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not update asset");
+      if (data.asset) {
+        setAssets((prev) => prev.map((a) => (a.id === assetId ? data.asset : a)));
+      } else {
+        await refreshAssets(profileId);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Asset update failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function runGenerate() {
     if (!profileId) return;
     setBusy("generate");
     setError(null);
     try {
-      // Phase 1: Strategy AI — full month strategy + 2–3×/week posts (uses all media)
+      // Phase 1: Strategy AI — vision cards + full month (2–3×/week) + owner controls
       const res = await fetch("/api/content-studio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -139,12 +230,16 @@ export function ContentStudioWorkspace({
           year,
           month,
           postsPerWeek,
+          monthBrief,
+          reusePolicy,
+          excludeWeakFit,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Month plan failed");
       let cal = data.calendar as ContentCalendar;
       setCalendar(cal);
+      await refreshAssets(profileId);
 
       // Phase 2: Open Design each post (one request each — reliable for ~9–13 posts)
       setBusy("design");
@@ -285,10 +380,48 @@ export function ContentStudioWorkspace({
           <BrandProfileStrip profile={profile} />
 
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
+            <h3 className="font-medium">Month brief</h3>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              Optional owner intent for this month — goals, offer, taboos, and language. Strategy AI treats this as source of truth.
+            </p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {(
+                [
+                  ["goal", "Goal", "e.g. Show human side of the studio, soft CTA to book a call"],
+                  ["offer", "Offer / soft CTA", "e.g. Free 20-min brand clarity chat"],
+                  ["taboo", "Taboo / never say", "e.g. No fake case studies, no political takes"],
+                  ["language", "Language / market", "e.g. Spanish (Ecuador), casual"],
+                ] as const
+              ).map(([key, label, placeholder]) => (
+                <label key={key} className="block text-xs font-medium text-[var(--muted)]">
+                  {label}
+                  <input
+                    value={String(monthBrief[key] ?? "")}
+                    disabled={busy !== null}
+                    placeholder={placeholder}
+                    onChange={(e) => setMonthBrief((b) => ({ ...b, [key]: e.target.value }))}
+                    className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+                  />
+                </label>
+              ))}
+              <label className="block text-xs font-medium text-[var(--muted)] md:col-span-2">
+                Notes
+                <textarea
+                  value={String(monthBrief.notes ?? "")}
+                  disabled={busy !== null}
+                  rows={2}
+                  placeholder="Anything else the strategist should know…"
+                  onChange={(e) => setMonthBrief((b) => ({ ...b, notes: e.target.value }))}
+                  className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+                />
+              </label>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
             <h3 className="font-medium">Raw media</h3>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              Upload photos and video. Strategy AI writes copy, hashtags, channels, and dimensions;
-              Open Design builds the post visuals from your media + locked brand.
+              Tag purpose, exclude weak personal shots, then analyze. Excluded assets never enter the month plan.
             </p>
             <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2 text-sm font-medium text-[var(--muted)] hover:bg-[var(--surface-2)]">
               <Upload size={15} />
@@ -301,14 +434,116 @@ export function ContentStudioWorkspace({
                 onChange={(e) => void registerFiles(e.target.files)}
               />
             </label>
-            <ul className="mt-3 space-y-1 text-xs text-[var(--subtle)]">
-              {assets.map((a) => (
-                <li key={a.id}>
-                  {a.filename} · {a.kind}
-                </li>
-              ))}
-              {!assets.length ? <li>No assets registered yet.</li> : null}
+            <ul className="mt-3 space-y-3">
+              {assets.map((a) => {
+                const card = a.analysis;
+                const meta = a.ownerMeta ?? { tags: [] as ContentAssetTag[], excluded: false };
+                const tags = meta.tags ?? [];
+                const fitColor =
+                  card?.brandFit === "strong"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : card?.brandFit === "moderate"
+                      ? "bg-amber-100 text-amber-900"
+                      : card?.brandFit === "weak"
+                        ? "bg-stone-200 text-stone-700"
+                        : "bg-[var(--surface-2)] text-[var(--subtle)]";
+                return (
+                  <li
+                    key={a.id}
+                    className={`rounded-xl border px-3 py-2.5 text-xs ${
+                      meta.excluded
+                        ? "border-dashed border-[var(--border)] bg-[var(--surface-2)]/20 opacity-70"
+                        : "border-[var(--border)] bg-[var(--surface-2)]/40"
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium text-[var(--foreground)]">{a.filename}</span>
+                      <span className="text-[var(--subtle)]">· {a.kind}</span>
+                      {card ? (
+                        <>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${fitColor}`}>
+                            {card.brandFit} fit
+                          </span>
+                          <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] text-[var(--muted)]">
+                            {card.cluster}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-[10px] text-[var(--subtle)]">not analyzed yet</span>
+                      )}
+                      <label className="ml-auto flex cursor-pointer items-center gap-1.5 text-[11px] font-medium text-[var(--muted)]">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(meta.excluded)}
+                          disabled={busy !== null}
+                          onChange={(e) =>
+                            void patchAssetMeta(a.id, {
+                              tags,
+                              excluded: e.target.checked,
+                              note: meta.note ?? null,
+                            })
+                          }
+                        />
+                        Exclude from plan
+                      </label>
+                    </div>
+                    {card?.summary ? (
+                      <p className="mt-1.5 leading-relaxed text-[var(--muted)]">{card.summary}</p>
+                    ) : null}
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {ASSET_TAG_OPTIONS.map((t) => {
+                        const on = tags.includes(t.id);
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            disabled={busy !== null}
+                            onClick={() => {
+                              const next = on
+                                ? tags.filter((x) => x !== t.id)
+                                : [...tags, t.id];
+                              void patchAssetMeta(a.id, {
+                                tags: next,
+                                excluded: Boolean(meta.excluded),
+                                note: meta.note ?? null,
+                              });
+                            }}
+                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                              on
+                                ? "bg-[var(--accent)] text-white"
+                                : "border border-[var(--border)] text-[var(--subtle)] hover:bg-[var(--surface-2)]"
+                            }`}
+                          >
+                            {t.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </li>
+                );
+              })}
+              {!assets.length ? (
+                <li className="text-[var(--subtle)]">No assets registered yet.</li>
+              ) : null}
             </ul>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={busy !== null || !profileId || assets.filter((a) => a.storagePath).length === 0}
+                onClick={() => void runAnalyzeMedia()}
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2 text-xs font-medium text-[var(--muted)] hover:bg-[var(--surface-2)] disabled:opacity-50"
+              >
+                {busy === "analyze" ? <Loader2 size={14} className="animate-spin" /> : null}
+                Analyze media (vision)
+              </button>
+              <span className="self-center text-[10px] text-[var(--subtle)]">
+                Eligible:{" "}
+                {assets.filter((a) => a.storagePath && !a.ownerMeta?.excluded).length}
+                {excludeWeakFit
+                  ? ` · weak-fit will drop at generate`
+                  : ""}
+              </span>
+            </div>
           </section>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -324,9 +559,34 @@ export function ContentStudioWorkspace({
                 <option value={3}>3× / week (~13 posts)</option>
               </select>
             </label>
+            <label className="flex items-center gap-2 text-xs text-[var(--muted)]">
+              Reuse
+              <select
+                value={reusePolicy}
+                disabled={busy !== null}
+                onChange={(e) => setReusePolicy(e.target.value as MediaReusePolicy)}
+                className="rounded-full border border-[var(--border-strong)] bg-[var(--field)] px-3 py-1.5 text-sm text-[var(--foreground)]"
+              >
+                <option value="unique-first">Unique first</option>
+                <option value="prefer-strong">Prefer strong fit</option>
+                <option value="rotate">Rotate evenly</option>
+              </select>
+            </label>
+            <label className="flex cursor-pointer items-center gap-1.5 text-xs text-[var(--muted)]">
+              <input
+                type="checkbox"
+                checked={excludeWeakFit}
+                disabled={busy !== null}
+                onChange={(e) => setExcludeWeakFit(e.target.checked)}
+              />
+              Drop weak-fit media
+            </label>
             <button
               type="button"
-              disabled={busy !== null || assets.filter((a) => a.storagePath).length === 0}
+              disabled={
+                busy !== null ||
+                assets.filter((a) => a.storagePath && !a.ownerMeta?.excluded).length === 0
+              }
               onClick={() => void runGenerate()}
               className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
             >
@@ -338,7 +598,7 @@ export function ContentStudioWorkspace({
               Generate full month ({year}-{String(month).padStart(2, "0")})
             </button>
             <span className="text-xs text-[var(--subtle)]">
-              Uses all {assets.filter((a) => a.storagePath).length} media · strategy + calendar · Open Design per post · several minutes
+              Vision + strategy + owner brief · Open Design per post · several minutes
             </span>
           </div>
           {busy === "generate" || busy === "design" ? (

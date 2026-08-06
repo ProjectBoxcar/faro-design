@@ -134,6 +134,27 @@ export function ContentCalendarView({
               ))}
             </ol>
           ) : null}
+          {strategy.consistency ? (
+            <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/50 px-3 py-2.5 text-[11px]">
+              <p className="font-medium text-[var(--muted)]">Media consistency gate</p>
+              <p className="mt-0.5 text-[var(--subtle)]">
+                {strategy.consistency.repaired} hard-repaired · {strategy.consistency.warnings}{" "}
+                warnings · {strategy.consistency.errorsRemaining} remaining
+              </p>
+              {strategy.consistency.issues?.length ? (
+                <ul className="mt-2 max-h-28 space-y-1 overflow-y-auto text-[var(--subtle)]">
+                  {strategy.consistency.issues.slice(0, 8).map((iss, i) => (
+                    <li key={`${i}-${iss.message.slice(0, 24)}`}>
+                      <span className="font-semibold uppercase tracking-wide text-[10px] text-[var(--muted)]">
+                        {iss.severity}
+                      </span>{" "}
+                      {iss.message}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
         </section>
       ) : null}
 

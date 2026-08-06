@@ -6,6 +6,7 @@ import { designOnePost, planMonthOnly } from "@/lib/content-studio/generate";
 import {
   getCalendarWithPosts,
   getContentProfile,
+  getRawAsset,
   insertRawAsset,
   latestCalendarForProject,
   listProfilesForProject,
@@ -13,8 +14,10 @@ import {
   saveCalendar,
   saveContentProfile,
   updatePost,
+  updateRawAssetOwnerMeta,
   upsertRawAssetByFilename,
 } from "@/lib/content-studio/store";
+import { normalizeMonthBrief, normalizeOwnerMeta } from "@/lib/content-studio/owner-controls-pure";
 import {
   importDirectoryToProfile,
   kindFromMime,
@@ -66,6 +69,38 @@ const BodySchema = z.discriminatedUnion("action", [
     month: z.number().int().min(1).max(12),
     /** Organic cadence: 2 or 3 posts per week across the real month length. */
     postsPerWeek: z.number().int().min(2).max(3).optional(),
+    /** Force re-run vision analysis even if cards already exist. */
+    forceReanalyze: z.boolean().optional(),
+    /** P4 owner month brief */
+    monthBrief: z
+      .object({
+        goal: z.string().max(800).optional().nullable(),
+        offer: z.string().max(800).optional().nullable(),
+        taboo: z.string().max(800).optional().nullable(),
+        language: z.string().max(400).optional().nullable(),
+        notes: z.string().max(800).optional().nullable(),
+      })
+      .optional()
+      .nullable(),
+    reusePolicy: z.enum(["rotate", "prefer-strong", "unique-first"]).optional(),
+    excludeWeakFit: z.boolean().optional(),
+  }),
+  /** P0: run vision analysis on all stored assets (no month plan). */
+  z.object({
+    action: z.literal("analyze-media"),
+    profileId: z.string().min(1),
+    force: z.boolean().optional(),
+  }),
+  /** P4: update owner tags / exclude on one asset. */
+  z.object({
+    action: z.literal("update-asset-meta"),
+    profileId: z.string().min(1),
+    assetId: z.string().min(1),
+    tags: z
+      .array(z.enum(["hero", "bts", "product", "lifestyle", "event", "no-ads"]))
+      .optional(),
+    excluded: z.boolean().optional(),
+    note: z.string().max(400).optional().nullable(),
   }),
   /** Open Design one calendar post (primary platform). Call after generate-month. */
   z.object({
@@ -258,28 +293,116 @@ export async function POST(req: Request) {
       });
     }
 
-    if (input.action === "generate-month") {
+    if (input.action === "update-asset-meta") {
+      const row = getContentProfile(input.profileId);
+      if (!row) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+      const asset = getRawAsset(input.assetId);
+      if (!asset || asset.profileId !== input.profileId) {
+        return NextResponse.json({ error: "Asset not found" }, { status: 404 });
+      }
+      const prev = normalizeOwnerMeta(asset.ownerMeta ?? {});
+      const next = normalizeOwnerMeta({
+        tags: input.tags !== undefined ? input.tags : prev.tags,
+        excluded: input.excluded !== undefined ? input.excluded : prev.excluded,
+        note: input.note !== undefined ? input.note : prev.note,
+      });
+      updateRawAssetOwnerMeta(input.assetId, next);
+      const refreshed = getRawAsset(input.assetId);
+      return NextResponse.json({ asset: refreshed, ownerMeta: next });
+    }
+
+    if (input.action === "analyze-media") {
       const row = getContentProfile(input.profileId);
       if (!row) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
       const profile = row.payload as unknown as import("@/lib/content-studio/types").BrandProfile;
       const assets = listRawAssets(input.profileId);
-      // Strategy AI only — full strategy + 2–3×/week posts. Client then calls design-post per item.
+      const { ensureAssetsAnalyzed } = await import("@/lib/content-studio/media-analysis");
+      const result = await ensureAssetsAnalyzed(assets, profile, { force: input.force });
+      const { mediaPipelineStatus } = await import("@/lib/content-studio/media-analysis");
+      const pipeline = await mediaPipelineStatus();
+      return NextResponse.json({
+        ok: true,
+        analyzed: result.analyzed,
+        skipped: result.skipped,
+        failed: result.failed,
+        pipeline,
+        assets: result.assets.map((a) => ({
+          id: a.id,
+          filename: a.filename,
+          kind: a.kind,
+          analysis: a.analysis
+            ? {
+                status: a.analysis.status,
+                summary: a.analysis.summary,
+                cluster: a.analysis.cluster,
+                brandFit: a.analysis.brandFit,
+                subjects: a.analysis.subjects,
+                contentAngles: a.analysis.contentAngles,
+                doNotClaim: a.analysis.doNotClaim,
+              }
+            : null,
+        })),
+      });
+    }
+
+    if (input.action === "generate-month") {
+      const row = getContentProfile(input.profileId);
+      if (!row) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+      let profile = row.payload as unknown as import("@/lib/content-studio/types").BrandProfile;
+      // Refresh strategy context from live project when available (richer than stale payload)
+      if (row.project_id && profile.source === "project") {
+        try {
+          const { ingestBrandProfileFromProject } = await import(
+            "@/lib/content-studio/brand-profile"
+          );
+          const fresh = ingestBrandProfileFromProject(row.project_id);
+          profile = {
+            ...profile,
+            strategyContext: fresh.strategyContext ?? profile.strategyContext,
+            conceptStatement: profile.conceptStatement || fresh.conceptStatement,
+            toneOfVoice: profile.toneOfVoice?.length ? profile.toneOfVoice : fresh.toneOfVoice,
+            personalityTraits: profile.personalityTraits?.length
+              ? profile.personalityTraits
+              : fresh.personalityTraits,
+            promise: profile.promise || fresh.promise,
+          };
+        } catch {
+          /* keep locked payload */
+        }
+      }
+      const assets = listRawAssets(input.profileId);
+      if (input.forceReanalyze) {
+        const { ensureAssetsAnalyzed } = await import("@/lib/content-studio/media-analysis");
+        await ensureAssetsAnalyzed(assets, profile, { force: true });
+      }
+      // Strategy AI only — vision cards run inside planMonthOnly. Client then design-post.
       const { calendar } = await planMonthOnly(
         profile,
-        assets,
+        listRawAssets(input.profileId),
         {
           year: input.year,
           month: input.month,
           postsPerWeek: input.postsPerWeek,
+          monthBrief: normalizeMonthBrief(input.monthBrief ?? null),
+          reusePolicy: input.reusePolicy,
+          excludeWeakFit: input.excludeWeakFit,
         },
         input.profileId
       );
+      const withAnalysis = listRawAssets(input.profileId).filter(
+        (a) => a.analysis?.status === "ok" || a.analysis?.status === "partial"
+      ).length;
+      const { mediaPipelineStatus } = await import("@/lib/content-studio/media-analysis");
+      const pipeline = await mediaPipelineStatus();
       return NextResponse.json({
         calendar,
         meta: {
-          pipeline: "strategy-ai",
+          pipeline: "vision-media + strategy-ai + consistency-gate",
           posts: calendar.posts.length,
           postsPerWeek: calendar.strategy?.postsPerWeek ?? input.postsPerWeek ?? 3,
+          mediaAnalyzedOk: withAnalysis,
+          consistency: calendar.strategy?.consistency ?? null,
+          ffmpeg: pipeline.ffmpeg,
           next: "design-post for each calendar post (Open Design)",
         },
       });

@@ -19,7 +19,22 @@ import type { AiProvider } from "@/lib/db/types";
  * - design   → generateDesignText (Open Design daemon + Anthropic BYOK only)
  */
 
-export type AiMessage = { role: "user"; content: string };
+/** Text or Anthropic multimodal blocks (design lane may attach images for Content Studio P3). */
+export type AiMessageContent =
+  | string
+  | Array<
+      | { type: "text"; text: string }
+      | {
+          type: "image";
+          source: {
+            type: "base64";
+            media_type: "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+            data: string;
+          };
+        }
+    >;
+
+export type AiMessage = { role: "user"; content: AiMessageContent };
 
 export type GenerateTextResult = {
   text: string;
@@ -76,6 +91,15 @@ export async function hasOpenDesignEngine(): Promise<boolean> {
   return hasOpenDesignKey() && (await isOpenDesignDaemonUp());
 }
 
+/** Strategy/logo paths are text-only; flatten multimodal blocks if present. */
+function flattenMessageContent(content: AiMessageContent): string {
+  if (typeof content === "string") return content;
+  return content
+    .map((b) => (b.type === "text" ? b.text : "[image]"))
+    .join("\n")
+    .trim();
+}
+
 async function callStrategyProvider(params: {
   model?: string;
   maxTokens: number;
@@ -88,6 +112,10 @@ async function callStrategyProvider(params: {
     throw new Error("No strategy API key configured — add it in Settings (Anthropic / GPT / …).");
   }
   const model = params.model ?? cfg.model;
+  const textMessages = params.messages.map((m) => ({
+    role: "user" as const,
+    content: flattenMessageContent(m.content),
+  }));
 
   if (cfg.provider === "anthropic") {
     const client = new Anthropic({ apiKey: cfg.apiKey });
@@ -101,7 +129,7 @@ async function callStrategyProvider(params: {
       model,
       max_tokens: params.maxTokens,
       system,
-      messages: params.messages,
+      messages: textMessages,
     });
 
     const text = await stream.finalText();
@@ -121,7 +149,7 @@ async function callStrategyProvider(params: {
     model,
     maxTokens: params.maxTokens,
     system: params.system,
-    messages: params.messages,
+    messages: textMessages,
     engine: "strategy-direct",
   });
   assertEngineForLane("strategy", result.engine);
@@ -142,7 +170,9 @@ async function callOpenAiCompatible(params: {
   const baseUrl = (params.baseUrl ?? "https://api.openai.com/v1").replace(/\/$/, "");
   const openaiMessages: { role: string; content: string }[] = [];
   if (params.system) openaiMessages.push({ role: "system", content: params.system });
-  for (const m of params.messages) openaiMessages.push({ role: m.role, content: m.content });
+  for (const m of params.messages) {
+    openaiMessages.push({ role: m.role, content: flattenMessageContent(m.content) });
+  }
 
   const body: Record<string, unknown> = {
     model: params.model,
@@ -200,7 +230,7 @@ async function callGemini(params: {
   for (const m of params.messages) {
     contents.push({
       role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
+      parts: [{ text: flattenMessageContent(m.content) }],
     });
   }
   const body: Record<string, unknown> = {
@@ -304,7 +334,10 @@ export async function generateDesignText(
   const model = params.model ?? MODELS.design;
   const result = await generateViaOpenDesign({
     system: params.system,
-    messages: params.messages.map((m) => ({ role: m.role, content: m.content })),
+    messages: params.messages.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    })),
     maxTokens: params.maxTokens,
     model,
     apiKey: cfg.apiKey,

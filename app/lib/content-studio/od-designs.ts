@@ -1,12 +1,13 @@
 /**
  * Open Design lane — render social post designs from brand + user media.
  * Uses generateDesignText (OD daemon + Anthropic BYOK only) — same engine as Design Studio.
+ * P3: multimodal — attach source photo (or video keyframe) so OD *sees* the frame.
  * Never OpenAI/Gemini for graphics.
  */
 import "server-only";
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
-import { generateDesignText, MODELS } from "@/lib/ai";
+import { generateDesignText, MODELS, type AiMessageContent } from "@/lib/ai";
 import {
   absoluteFromStoragePath,
   contentStudioDataRoot,
@@ -16,6 +17,11 @@ import {
 } from "@/lib/content-studio/storage";
 import type { BrandProfile, ContentPlatform, ContentRawAsset } from "@/lib/content-studio/types";
 import type { PlannedPost } from "@/lib/content-studio/ai-plan";
+import {
+  layoutLockCss,
+  suggestLayoutFromMedia,
+  type LayoutSuggestion,
+} from "@/lib/content-studio/layout-pure";
 
 export type DesignedVariant = {
   platform: ContentPlatform;
@@ -70,33 +76,94 @@ function extractHtml(text: string): string {
   throw new Error("Open Design did not return HTML for the social post.");
 }
 
-function imageDataUri(asset: ContentRawAsset): string | null {
-  if (!asset.storagePath || asset.kind === "video") return null;
+const MAX_VISION_BYTES = 3_500_000;
+
+type VisionImage = {
+  base64: string;
+  mime: "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+  dataUri: string;
+};
+
+function normalizeMime(mime: string): VisionImage["mime"] {
+  if (mime === "image/png" || mime === "image/gif" || mime === "image/webp") return mime;
+  return "image/jpeg";
+}
+
+function readVisionImage(absPath: string, mimeHint?: string): VisionImage | null {
+  if (!existsSync(absPath)) return null;
   try {
-    const abs = absoluteFromStoragePath(asset.storagePath);
-    if (!existsSync(abs)) return null;
-    const buf = readFileSync(abs);
-    if (buf.length > 4_000_000) return null;
-    const mime = asset.mimeType || "image/jpeg";
-    return `data:${mime};base64,${buf.toString("base64")}`;
+    const buf = readFileSync(absPath);
+    if (buf.length === 0 || buf.length > MAX_VISION_BYTES) return null;
+    const mime = normalizeMime(mimeHint || "image/jpeg");
+    const base64 = buf.toString("base64");
+    return { base64, mime, dataUri: `data:${mime};base64,${base64}` };
   } catch {
     return null;
   }
 }
 
-function injectSourceImage(html: string, asset: ContentRawAsset, profileId: string): string {
+/** Prefer still; for video use extracted keyframe under data/content-studio/_keyframes/<id>. */
+function resolveAssetVisionImage(asset: ContentRawAsset): VisionImage | null {
+  if (asset.kind === "image" && asset.storagePath) {
+    const abs = absoluteFromStoragePath(asset.storagePath);
+    return readVisionImage(abs, asset.mimeType);
+  }
+  if (asset.kind === "video") {
+    const frameDir = path.join(contentStudioDataRoot(), "_keyframes", asset.id);
+    if (existsSync(frameDir)) {
+      const frames = readdirSync(frameDir)
+        .filter((f) => /\.jpe?g$/i.test(f))
+        .sort();
+      if (frames[0]) {
+        return readVisionImage(path.join(frameDir, frames[0]!), "image/jpeg");
+      }
+    }
+  }
+  return null;
+}
+
+function imageDataUri(asset: ContentRawAsset): string | null {
+  return resolveAssetVisionImage(asset)?.dataUri ?? null;
+}
+
+function injectSourceImage(
+  html: string,
+  asset: ContentRawAsset,
+  profileId: string,
+  layout?: LayoutSuggestion | null
+): string {
   const dataUri = imageDataUri(asset);
   const mediaApi = `/api/content-studio/media?profileId=${encodeURIComponent(profileId)}&assetId=${encodeURIComponent(asset.id)}`;
   const src = dataUri || mediaApi;
+  const objectPos = layout?.objectPosition || "50% 40%";
   let out = html
     .replace(/SOURCE_IMAGE/g, src)
     .replace(/\{\{SOURCE_IMAGE\}\}/g, src)
     .replace(/src=["']placeholder["']/gi, `src="${src}"`)
     .replace(/src=["']#["']/g, `src="${src}"`);
-  if (dataUri && !/<img[\s>]/i.test(out)) {
+  // Force object-position on hero images when we know the layout
+  if (layout) {
+    out = out.replace(
+      /(<img\b)([^>]*?)(\/?>)/gi,
+      (_m, open, attrs, close) => {
+        let a = String(attrs);
+        if (/object-position/i.test(a)) {
+          a = a.replace(/object-position\s*:\s*[^;"']+/gi, `object-position:${objectPos}`);
+        } else if (/style=["']/i.test(a)) {
+          a = a.replace(/style=(["'])/i, `style=$1object-fit:cover;object-position:${objectPos};`);
+        } else {
+          a += ` style="object-fit:cover;object-position:${objectPos}"`;
+        }
+        if (!/class=/i.test(a)) a += ` class="cs-hero"`;
+        else if (!/cs-hero/i.test(a)) a = a.replace(/class=(["'])/i, `class=$1cs-hero `);
+        return `${open}${a}${close}`;
+      }
+    );
+  }
+  if ((dataUri || asset.kind === "image") && !/<img[\s>]/i.test(out)) {
     out = out.replace(
       /(<div[^>]*id=["']artboard["'][^>]*>)/i,
-      `$1<img class="cs-hero-fallback" src="${src}" alt="" />`
+      `$1<img class="cs-hero-fallback cs-hero" src="${src}" alt="" style="object-fit:cover;object-position:${objectPos}" />`
     );
   }
   return out;
@@ -106,7 +173,14 @@ function injectSourceImage(html: string, asset: ContentRawAsset, profileId: stri
  * Force correct artboard size + readable defaults after OD returns HTML.
  * Fixes models that ignore width/height or use fluid layouts.
  */
-function enforceArtboard(html: string, w: number, h: number, platform: ContentPlatform): string {
+function enforceArtboard(
+  html: string,
+  w: number,
+  h: number,
+  platform: ContentPlatform,
+  layout?: LayoutSuggestion | null
+): string {
+  const layoutCss = layout ? `\n${layoutLockCss(layout, w, h)}\n` : "";
   const lockCss = `
 /* Content Studio artboard lock — ${platform} ${w}x${h} */
 html, body {
@@ -142,6 +216,7 @@ html, body {
 #artboard, .artboard {
   color: #111;
 }
+${layoutCss}
 `;
 
   let out = html;
@@ -203,6 +278,8 @@ function buildSocialPostPrompt(opts: {
   aspectRatio: string;
   cropHint: string;
   designSystemHtml: string;
+  layout: LayoutSuggestion;
+  hasVisionImage: boolean;
 }): string {
   const palette =
     opts.profile.palette?.map((c) => `${c.name} ${c.hex}`).join(", ") ||
@@ -212,9 +289,27 @@ function buildSocialPostPrompt(opts: {
     ? opts.profile.logoSvgPreview.slice(0, 3000)
     : "(no svg — wordmark only)";
 
+  const analysis = opts.asset.analysis;
+  const mediaSeen = analysis?.summary
+    ? `MEDIA ANALYSIS (obey — do not invent other subjects): ${analysis.summary}`
+    : `MEDIA ANALYSIS: not available — do not invent subjects beyond the filename.`;
+  const mediaCrop = analysis?.cropHints
+    ? [
+        analysis.cropHints.instagram ? `IG crop: ${analysis.cropHints.instagram}` : null,
+        analysis.cropHints.tiktok ? `TT crop: ${analysis.cropHints.tiktok}` : null,
+        analysis.cropHints.linkedin ? `LI crop: ${analysis.cropHints.linkedin}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
+
+  const visionNote = opts.hasVisionImage
+    ? `VISION: You are ALSO shown the real ${isVideo ? "video keyframe" : "photo"} as an image input. Compose type and crop for WHAT YOU SEE — subject placement, faces, bright/dark regions. Do not invent alternate scenes.`
+    : `VISION: No image bytes attached — rely on media analysis text only.`;
+
   const mediaBlock = isVideo
-    ? `MEDIA: video still implied (“${opts.asset.filename}”). Do NOT invent a stock photo. Use brand gradient + abstract motion motif + play glyph; filename may appear as a small chip.`
-    : `MEDIA: Hero MUST be <img src="SOURCE_IMAGE" alt="${opts.asset.filename}" /> with object-fit:cover. The server injects the real user photo. Photo is the hero — do not cover it with opaque full-bleed panels; use gradient scrims only where type sits.`;
+    ? `MEDIA: video (“${opts.asset.filename}”). ${mediaSeen} ${visionNote} Hero still uses SOURCE_IMAGE (server injects keyframe/photo). Optional small play glyph. Do NOT invent unrelated stock scenes.`
+    : `MEDIA: Hero MUST be <img class="cs-hero" src="SOURCE_IMAGE" alt="${opts.asset.filename}" /> with object-fit:cover and object-position:${opts.layout.objectPosition}. The server injects the real user photo. Photo is the hero — do not cover it with opaque full-bleed panels; use gradient scrims only where type sits. ${mediaSeen}${mediaCrop ? ` ${mediaCrop}` : ""}${analysis?.composition ? ` Composition: ${analysis.composition}` : ""}${analysis?.doNotClaim?.length ? ` Never depict: ${analysis.doNotClaim.slice(0, 4).join("; ")}` : ""} ${visionNote}`;
 
   return [
     `You are Open Design (Faro Design Studio pipeline) producing ONE social post as a single offline HTML file.`,
@@ -225,6 +320,11 @@ function buildSocialPostPrompt(opts: {
     `- Root: <div id="artboard" class="artboard" data-artboard="true"> must be EXACTLY ${opts.w}×${opts.h}px. No fluid %, no 100vw, no responsive reflow of the artboard.`,
     `- html/body same size, margin 0, overflow hidden.`,
     `- Crop/safe zone: ${opts.cropHint}`,
+    ``,
+    `COMPOSITION LAYOUT (from vision analysis — non-negotiable):`,
+    opts.layout.instructions,
+    `- Wrap primary type in <div class="cs-type-zone" data-type-zone="true">…</div>.`,
+    `- Include a scrim layer: <div class="cs-scrim" data-scrim="true"></div> behind type (not covering faces).`,
     ``,
     `DESIGN FOUNDATIONS (non-negotiable):`,
     `1. SIZE & GRID — Use a clear grid. Margins ≥ 64px from edges (48px on LinkedIn landscape). Type and logo never kiss the edge.`,
@@ -288,6 +388,9 @@ export async function designPostVariant(opts: {
   const cropHint = opts.cropHint || spec.cropHint;
 
   const designSystemHtml = await loadDesignSystemSnippet(opts.projectId);
+  const layout = suggestLayoutFromMedia(opts.asset.analysis ?? null, opts.platform);
+  const vision = resolveAssetVisionImage(opts.asset);
+
   const prompt = buildSocialPostPrompt({
     profile: opts.profile,
     planned: opts.planned,
@@ -298,6 +401,8 @@ export async function designPostVariant(opts: {
     aspectRatio,
     cropHint,
     designSystemHtml,
+    layout,
+    hasVisionImage: Boolean(vision),
   });
 
   const system = [
@@ -305,18 +410,44 @@ export async function designPostVariant(opts: {
     "You produce production-grade social post HTML that applies an existing brand system.",
     "Never invent brand claims or a new identity. Obey exact artboard pixel sizes.",
     "Contrast, hierarchy, margins, and type scale are mandatory foundations — not optional polish.",
+    "When an image is attached, compose the layout for the actual photo (faces, subject, light regions).",
   ].join(" ");
+
+  // P3 multimodal: text prompt + source image when available (via OD → Anthropic)
+  const userContent: AiMessageContent = vision
+    ? [
+        {
+          type: "image",
+          source: { type: "base64", media_type: vision.mime, data: vision.base64 },
+        },
+        { type: "text", text: prompt },
+      ]
+    : prompt;
 
   const result = await generateDesignText({
     model: MODELS.design,
     maxTokens: 8000,
     system,
-    messages: [{ role: "user", content: prompt }],
+    messages: [{ role: "user", content: userContent }],
   });
 
   let html = extractHtml(result.text);
-  html = injectSourceImage(html, opts.asset, opts.profileId);
-  html = enforceArtboard(html, w, h, opts.platform);
+  html = injectSourceImage(html, opts.asset, opts.profileId, layout);
+  html = enforceArtboard(html, w, h, opts.platform, layout);
+
+  // Ensure type zone / scrim hooks exist for layout CSS when model omitted them
+  if (!/data-type-zone|cs-type-zone/i.test(html) && /id=["']artboard["']/i.test(html)) {
+    html = html.replace(
+      /(<\/div>\s*<\/body>)/i,
+      `<div class="cs-type-zone" data-type-zone="true" style="position:absolute;bottom:0;left:0;right:0;padding:64px;z-index:2"></div>$1`
+    );
+  }
+  if (!/data-scrim|cs-scrim/i.test(html) && /id=["']artboard["']/i.test(html)) {
+    html = html.replace(
+      /(<div[^>]*id=["']artboard["'][^>]*>)/i,
+      `$1<div class="cs-scrim" data-scrim="true" aria-hidden="true"></div>`
+    );
+  }
 
   const dir = designsDir({ projectId: opts.projectId, profileId: opts.profileId });
   ensureDir(dir);
@@ -329,7 +460,7 @@ export async function designPostVariant(opts: {
   return {
     platform: opts.platform,
     aspectRatio,
-    cropHint: `${cropHint} · ${pixelSize}`,
+    cropHint: `${cropHint} · ${pixelSize} · ${layout.label}${vision ? " · vision" : ""}`,
     pixelSize,
     storagePath,
     previewUri,

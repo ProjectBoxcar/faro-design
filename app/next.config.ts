@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // better-sqlite3 is a native module; keep it external to the server bundle.
-  serverExternalPackages: ["better-sqlite3"],
+  // Native / binary packages — keep external to the server bundle.
+  serverExternalPackages: ["better-sqlite3", "ffmpeg-static"],
   // Origins allowed to use the dev server for localhost, local Wi-Fi, and Tailscale
   // Tailscale typically uses 100.x.x.x addresses, local Wi-Fi varies by router
   allowedDevOrigins: [

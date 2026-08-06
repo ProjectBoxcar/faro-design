@@ -29,9 +29,24 @@ export async function isOpenDesignDaemonUp(): Promise<boolean> {
   }
 }
 
+/** Anthropic-style content: plain text or multimodal blocks (P3 vision for Content Studio). */
+export type OpenDesignMessageContent =
+  | string
+  | Array<
+      | { type: "text"; text: string }
+      | {
+          type: "image";
+          source: {
+            type: "base64";
+            media_type: "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+            data: string;
+          };
+        }
+    >;
+
 export type OpenDesignGenerateParams = {
   system?: string;
-  messages: { role: "user" | "assistant"; content: string }[];
+  messages: { role: "user" | "assistant"; content: OpenDesignMessageContent }[];
   maxTokens: number;
   model: string;
   /** Provider API key OD will use (BYOK through the daemon). */

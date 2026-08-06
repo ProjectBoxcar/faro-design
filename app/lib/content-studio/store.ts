@@ -3,7 +3,7 @@
  * Uses the same better-sqlite3/drizzle connection as the rest of the app.
  */
 import "server-only";
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "@/lib/db";
 import {
@@ -12,7 +12,29 @@ import {
   content_profiles,
   content_raw_assets,
 } from "@/lib/db/schema";
+
+/** Ensure optional Content Studio columns exist (safe if migration already applied). */
+let _assetColumnsReady = false;
+function ensureAssetColumns(): void {
+  if (_assetColumnsReady) return;
+  try {
+    db.run(sql`ALTER TABLE content_raw_assets ADD COLUMN analysis text`);
+  } catch {
+    /* already exists */
+  }
+  try {
+    db.run(sql`ALTER TABLE content_raw_assets ADD COLUMN owner_meta text`);
+  } catch {
+    /* already exists */
+  }
+  _assetColumnsReady = true;
+}
+/** @deprecated use ensureAssetColumns */
+function ensureAnalysisColumn(): void {
+  ensureAssetColumns();
+}
 import type {
+  AssetOwnerMeta,
   BrandProfile,
   ContentCalendar,
   ContentMonthStrategy,
@@ -20,8 +42,56 @@ import type {
   ContentPost,
   ContentPostStatus,
   ContentRawAsset,
+  MediaAnalysisCard,
   PlatformVariant,
 } from "@/lib/content-studio/types";
+import { normalizeMediaAnalysis } from "@/lib/content-studio/media-analysis-pure";
+import { normalizeOwnerMeta } from "@/lib/content-studio/owner-controls-pure";
+
+function mapRawAssetRow(r: {
+  id: string;
+  profile_id: string;
+  filename: string;
+  mime_type: string;
+  kind: string;
+  storage_path: string | null;
+  created_at: Date | string | number;
+  analysis?: unknown;
+  owner_meta?: unknown;
+}): ContentRawAsset {
+  let analysis: MediaAnalysisCard | null = null;
+  if (r.analysis && typeof r.analysis === "object") {
+    analysis = normalizeMediaAnalysis(r.analysis);
+  } else if (typeof r.analysis === "string" && r.analysis.trim()) {
+    try {
+      analysis = normalizeMediaAnalysis(JSON.parse(r.analysis));
+    } catch {
+      analysis = null;
+    }
+  }
+  let ownerMeta: AssetOwnerMeta | null = null;
+  if (r.owner_meta != null) {
+    try {
+      const raw =
+        typeof r.owner_meta === "string" ? JSON.parse(r.owner_meta) : r.owner_meta;
+      ownerMeta = normalizeOwnerMeta(raw);
+    } catch {
+      ownerMeta = normalizeOwnerMeta({});
+    }
+  }
+  return {
+    id: r.id,
+    profileId: r.profile_id,
+    filename: r.filename,
+    mimeType: r.mime_type,
+    kind: r.kind as ContentRawAsset["kind"],
+    storagePath: r.storage_path,
+    createdAt:
+      r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
+    analysis,
+    ownerMeta,
+  };
+}
 
 export function saveContentProfile(input: {
   projectId: string | null;
@@ -98,7 +168,29 @@ export function insertRawAsset(input: {
     kind: input.kind,
     storagePath: input.storagePath ?? null,
     createdAt: created.toISOString(),
+    analysis: null,
   };
+}
+
+/** Persist vision analysis card on an asset row. */
+export function updateRawAssetAnalysis(assetId: string, analysis: MediaAnalysisCard): void {
+  ensureAssetColumns();
+  db.update(content_raw_assets)
+    .set({ analysis: analysis as unknown as Record<string, unknown> })
+    .where(eq(content_raw_assets.id, assetId))
+    .run();
+}
+
+/** Persist owner tags / exclude (P4). */
+export function updateRawAssetOwnerMeta(assetId: string, meta: AssetOwnerMeta): void {
+  ensureAssetColumns();
+  const row = db.select().from(content_raw_assets).where(eq(content_raw_assets.id, assetId)).get();
+  if (!row) throw new Error("Asset not found");
+  const cleaned = normalizeOwnerMeta(meta);
+  db.update(content_raw_assets)
+    .set({ owner_meta: cleaned as unknown as Record<string, unknown> })
+    .where(eq(content_raw_assets.id, assetId))
+    .run();
 }
 
 /** Find existing asset for profile by filename (for import de-dupe). */
@@ -113,16 +205,7 @@ export function findRawAssetByFilename(
     .all()
     .find((r) => r.filename === filename);
   if (!row) return null;
-  return {
-    id: row.id,
-    profileId: row.profile_id,
-    filename: row.filename,
-    mimeType: row.mime_type,
-    kind: row.kind as ContentRawAsset["kind"],
-    storagePath: row.storage_path,
-    createdAt:
-      row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
-  };
+  return mapRawAssetRow(row);
 }
 
 /**
@@ -154,21 +237,20 @@ export function upsertRawAssetByFilename(input: {
 }
 
 export function listRawAssets(profileId: string): ContentRawAsset[] {
+  ensureAssetColumns();
   return db
     .select()
     .from(content_raw_assets)
     .where(eq(content_raw_assets.profile_id, profileId))
     .orderBy(desc(content_raw_assets.created_at))
     .all()
-    .map((r) => ({
-      id: r.id,
-      profileId: r.profile_id,
-      filename: r.filename,
-      mimeType: r.mime_type,
-      kind: r.kind as ContentRawAsset["kind"],
-      storagePath: r.storage_path,
-      createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
-    }));
+    .map(mapRawAssetRow);
+}
+
+export function getRawAsset(assetId: string): ContentRawAsset | null {
+  const row = db.select().from(content_raw_assets).where(eq(content_raw_assets.id, assetId)).get();
+  if (!row) return null;
+  return mapRawAssetRow(row);
 }
 
 export function saveCalendar(calendar: ContentCalendar): void {

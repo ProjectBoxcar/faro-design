@@ -92,6 +92,20 @@
       "when": 1785600000000,
       "tag": "0012_content_studio",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1786000000000,
+      "tag": "0014_content_asset_analysis",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1786200000000,
+      "tag": "0015_content_asset_owner_meta",
+      "breakpoints": true
     }
   ]
 }
