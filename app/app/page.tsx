@@ -192,10 +192,7 @@ export default async function Home() {
           <p className="mt-6 max-w-2xl text-lg leading-snug text-[var(--foreground)] sm:text-xl lg:text-[1.35rem]">
             {brandCopy.lede}
           </p>
-          <p className="mt-4 max-w-lg text-sm text-[var(--muted)]">
-            Answer plain questions. Review a full strategy. Approve logo, system, and mockups. Hand
-            off a final package — or an implement pack for product engineering.
-          </p>
+
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
               href="/start"

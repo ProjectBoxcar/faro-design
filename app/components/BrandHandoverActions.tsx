@@ -105,11 +105,11 @@ export function BrandHandoverActions({
   const statusLine = !packageReady
     ? "Finish all three finals to unlock export"
     : !shareToken
-      ? "Ready to publish the brand package (freezes snapshot) or download the implement pack"
+      ? "Share a client link or download files for product teams"
       : needsPackageUpdate
-        ? `Strategy brief shared${version != null ? ` v${version}` : ""} — package not frozen yet`
+        ? `Strategy brief shared${version != null ? ` v${version}` : ""} — full package not on this link yet`
         : snapshotPackageReady
-          ? `Brand package published${version != null ? ` v${version}` : ""} — frozen share link`
+          ? `Brand package shared${version != null ? ` v${version}` : ""} — client link is fixed until you update it`
           : `Strategy brief shared${version != null ? ` v${version}` : ""}`;
 
   return (
@@ -124,7 +124,7 @@ export function BrandHandoverActions({
           title="tokens.css, logos, icons, copy.json, IMPLEMENT.md"
         >
           {packBusy ? <Loader2 size={15} className="animate-spin" /> : <Package size={15} />}
-          {packBusy ? "Building pack…" : "Download implement pack"}
+          {packBusy ? "Building pack…" : "Download for product teams"}
         </button>
         {shareToken ? (
           <>
@@ -136,7 +136,7 @@ export function BrandHandoverActions({
                 className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--accent)] transition hover:bg-[var(--accent-soft)] disabled:opacity-50"
               >
                 {busy ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
-                {busy ? "Updating…" : "Update package freeze"}
+                {busy ? "Updating…" : "Update shared package"}
               </button>
             )}
             <a
@@ -171,15 +171,15 @@ export function BrandHandoverActions({
             className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-strong)] px-4 py-2.5 text-sm font-medium transition hover:bg-[var(--surface-2)] disabled:opacity-50"
           >
             {busy ? <Loader2 size={15} className="animate-spin" /> : <Share2 size={15} />}
-            {busy ? "Publishing…" : "Publish brand package"}
+            {busy ? "Sharing…" : "Share brand package"}
           </button>
         )}
       </div>
       <p className="text-[11px] leading-snug text-[var(--subtle)]">
         <Download size={11} className="mr-1 inline" />
-        Implement pack = tokens, logo, icons, copy, and a short how-to for product UI.
+        Product pack = tokens, logo, icons, copy, and a short how-to for building UI.
         {shareToken && !packageReady
-          ? " A strategy brief is already shared; the full package freezes after Design Studio finals."
+          ? " A strategy brief is already shared; the full package is available after Design Studio finals."
           : null}
       </p>
       <Link

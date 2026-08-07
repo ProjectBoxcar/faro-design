@@ -90,7 +90,7 @@ export function ProjectSidebar({
         </Link>
         {clientName && <p className="text-sm text-[var(--muted)]">{clientName}</p>}
         {greenfield && (
-          <p className="mt-1 text-xs text-[var(--subtle)]">Greenfield — audit skipped</p>
+          <p className="mt-1 text-xs text-[var(--subtle)]">New brand — no existing materials</p>
         )}
         <div className="mt-4">
           <div className="mb-1 flex items-center justify-between text-xs text-[var(--subtle)]">

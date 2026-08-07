@@ -142,8 +142,8 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
               ? "Continue here"
               : strategyEssentialsDone
                 ? pr.total > 0
-                  ? `Optional deep review · ${Math.min(pr.done, pr.total)}/${pr.total}`
-                  : "Optional deep review"
+                  ? `Optional full map · ${Math.min(pr.done, pr.total)}/${pr.total}`
+                  : "Optional full map"
                 : pr.total > 0
                   ? `${Math.min(pr.done, pr.total)} of ${pr.total}`
                   : "Not started"
@@ -238,12 +238,12 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       lockHint: "",
       doneDetail:
         strategyProgress.total > 0
-          ? `Essentials ready · ${strategyProgress.done}/${strategyProgress.total} steps (deep review optional)`
-          : "Essentials ready",
+          ? `Strategy ready · ${strategyProgress.done}/${strategyProgress.total} steps (full map optional)`
+          : "Strategy ready",
       todoDetail:
         strategyProgress.total > 0
-          ? `${strategyProgress.done} of ${strategyProgress.total} · Express or pillar review`
-          : "Start with Quick Start / Express",
+          ? `${strategyProgress.done} of ${strategyProgress.total} · strategy review`
+          : "Start with a few plain questions",
       steps: strategySteps,
     },
     {
@@ -302,8 +302,8 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       todoDetail: designUnlocked
         ? designDone
           ? project.share_token
-            ? "Update freeze or download package"
-            : "Publish brand package or download"
+            ? "Update shared package or download"
+            : "Share brand package or download"
           : "Finish Design Studio finals"
         : "Complete design first",
     },
@@ -400,7 +400,7 @@ export function primaryActionFromJourney(projectId: string): {
       : nested?.href ?? stage.href;
   const name =
     stage.id === "strategy"
-      ? "Strategy essentials"
+      ? "Strategy review"
       : nested?.name ?? stage.name.replace(/^\d+\.\s*/, "");
   return {
     href,
@@ -408,7 +408,7 @@ export function primaryActionFromJourney(projectId: string): {
     label: stage.status === "current" ? "Up next" : "Continue",
     detail:
       stage.id === "strategy"
-        ? "Review Express essentials, then continue to brand name (deep pillars optional)"
+        ? "Review strategy essentials, then continue to brand name (full map optional)"
         : nested?.detail ?? stage.detail,
     stageId: stage.id,
     overall: journey.overall,

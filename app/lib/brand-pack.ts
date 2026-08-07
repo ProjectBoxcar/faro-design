@@ -326,7 +326,7 @@ function buildTokensCss(roles: TokenMap, raw: TokenMap, dark?: TokenMap): string
 }
 
 function buildImplementMd(projectName: string, roles: TokenMap, iconNames: string[]): string {
-  return `# Brand implement pack — ${projectName}
+  return `# Brand files for product teams — ${projectName}
 
 Machine-readable handoff for engineers and design systems.
 

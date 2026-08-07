@@ -223,10 +223,10 @@ export function DesignGenerationWindow({
               </p>
               <p className="mt-2 max-w-xl text-xs leading-relaxed text-white/45">
                 {kind === "mockups"
-                  ? "Open Design applies your identity in order (landing page, then deck). Typically a few minutes — keep this tab open."
+                  ? "Landing page first, then brand deck — each applies the identity you approved. Typically a few minutes — keep this tab open."
                   : kind === "design_system"
                     ? "Three full identity systems, built one at a time (often 10–15 minutes total). Progress ticks up as each proposal finishes — keep this tab open."
-                    : "Open Design builds directions one at a time so each stays distinct and strategy-grounded. Proposals appear as each finishes."}
+                    : "Directions build one at a time so each stays distinct and grounded in your strategy. Proposals appear as each finishes."}
               </p>
             </div>
             <div className="inline-flex shrink-0 flex-col items-end gap-1">
@@ -296,7 +296,7 @@ export function DesignGenerationWindow({
                   </span>
                   {directionDone ? (
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
-                      Ready
+                      Done
                     </span>
                   ) : (
                     <span

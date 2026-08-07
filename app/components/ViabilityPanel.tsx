@@ -23,25 +23,25 @@ const STYLE: Record<
     label: "Not checked yet",
     className: "border-[var(--border-strong)] bg-[var(--surface)] text-[var(--muted)]",
     Icon: ShieldQuestion,
-    blurb: "The gate runs automatically once the key Reality answers are on file.",
+    blurb: "This check runs automatically once the key business answers are on file.",
   },
   pass: {
-    label: "Pass",
+    label: "Looks sound",
     className: "border-[var(--ok)]/30 bg-[var(--ok)]/10 text-[var(--ok)]",
     Icon: CheckCircle2,
-    blurb: "The methodology’s non-negotiables look sound for this engagement.",
+    blurb: "The basics of this brand engagement look solid enough to continue.",
   },
   caveat: {
-    label: "Pass with caveats",
+    label: "Proceed with care",
     className: "border-[var(--warn)]/30 bg-[var(--warn)]/10 text-[var(--warn)]",
     Icon: AlertTriangle,
-    blurb: "You can continue, but some warning signs or non-blocking gaps showed up.",
+    blurb: "You can continue, but a few warning signs or soft gaps showed up.",
   },
   fail: {
-    label: "Fail",
+    label: "Needs attention",
     className: "border-[var(--danger)]/30 bg-[var(--danger)]/10 text-[var(--danger)]",
     Icon: ShieldAlert,
-    blurb: "A non-negotiable condition failed. You can still proceed with a logged reason.",
+    blurb: "Something foundational failed this check. You can still continue with a short reason.",
   },
 };
 
@@ -128,7 +128,7 @@ export function ViabilityPanel({
           <Icon size={18} className="mt-0.5 shrink-0" />
           <div className="min-w-0">
             <div className="text-sm font-semibold">
-              Viability gate: {localOverride ? "Pass (overridden)" : style.label}
+              Brand foundation: {localOverride ? "Looks sound (noted)" : style.label}
             </div>
             <p className="mt-0.5 text-xs leading-relaxed opacity-90">
               {localOverride

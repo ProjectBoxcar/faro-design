@@ -313,7 +313,7 @@ export function DesignStudio({
   ) {
     if (!apiKeyConfigured) {
       setError(
-        "Design Studio needs Open Design + an Anthropic key. Save Claude in Settings (AI setup), then start the Open Design daemon (port 7456): run start-open-design.ps1 or npm run od:ensure. Logos use a separate OpenAI key — they do not power Design Studio."
+        "Design Studio isn’t set up yet. Add your Claude key in Settings and start Faro with start.bat so the design helper can run. Logo Workshop uses a different key."
       );
       return;
     }
@@ -584,20 +584,20 @@ export function DesignStudio({
           <AlertCircle size={18} className="mt-0.5 shrink-0" />
           <div>
             <p>
-              Design Studio needs{" "}
-              <strong className="font-medium">Claude (Anthropic) in Settings → AI setup</strong> and
-              the <strong className="font-medium">Open Design daemon on port 7456</strong>.
+              Design Studio needs a{" "}
+              <strong className="font-medium">Claude key in Settings → AI setup</strong> and
+              Faro&apos;s <strong className="font-medium">design helper</strong> running
+              (start Faro with <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">start.bat</code>
+              ).
             </p>
             <p className="mt-1.5 text-[var(--muted)]">
-              If generation fails with “daemon not running”, start it with{" "}
-              <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">
-                start-open-design.ps1
-              </code>{" "}
-              or{" "}
+              If generation fails saying the helper isn&apos;t running, restart with{" "}
+              <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">start.bat</code>
+              {" "}or run{" "}
               <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">
                 npm run od:ensure
               </code>
-              . Logo Workshop uses OpenAI/Gemini separately — not this engine.
+              . Logo Workshop uses a different key — not this path.
             </p>
           </div>
         </div>
@@ -653,7 +653,7 @@ export function DesignStudio({
               : `Create & choose finals · ${finalCount}/3 ready`}
           </p>
           <p className="mt-0.5 text-xs text-[var(--muted)]">
-            Downloads, client link, and implement pack are on Handover — not here.
+            Downloads and client link live in Brand Handover — not here.
           </p>
         </div>
         <Link
@@ -765,7 +765,7 @@ export function DesignStudio({
                               {asset && aligned
                                 ? isPreviewed
                                   ? "Previewing"
-                                  : "Ready — preview"
+                                  : "Built — open preview"
                                 : isBuildingMockups
                                 ? "Building…"
                                 : "Not built yet"}

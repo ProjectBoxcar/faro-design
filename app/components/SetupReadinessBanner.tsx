@@ -18,15 +18,15 @@ export function SetupReadinessBanner({
 
   const issues: string[] = [];
   if (strategy && strategy.level === "off") {
-    issues.push("Strategy AI key missing — Express and content planning need it.");
+    issues.push("Strategy writing needs a Claude key (Settings).");
   }
   if (logo && logo.level === "off") {
-    issues.push("Logo AI key missing — Logo Workshop needs OpenAI or Gemini.");
+    issues.push("Logo Workshop needs an OpenAI or Gemini key (Settings).");
   }
   if (design && design.level === "off") {
-    issues.push("Design AI / Open Design not ready — Design Studio needs Anthropic BYOK + daemon.");
+    issues.push("Design Studio needs a Claude key and Faro’s design helper running.");
   } else if (daemonUp === false) {
-    issues.push("Open Design daemon is not running (start with start.bat / npm run dev).");
+    issues.push("Design helper isn’t running — start Faro with start.bat.");
   }
 
   if (issues.length === 0) {
@@ -34,8 +34,8 @@ export function SetupReadinessBanner({
       <div className="mb-6 rounded-xl border border-[var(--ok)]/25 bg-[var(--ok)]/10 px-4 py-3 text-sm text-[var(--ok)]">
         <span className="font-medium">AI setup ready.</span>{" "}
         <span className="text-[var(--muted)]">
-          Strategy, logo, and design lanes look good
-          {daemonUp === true ? " · Open Design daemon up" : ""}. Long generations may still take a few minutes.
+          Strategy, logo, and design look good
+          {daemonUp === true ? " · design helper up" : ""}. Longer steps may still take a few minutes.
         </span>
       </div>
     );
@@ -46,7 +46,7 @@ export function SetupReadinessBanner({
       role="status"
       className="mb-6 rounded-xl border border-[var(--warn)]/35 bg-[var(--warn)]/10 px-4 py-3 text-sm"
     >
-      <p className="font-medium text-[var(--warn)]">Setup needed before long AI stages</p>
+      <p className="font-medium text-[var(--warn)]">A bit of setup before AI stages</p>
       <ul className="mt-2 list-inside list-disc space-y-1 text-[var(--muted)]">
         {issues.map((i) => (
           <li key={i}>{i}</li>
@@ -57,7 +57,7 @@ export function SetupReadinessBanner({
         <Link href="/settings" className="font-medium text-[var(--foreground)] underline-offset-2 hover:underline">
           Settings
         </Link>
-        , then run <code className="rounded bg-[var(--surface-2)] px-1">start.bat</code> if the design daemon is down.
+        , then start Faro with <code className="rounded bg-[var(--surface-2)] px-1">start.bat</code> if needed.
       </p>
     </div>
   );

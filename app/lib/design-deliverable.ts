@@ -98,7 +98,7 @@ export function buildFaroDeliverable(
     : "null";
 
   const implementRow = options?.implementPackZipBase64
-    ? `<div class="deliverable"><div><strong>Brand implement pack</strong><br><span>tokens, logos, icons, copy — for product engineering</span></div><button class="download" type="button" data-pack="1">Download ZIP</button></div>`
+    ? `<div class="deliverable"><div><strong>Files for product teams</strong><br><span>tokens, logos, icons, copy — for building UI</span></div><button class="download" type="button" data-pack="1">Download ZIP</button></div>`
     : "";
 
   return `<!DOCTYPE html>
@@ -123,7 +123,7 @@ ${outputs.map((output) => `<button class="tab" type="button" data-panel="${outpu
 </aside>
 <main>
 <section class="panel overview" id="overview">
-<div class="overview-card"><p class="eyebrow">Final brand package</p><h2>${safeProjectName}</h2><p>Complete delivery: visual package (identity, landing page, deck) plus the implement pack for product engineering (tokens, logos, icons, copy).</p><div class="deliverables">
+<div class="overview-card"><p class="eyebrow">Final brand package</p><h2>${safeProjectName}</h2><p>Complete delivery: visual package (identity, landing page, deck) plus files for product teams (tokens, logos, icons, copy).</p><div class="deliverables">
 ${outputs.map((output, index) => `<div class="deliverable"><div><strong>${output.label}</strong><br><span>Final proposal ${escapeHtml(output.variant)}</span></div><button class="download" type="button" data-download="${index}">Download source</button></div>`).join("\n")}
 ${implementRow}
 </div></div>

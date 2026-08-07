@@ -239,7 +239,7 @@ export function ContentStudioWorkspace({
     if (!profileId) return;
     setBusy("generate");
     setError(null);
-    setProgressMessage("Writing month strategy from your media (vision + plan)…");
+    setProgressMessage("Writing this month’s plan from your photos…");
     try {
       // Phase 1: Strategy AI — vision cards + full month (2–3×/week) + owner controls
       const res = await fetch("/api/content-studio", {
@@ -328,8 +328,8 @@ export function ContentStudioWorkspace({
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
           {mode === "project"
-            ? "Uses this project’s finished brand (strategy, logo, visual system) as a locked profile — then builds a content calendar from your raw media."
-            : "No FARO brand package yet — upload footage, lock an inferred starter profile, then generate the same calendar output."}
+            ? "Uses this project’s finished brand (strategy, logo, visuals), then plans a month of posts from your photos."
+            : "No finished brand package yet — name the brand, add photos, then generate a month of posts."}
         </p>
         {profile ? (
           <nav className="mt-5 flex flex-wrap gap-1.5" aria-label="Content Studio steps">
@@ -382,7 +382,7 @@ export function ContentStudioWorkspace({
           {mode === "project" ? (
             <>
               <p className="text-sm text-[var(--muted)]">
-                Pull strategy tone, logo, and visual signals from this completed project and lock them for content generation.
+                Use this project’s strategy, logo, and look for content planning — then we keep that brand fixed while you build posts.
               </p>
               <button
                 type="button"
@@ -391,7 +391,7 @@ export function ContentStudioWorkspace({
                 className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
               >
                 {busy === "lock" ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
-                Lock brand profile from project
+                Use brand from this project
               </button>
             </>
           ) : (
@@ -432,7 +432,7 @@ export function ContentStudioWorkspace({
                 className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
               >
                 {busy === "lock" ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
-                Infer &amp; lock starter profile
+                Start with this brand
               </button>
             </div>
           )}
@@ -445,7 +445,7 @@ export function ContentStudioWorkspace({
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
             <h3 className="font-medium">Month brief</h3>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              Optional owner intent for this month — goals, offer, taboos, and language. Strategy AI treats this as source of truth.
+              Optional notes for this month — goals, offer, what to avoid, and language. We treat this as the brief for planning posts.
             </p>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {(
@@ -504,7 +504,7 @@ export function ContentStudioWorkspace({
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
             <h3 className="font-medium">Raw media</h3>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              Tag purpose, exclude weak personal shots, then analyze. Excluded assets never enter the month plan.
+              Tag each photo, skip anything you don&apos;t want used, then review fit. Skipped files never enter the month plan.
             </p>
             <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2 text-sm font-medium text-[var(--muted)] hover:bg-[var(--surface-2)]">
               <Upload size={15} />
@@ -617,13 +617,13 @@ export function ContentStudioWorkspace({
                 className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2 text-xs font-medium text-[var(--muted)] hover:bg-[var(--surface-2)] disabled:opacity-50"
               >
                 {busy === "analyze" ? <Loader2 size={14} className="animate-spin" /> : null}
-                Analyze media (vision)
+                Review photos
               </button>
               <span className="self-center text-[10px] text-[var(--subtle)]">
-                Eligible:{" "}
+                Ready to use:{" "}
                 {assets.filter((a) => a.storagePath && !a.ownerMeta?.excluded).length}
                 {excludeWeakFit
-                  ? ` · weak-fit will drop at generate`
+                  ? ` · poor fits will be skipped when generating`
                   : ""}
               </span>
             </div>
@@ -651,11 +651,11 @@ export function ContentStudioWorkspace({
           <div className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
             <h3 className="font-medium">Generate month</h3>
             <p className="text-xs text-[var(--muted)]">
-              Vision analysis + strategy plan + Open Design per post. This can take several minutes.
+              We plan the month from your photos, then design each post. This can take several minutes.
             </p>
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2 text-xs text-[var(--muted)]">
-              Cadence
+              How often
               <select
                 value={postsPerWeek}
                 disabled={busy !== null}
@@ -667,16 +667,16 @@ export function ContentStudioWorkspace({
               </select>
             </label>
             <label className="flex items-center gap-2 text-xs text-[var(--muted)]">
-              Reuse
+              Photo reuse
               <select
                 value={reusePolicy}
                 disabled={busy !== null}
                 onChange={(e) => setReusePolicy(e.target.value as MediaReusePolicy)}
                 className="rounded-full border border-[var(--border-strong)] bg-[var(--field)] px-3 py-1.5 text-sm text-[var(--foreground)]"
               >
-                <option value="unique-first">Unique first</option>
-                <option value="prefer-strong">Prefer strong fit</option>
-                <option value="rotate">Rotate evenly</option>
+                <option value="unique-first">Prefer unused photos first</option>
+                <option value="prefer-strong">Prefer best-fit photos</option>
+                <option value="rotate">Share photos evenly</option>
               </select>
             </label>
             <label className="flex cursor-pointer items-center gap-1.5 text-xs text-[var(--muted)]">
@@ -686,7 +686,7 @@ export function ContentStudioWorkspace({
                 disabled={busy !== null}
                 onChange={(e) => setExcludeWeakFit(e.target.checked)}
               />
-              Drop weak-fit media
+              Skip poor-fit photos
             </label>
             <button
               type="button"
@@ -726,7 +726,7 @@ export function ContentStudioWorkspace({
             <p className="text-sm text-[var(--muted)]">
               No calendar yet.{" "}
               <button type="button" className="text-[var(--accent)] underline" onClick={() => setStep("generate")}>
-                Go generate
+                Generate this month
               </button>
             </p>
           ) : null}

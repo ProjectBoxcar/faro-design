@@ -321,7 +321,7 @@ export function ContentCalendarView({
                           >
                             <div className="flex items-center justify-between gap-2 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--subtle)]">
                               <span>
-                                OD · {v.platform} · {size.w}×{size.h}
+                                {v.platform} · {size.w}×{size.h}
                               </span>
                               <span className="normal-case tracking-normal text-[var(--muted)]">
                                 Full size ↗

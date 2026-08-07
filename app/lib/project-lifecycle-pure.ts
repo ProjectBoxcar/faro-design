@@ -46,7 +46,7 @@ export function shareStateCopy(input: {
       kind: "none",
       title: "Share your strategy brief",
       blurb:
-        "Publish freezes a read-only strategy brief your designer can open. The full brand package freezes later, after Design Studio finals.",
+        "Share a read-only strategy brief your designer can open. The full brand package can be shared later, after Design Studio finals.",
     };
   }
   // Package is live-ready and either not frozen yet or already frozen complete.
@@ -55,21 +55,21 @@ export function shareStateCopy(input: {
       kind: "brand_package",
       title: `Brand package published${input.version != null ? ` (v${input.version})` : ""}`,
       blurb:
-        "The share link freezes strategy + design package. Later edits in Faro do not change what your designer sees until you publish again.",
+        "The client link includes strategy and the design package. Later edits in Faro do not change what your designer sees until you share again.",
     };
   }
   if (input.packageReady && input.snapshotPackageReady === false) {
     return {
       kind: "strategy_brief",
-      title: `Strategy brief shared${input.version != null ? ` (v${input.version})` : ""} — package not frozen yet`,
+      title: `Strategy brief shared${input.version != null ? ` (v${input.version})` : ""} — full package not on this link yet`,
       blurb:
-        "Design finals are ready. Publish again (or use Update package on Handover) to freeze the full brand package on this link.",
+        "Design finals are ready. Publish again (or use Update package on Handover) to put the full brand package on this link.",
     };
   }
   return {
     kind: "strategy_brief",
     title: `Strategy brief shared${input.version != null ? ` (v${input.version})` : ""}`,
     blurb:
-      "Your designer can open the strategy brief now. When identity, landing page, and deck are final, the full brand package freezes on the same link.",
+      "Your designer can open the strategy brief now. When identity, landing page, and deck are final, the full brand package can go on the same link.",
   };
 }

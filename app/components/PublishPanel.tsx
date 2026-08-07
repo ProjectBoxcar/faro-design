@@ -121,7 +121,7 @@ export function PublishPanel({
           <>
             {needsPackageUpdate && (
               <div className="mt-4 rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
-                Design finals are ready, but this link still freezes only the strategy brief.{" "}
+                Design finals are ready, but this link still shares only the strategy brief.{" "}
                 <button
                   type="button"
                   onClick={publish}
@@ -129,7 +129,7 @@ export function PublishPanel({
                   className="inline-flex items-center gap-1 font-medium text-[var(--accent)] underline-offset-2 hover:underline disabled:opacity-50"
                 >
                   <RefreshCw size={13} />
-                  {busy ? "Updating…" : "Update freeze with brand package"}
+                  {busy ? "Updating…" : "Update shared link with brand package"}
                 </button>
               </div>
             )}
@@ -215,7 +215,7 @@ export function PublishPanel({
               className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent)] transition hover:bg-[var(--accent-soft)] disabled:opacity-50"
             >
               <RefreshCw size={14} />
-              {busy ? "Updating…" : "Update freeze with brand package"}
+              {busy ? "Updating…" : "Update shared link with brand package"}
             </button>
           )}
           <div className="flex flex-wrap items-center gap-2">

@@ -382,7 +382,7 @@ function CardShell({
                 className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
               >
                 {readyBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                Ready
+                Apply my edits
               </button>
             </div>
             <RewriteHint saving={draftSaving} />
@@ -905,7 +905,7 @@ export function ExpressJourney({
       draftRef.current = nextValue;
       setEditingId("concept");
       setConceptNote(
-        "New concept draft. Edit if you like, then hit Ready so the manifesto and design plan follow this idea — or try another concept."
+        "New concept draft. Edit if you like, then Apply my edits so the manifesto and design plan follow this idea — or try another concept."
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't draft another concept");
@@ -988,7 +988,7 @@ export function ExpressJourney({
     if (refining || editingId) {
       setError(
         editingId
-          ? "Mark this card Ready (or Cancel) before approving."
+          ? "Apply your edits (or Cancel) on this card before approving."
           : "Still updating strategy cards from your last edit — wait a moment."
       );
       return;
@@ -1074,19 +1074,18 @@ export function ExpressJourney({
     <main className="mx-auto w-full max-w-3xl px-6 py-10 lg:py-14">
       <header className="mb-8">
         <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
-          Your strategy is ready to review
+          Strategy review
         </div>
         <h1 className="mt-2 font-serif text-4xl font-medium leading-tight tracking-tight lg:text-5xl">
-          {projectName} — strategy &amp; design plan
+          {projectName} — strategy essentials
         </h1>
-        <p className="mt-3 text-[var(--muted)]">
-          Read each card. Hit <span className="font-medium text-[var(--foreground)]">Edit</span> to
-          fix wording,{" "}
-          <span className="font-medium text-[var(--foreground)]">Rewrite with AI</span> to polish
-          your draft, then <span className="font-medium text-[var(--foreground)]">Ready</span> — the
-          rest of the strategy updates from your change. When essentials look right, continue to{" "}
-          <span className="font-medium text-[var(--foreground)]">Brand name</span>, then the Logo
-          Workshop — or open the full pillar-by-pillar review anytime from the journey rail.
+        <p className="mt-3 max-w-2xl text-[var(--muted)]">
+          Read the essentials. Change anything that doesn&apos;t sound like you. When these cards
+          feel right, approve and continue to the brand name.
+        </p>
+        <p className="mt-2 text-xs text-[var(--subtle)]">
+          Edit to fix wording, Rewrite with AI to polish, then Apply my edits so related cards can
+          follow. Optional: full strategy map in the journey rail.
         </p>
       </header>
 
@@ -1194,7 +1193,7 @@ export function ExpressJourney({
                 </button>
                 <p className="text-[11px] text-[var(--subtle)]">
                   Strategy stays the same — only the concept phrase changes. Then hit{" "}
-                  <strong className="font-medium text-[var(--muted)]">Ready</strong> to update the
+                  <strong className="font-medium text-[var(--muted)]">Apply my edits</strong> to update the
                   rest.
                 </p>
               </div>
@@ -1338,7 +1337,7 @@ export function ExpressJourney({
                             className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
                           >
                             {readyBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                            Ready
+                            Apply my edits
                           </button>
                         </div>
                         <RewriteHint saving={draftSaving && editingId === id} />
@@ -1378,13 +1377,13 @@ export function ExpressJourney({
             href={`/projects/${projectId}/review/brief`}
             className="text-[var(--muted)] transition hover:text-[var(--foreground)]"
           >
-            Optional: review full strategy pillar by pillar
+            Optional: open the full strategy map
           </Link>
           <Link
             href={`/projects/${projectId}`}
             className="text-xs text-[var(--subtle)] transition hover:text-[var(--muted)]"
           >
-            Open project hub
+            Project hub
           </Link>
         </div>
         <button
@@ -1393,7 +1392,7 @@ export function ExpressJourney({
           className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {approving ? <Loader2 size={15} className="animate-spin" /> : approved ? <Check size={15} /> : null}
-          {approved ? "Re-approve · continue" : "Approve essentials · continue to name"}
+          {approved ? "Re-approve · continue" : "Approve strategy · continue to brand name"}
           <ArrowRight size={15} />
         </button>
       </div>

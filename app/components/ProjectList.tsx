@@ -189,7 +189,9 @@ export function ProjectList({ projects }: { projects: ProjectCardData[] }) {
             p.continueLabel ||
             (p.strategyFilled > 0 ? "In progress" : "Not started");
           const ctaLabel = p.continueLabel
-            ? `Continue · ${p.continueLabel}`
+            ? p.continueLabel.length > 28
+              ? "Continue"
+              : `Continue · ${p.continueLabel}`
             : "Continue";
 
           return (

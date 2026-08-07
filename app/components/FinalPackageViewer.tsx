@@ -211,7 +211,7 @@ export function FinalPackageViewer({
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--muted)] sm:text-lg">
               Explore the approved identity system, landing page, and brand deck — the visual side of
-              final delivery. For engineering, grab the implement pack (tokens, logos, icons, copy).
+              final delivery. For product teams, download files for building UI (tokens, logos, icons, copy).
             </p>
           </div>
 
@@ -244,10 +244,10 @@ export function FinalPackageViewer({
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
                     <Package size={16} className="text-[var(--accent)]" />
-                    Part of final delivery — Brand implement pack
+                    Part of final delivery — files for product teams
                   </p>
                   <p className="mt-1 text-sm text-[var(--muted)]">
-                    tokens.css, logos, icons, copy.json, and IMPLEMENT.md for product teams.
+                    Design tokens, logos, icons, brand copy, and a short how-to for building UI.
                   </p>
                 </div>
                 <a
