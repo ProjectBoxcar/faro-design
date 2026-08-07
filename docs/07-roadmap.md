@@ -1,36 +1,51 @@
 # 07 — Roadmap (build order)
 
-Status as of 2026-07-14 (Tier A gap close): Steps 1–5 largely **done**; design-phase (6) and polish (7) still open.
+Status as of **2026-08-07** (aligned with `feature/content-studio` code).
 
-## Step 1 — Foundations — ✅
-- Design docs (`01`–`09`, `CLAUDE.md`, `README.md`).
-- Scaffold Next.js app; Drizzle schema + migrations; `methodology.json` + loader.
-- Project list / create / open; boots on `npm run dev` → **http://localhost:3100**.
+## Done
 
-## Step 2 — Strategic capture — ✅ (viability upgraded)
-- Field-driven forms + status; Reality / Identity fillable; Quick Start intake.
-- Viability Gate: auto-eval, hub panel (pass / caveat / fail), re-check, soft override with note.
-- Re-runs when Reality gate inputs change.
+### Foundations
+- Design docs, Next.js app, Drizzle schema + migrations, methodology loader.
+- Project list / create; `start.bat` / `start.ps1` boots app + Open Design.
 
-## Step 3 — AI synthesis (hybrid) — ✅ core / prompts specialized for flagship
-- `lib/anthropic.ts` + `lib/prompts` quality bars; `/api/generate` with dependency gating + provenance.
-- Generate → edit → accept; **“Drafted from: …”** UI line.
-- Flagship sections: Brief, Concept, Manifesto, Communication block; survey design on **Haiku**.
-- Unit tests: gates, brief omit rules, viability scoring (`npm test`).
+### Strategic capture & Express
+- Quick Start intake; Express full strategy draft pipeline; pillar deep review.
+- Viability gate (auto, panel, override); lifecycle phase sync.
 
-## Step 4 — Planning — ✅ functional
-- Brand Concept (one-shot); Insights, Manifesto; Audit + Design Plan (AI draft; auto-seed from audit still optional).
-- Conversational concept distillation → step 7.
+### AI synthesis (three lanes)
+- Strategy / Logo / Design separation (`docs/11-ai-lanes.md`); Settings lane health.
+- Generate → edit → accept; pure unit tests for gates, viability, publish, content storage.
 
-## Step 5 — Handover link — ✅
-- `share/[token]`; publish / unpublish; Markdown download; internal sections + process fields excluded.
-- Snapshot-on-publish still open (live from DB).
+### Planning & name
+- Brand concept, manifesto, design plan; name workshop with confirm vs availability.
 
-## Step 6 — Design-phase evaluators (secondary) — partial
-- Naming technical availability check exists; multi-candidate eval / territory / logo UIs still generic forms.
+### Logo Workshop
+- Generate / judge / human approve; diversity retry; SVG sanitize.
 
-## Step 7 — Polish (later)
-- Client intake share link (flow B) with section scoping.
-- Conversational concept distillation.
-- Asset references / images on handover.
-- Backups (`npm run backup`) ✅; Fly.io decision (separate, like Gut).
+### Design Studio
+- Open Design only; identity → landing → deck; job resume; package on Brand Handover.
+
+### Handover
+- Share token; **publish snapshots** (strategy brief vs package freeze); implement pack ZIP.
+- Public `/share/[token]`; offline deliverable rules.
+
+### Content Studio (live on feature branch)
+- Vision media cards; month plan (2–3×/week); OD multimodal posts; owner tags/brief/export.
+- Migrations 0012–0016 (analysis, owner_meta, calendar strategy, job refine_meta).
+
+### Owner UX journey
+- Six-stage journey SSOT; mobile stages; single Up next; readiness banner; UX smoke script.
+
+## Open / next
+
+1. Content Studio export polish (ICS / multi-format) if product needs calendars.
+2. Multi-worker long-job queue (today: single Node process + boot reconcile).
+3. Client intake share link (flow B) with section scoping.
+4. Conversational concept distillation UX.
+5. Drizzle meta snapshots after 0008 (hand-written SQL policy documented).
+6. Optional Fly.io / remote deploy decision.
+
+## Do not thrash
+
+- Three AI lanes (no cross-engine fallbacks for logos or design).
+- `buildProjectJourney` / human logo approve / publish snapshots / path containment for media.

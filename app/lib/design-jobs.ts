@@ -1,6 +1,6 @@
 import "server-only";
 import { nanoid } from "nanoid";
-import { and, desc, eq, or } from "drizzle-orm";
+import { and, desc, eq, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { design_jobs } from "@/lib/db/schema";
 import {
@@ -26,11 +26,39 @@ export type DesignJobRow = typeof design_jobs.$inferSelect;
 const activeRuns = new Map<string, Promise<void>>();
 /** Jobs the owner asked to stop — checked between proposal steps. */
 const cancelledJobs = new Set<string>();
-/** Optional improve-with-feedback meta (not in SQLite schema). */
-const jobRefineMeta = new Map<
-  string,
-  { feedback?: string; baseHtml?: string; baseAssetId?: string }
->();
+
+type RefineMeta = { feedback?: string; baseHtml?: string; baseAssetId?: string };
+
+function ensureRefineMetaColumn(): void {
+  try {
+    db.run(sql`ALTER TABLE design_jobs ADD COLUMN refine_meta text`);
+  } catch {
+    /* exists */
+  }
+}
+
+function readRefineMeta(jobId: string): RefineMeta | null {
+  ensureRefineMetaColumn();
+  const row = db.select().from(design_jobs).where(eq(design_jobs.id, jobId)).get() as
+    | (DesignJobRow & { refine_meta?: RefineMeta | string | null })
+    | undefined;
+  if (!row?.refine_meta) return null;
+  if (typeof row.refine_meta === "string") {
+    try {
+      return JSON.parse(row.refine_meta) as RefineMeta;
+    } catch {
+      return null;
+    }
+  }
+  return row.refine_meta;
+}
+
+function writeRefineMeta(jobId: string, meta: RefineMeta | null): void {
+  ensureRefineMetaColumn();
+  updateJob(jobId, {
+    refine_meta: meta,
+  } as Partial<typeof design_jobs.$inferInsert>);
+}
 
 class DesignGenerationCancelled extends Error {
   constructor() {
@@ -208,7 +236,7 @@ export function createDesignJob(input: {
     const base = input.refineFromAssetId
       ? getAsset(input.projectId, input.refineFromAssetId)
       : null;
-    jobRefineMeta.set(id, {
+    writeRefineMeta(id, {
       feedback: input.feedback?.trim() || undefined,
       baseHtml: base?.html ?? undefined,
       baseAssetId: base?.id,
@@ -265,8 +293,9 @@ export function startDesignJob(
     }
     const project = getProject(latest.project_id);
     if (!project) throw new Error("Project not found");
-    const blocked = viabilityActionBlockedReason(project, "design");
-    if (blocked) throw new Error(blocked);
+    const { canEnterDesignStudio } = await import("@/lib/studio");
+    const gate = canEnterDesignStudio(latest.project_id);
+    if (!gate.ok) throw new Error(gate.reason || "Design Studio is locked");
     throwIfJobCancelled(jobId);
 
     // Always re-check landed assets at run time (IDs may have been deleted by owner).
@@ -310,7 +339,7 @@ export function startDesignJob(
     if (remaining === 0 && safeKept.length > 0) {
       generated = safeKept.map((id) => getAsset(latest.project_id, id)!).filter(Boolean);
     } else if (latest.kind === "design_system") {
-      const refine = jobRefineMeta.get(jobId);
+      const refine = readRefineMeta(jobId);
       const fresh = await generateDesignSystemProposals(
         latest.project_id,
         remaining || latest.count,
@@ -319,7 +348,7 @@ export function startDesignJob(
           ? { feedback: refine.feedback, baseHtml: refine.baseHtml }
           : null
       );
-      jobRefineMeta.delete(jobId);
+      writeRefineMeta(jobId, null);
       generated = [...safeKept.map((id) => getAsset(latest.project_id, id)!).filter(Boolean), ...fresh];
     } else if (latest.kind === "mockups") {
       if (!latest.design_system_id) throw new Error("A final Brand Identity System is required.");
@@ -427,6 +456,32 @@ export function startDesignJob(
 
   activeRuns.set(jobId, run);
   return run;
+}
+
+/**
+ * Mark queued/running design jobs as failed when no in-process run exists
+ * (server restart). Owner can resume from Design Studio.
+ */
+export function reconcileOrphanDesignJobs(): number {
+  ensureRefineMetaColumn();
+  const stuck = db
+    .select()
+    .from(design_jobs)
+    .where(or(eq(design_jobs.status, "queued"), eq(design_jobs.status, "running")))
+    .all();
+  let n = 0;
+  for (const job of stuck) {
+    if (activeRuns.has(job.id)) continue;
+    updateJob(job.id, {
+      status: "failed",
+      error:
+        job.error?.trim() ||
+        "Interrupted by server restart — reopen Design Studio to resume generation.",
+    });
+    n++;
+  }
+  if (n > 0) console.info(`[design-jobs] reconciled ${n} orphan job(s)`);
+  return n;
 }
 
 export function serializeDesignJob(job: DesignJobRow): DesignJobState {

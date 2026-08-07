@@ -1,9 +1,9 @@
 import "server-only";
 
 /**
- * Open Design engine client — the ONLY path for graphic generation in Faro.
- * Logo Workshop + Design Studio must call this; they must not call Anthropic
- * (or any provider) directly via lib/ai Anthropic SDK.
+ * Open Design engine client — Design Studio + Content Studio post graphics only.
+ * Logo Workshop uses generateLogoText (OpenAI → Gemini), never this path.
+ * See docs/11-ai-lanes.md.
  *
  * Requires the local Open Design daemon from:
  *   external/open-design-origin/open-design-main

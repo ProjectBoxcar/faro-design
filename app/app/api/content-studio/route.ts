@@ -117,6 +117,13 @@ const BodySchema = z.discriminatedUnion("action", [
     status: z.enum(["draft", "approved", "rejected"]).optional(),
     notes: z.string().nullable().optional(),
   }),
+  /** Markdown export of calendar posts (optional approved-only). */
+  z.object({
+    action: z.literal("export-calendar"),
+    profileId: z.string().min(1),
+    calendarId: z.string().min(1),
+    onlyApproved: z.boolean().optional(),
+  }),
 ]);
 
 export async function GET(req: Request) {
@@ -463,6 +470,23 @@ export async function POST(req: Request) {
         notes: input.notes,
       });
       return NextResponse.json({ ok: true });
+    }
+
+    if (input.action === "export-calendar") {
+      if (!getContentProfile(input.profileId)) {
+        return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+      }
+      const { exportCalendarForProfile } = await import("@/lib/content-studio/export");
+      const bundle = exportCalendarForProfile(input.profileId, input.calendarId, {
+        onlyApproved: input.onlyApproved,
+      });
+      return new NextResponse(bundle.body, {
+        status: 200,
+        headers: {
+          "Content-Type": bundle.mimeType,
+          "Content-Disposition": `attachment; filename="${bundle.filename.replace(/"/g, "")}"`,
+        },
+      });
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });

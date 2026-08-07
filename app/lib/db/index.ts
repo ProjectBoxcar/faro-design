@@ -17,3 +17,32 @@ sqlite.pragma("foreign_keys = ON");
 
 export const db = drizzle(sqlite, { schema });
 export { schema };
+
+/** One-time boot reconcile for interrupted long-running work (safe if tables missing). */
+let _reconciled = false;
+export function ensureRuntimeReconcile(): void {
+  if (_reconciled) return;
+  _reconciled = true;
+  try {
+    // Lazy import to avoid circular deps at module load
+    void import("@/lib/design-jobs").then((m) => {
+      try {
+        m.reconcileOrphanDesignJobs();
+      } catch (e) {
+        console.warn("[boot] design job reconcile failed:", e);
+      }
+    });
+    void import("@/lib/express").then((m) => {
+      try {
+        m.reconcileOrphanExpressRuns();
+      } catch (e) {
+        console.warn("[boot] express reconcile failed:", e);
+      }
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
+// Fire on first import of db (every server process).
+ensureRuntimeReconcile();

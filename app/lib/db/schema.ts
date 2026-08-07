@@ -212,6 +212,12 @@ export const design_jobs = sqliteTable(
       .default("queued"),
     asset_ids: text("asset_ids", { mode: "json" }).$type<string[]>().default([]),
     error: text("error"),
+    /** Improve-with-feedback payload (JSON): feedback, baseHtml, baseAssetId */
+    refine_meta: text("refine_meta", { mode: "json" }).$type<{
+      feedback?: string;
+      baseHtml?: string;
+      baseAssetId?: string;
+    } | null>(),
     created_at: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),

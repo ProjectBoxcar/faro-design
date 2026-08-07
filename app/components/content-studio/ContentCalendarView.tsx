@@ -72,6 +72,44 @@ export function ContentCalendarView({
   }
 
   const strategy = calendar.strategy;
+  const [exporting, setExporting] = useState(false);
+
+  async function exportMarkdown(onlyApproved: boolean) {
+    setExporting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/content-studio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "export-calendar",
+          profileId: calendar.profileId,
+          calendarId: calendar.id,
+          onlyApproved,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Export failed");
+      }
+      const blob = await res.blob();
+      const cd = res.headers.get("Content-Disposition") || "";
+      const match = cd.match(/filename="([^"]+)"/);
+      const name = match?.[1] || "content-calendar.md";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -164,8 +202,26 @@ export function ContentCalendarView({
             Content calendar · {calendar.year}-{String(calendar.month).padStart(2, "0")}
           </h3>
           <p className="text-xs text-[var(--muted)]">
-            {calendar.posts.length} posts across the month · {calendar.status} · edit, approve before export
+            {calendar.posts.length} posts across the month · {calendar.status} · edit, approve, export
           </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={exporting || calendar.posts.length === 0}
+            onClick={() => void exportMarkdown(false)}
+            className="rounded-full border border-[var(--border-strong)] px-3 py-1.5 text-xs font-medium text-[var(--muted)] hover:bg-[var(--surface-2)] disabled:opacity-50"
+          >
+            {exporting ? "Exporting…" : "Export all (.md)"}
+          </button>
+          <button
+            type="button"
+            disabled={exporting || !calendar.posts.some((p) => p.status === "approved")}
+            onClick={() => void exportMarkdown(true)}
+            className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+          >
+            Export approved (.md)
+          </button>
         </div>
       </div>
       {error ? (

@@ -13,6 +13,7 @@ import { getProject } from "@/lib/queries";
 import type { AssetKind } from "@/lib/db/types";
 import { buildFaroDeliverable, sanitizeDownloadName } from "@/lib/design-deliverable";
 import { viabilityActionBlockedReason } from "@/lib/project-gates";
+import { canEnterDesignStudio } from "@/lib/studio";
 import {
   cancelDesignJob,
   createDesignJob,
@@ -84,8 +85,10 @@ export async function POST(req: Request) {
   if (!project) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
-  const blocked = viabilityActionBlockedReason(project, "design");
-  if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
+  const enter = canEnterDesignStudio(projectId);
+  if (!enter.ok) {
+    return NextResponse.json({ error: enter.reason || "Design Studio is locked" }, { status: 409 });
+  }
 
   // Composite mockups job: landing page + deck, one each, applying the approved
   // identity per the design plan's execution order. Always runs as a job.

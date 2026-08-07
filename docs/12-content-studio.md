@@ -86,7 +86,7 @@ Tables (migration `0012_content_studio.sql`):
 2. See read-only brand profile strip.  
 3. Upload raw video/photo assets.  
 4. Generate month → **calendar view** (day/week).  
-5. Edit captions/hashtags, approve posts, export (export placeholder).
+5. Edit captions/hashtags, approve posts, export markdown (all or approved-only via API/UI).
 
 ## AI lanes
 
@@ -105,5 +105,6 @@ See `lib/content-studio/media-analysis.ts`, `ai-plan.ts`, `od-designs.ts`, `gene
 | `update-asset-meta` | Set tags / exclude / note on one asset (P4) |
 | `generate-month` | Vision → filter owner controls → strategy plan. Options: `monthBrief`, `reusePolicy`, `excludeWeakFit`, `forceReanalyze` |
 | `design-post` | Open Design one post using brand + media + analysis |
+| `export-calendar` | Markdown download of posts (optional `onlyApproved`) |
 
 Assets store `analysis` (`MediaAnalysisCard`) and `owner_meta` (`AssetOwnerMeta`) on `content_raw_assets`.

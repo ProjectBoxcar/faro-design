@@ -1,7 +1,7 @@
 import "server-only";
 import { flowSteps } from "@/lib/flow";
 import { allSections, getSection } from "@/lib/methodology";
-import { getSections, getSectionRow, saveSection, filledKeys } from "@/lib/queries";
+import { getSections, getSectionRow, saveSection, filledKeys, listProjects } from "@/lib/queries";
 import { generateSection } from "@/lib/generate";
 import { canGenerate } from "@/lib/methodology";
 import type { SectionValue } from "@/lib/db/types";
@@ -147,6 +147,33 @@ function persistExpressRun(
   } catch (e) {
     console.warn("[express] failed to persist run state:", e);
   }
+}
+
+/**
+ * After server restart, any persisted Express status "running" with no in-memory
+ * run is marked failed so the UI can offer resume instead of hanging.
+ */
+export function reconcileOrphanExpressRuns(): number {
+  let n = 0;
+  for (const p of listProjects()) {
+    if (runs.has(p.id)) continue;
+    const rec = readPersistedExpressRun(p.id);
+    if (!rec || rec.status !== "running") continue;
+    persistExpressRun(p.id, {
+      ...rec,
+      status: "failed",
+      error:
+        rec.error ||
+        "Interrupted by server restart — open Express and continue drafting.",
+      errorCode: rec.errorCode || "interrupted",
+      errorHint:
+        rec.errorHint ||
+        "Your filled steps are still saved. Start Express again to finish remaining drafts.",
+    });
+    n++;
+  }
+  if (n > 0) console.info(`[express] reconciled ${n} orphan run(s)`);
+  return n;
 }
 
 // Provider rate limits (429) pause the pipeline briefly instead of failing it.

@@ -27,6 +27,11 @@ function ensureAssetColumns(): void {
   } catch {
     /* already exists */
   }
+  try {
+    db.run(sql`ALTER TABLE content_calendars ADD COLUMN strategy text`);
+  } catch {
+    /* already exists */
+  }
   _assetColumnsReady = true;
 }
 /** @deprecated use ensureAssetColumns */

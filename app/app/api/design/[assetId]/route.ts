@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAsset, selectAsset, deleteAsset } from "@/lib/design";
 import { getProject } from "@/lib/queries";
 import { createDesignJob, serializeDesignJob } from "@/lib/design-jobs";
-import { viabilityActionBlockedReason } from "@/lib/project-gates";
+import { canEnterDesignStudio } from "@/lib/studio";
 import { hasOpenDesignKey } from "@/lib/ai";
 
 export async function GET(
@@ -55,8 +55,8 @@ export async function POST(
     // and the UI both get the same path (UI may also poll the returned job).
     let mockupsJob = null;
     if (asset.kind === "design_system") {
-      const blocked = viabilityActionBlockedReason(project, "design");
-      if (!blocked && hasOpenDesignKey()) {
+      const enter = canEnterDesignStudio(projectId);
+      if (enter.ok && hasOpenDesignKey()) {
         try {
           const { ensureOpenDesignDaemon } = await import("@/lib/open-design-ensure");
           await ensureOpenDesignDaemon();

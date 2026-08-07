@@ -23,6 +23,7 @@ import {
   assessLogoBatchDiversity,
   shouldRetryForLogoDiversity,
 } from "@/lib/logo-diversity-pure";
+import { viabilityActionBlockedReason } from "@/lib/project-gates";
 
 // Asset Studio pipeline (see 10-asset-studio.md). Batch 1: the logo workspace.
 // Flow per kind: generate candidates → skeptical-judge scoring → auto-discard
@@ -156,6 +157,13 @@ export function getApprovedLogo(projectId: string): StudioAssetRow | null {
 export function studioBlockedReason(projectId: string, kind: StudioAssetRow["kind"]): string | null {
   const project = getProject(projectId);
   if (!project) return "Unknown project";
+  // Align with Design/publish: pending viability blocks first-time logo work
+  if (kind === "logo") {
+    const hasLogoWork = listStudioAssets(projectId, "logo").some((a) => a.status !== "discarded");
+    if (project.viability === "pending" && !hasLogoWork) {
+      return "Complete the viability review before opening the Logo Workshop.";
+    }
+  }
   if (project.viability === "fail" && !project.viability_override_note) {
     return "Add a documented viability override before opening the Logo Workshop.";
   }
@@ -186,14 +194,36 @@ export function studioBlockedReason(projectId: string, kind: StudioAssetRow["kin
   return null;
 }
 
-// Design Studio (full identity system) stays locked until a logo is approved.
+// Design Studio: viability + strategy essentials + approved logo (SSOT for UI/API/jobs).
 export function designStudioBlockedReason(projectId: string): string | null {
-  const strategyBlock = studioBlockedReason(projectId, "logo");
-  if (strategyBlock) return strategyBlock.replace("Logo Workshop", "Design Studio");
+  const project = getProject(projectId);
+  if (!project) return "Unknown project";
+  const viabilityBlock = viabilityActionBlockedReason(project, "design");
+  if (viabilityBlock) return viabilityBlock;
+
+  // Strategy content (concept, plan, brief) — reuse logo gate fields without name confirm
+  const strategyContent = studioBlockedReason(projectId, "palette");
+  if (strategyContent) {
+    return strategyContent
+      .replace("Logo Workshop", "Design Studio")
+      .replace("the logo", "design work");
+  }
   if (!hasApprovedLogo(projectId)) {
     return "Approve a logo in the Logo Workshop first — Design Studio builds color, type, and mockups around that mark.";
   }
   return null;
+}
+
+/**
+ * Single entry gate for Design Studio UI, API, and jobs.
+ * Prefer this over calling designSystemBlockedReason + viability separately.
+ */
+export function canEnterDesignStudio(projectId: string): {
+  ok: boolean;
+  reason: string | null;
+} {
+  const reason = designStudioBlockedReason(projectId);
+  return { ok: !reason, reason };
 }
 
 // Palette hexes from the strategy's color direction, to constrain the SVGs.

@@ -1,17 +1,17 @@
-# Content Studio (Python service)
+# Content Studio (Python service) — deferred
 
-Modular backend for FARO Content Studio. Scaffold only — model API keys are **not** wired.
+**Status: experimental scaffold only.** Production Content Studio runs in the **Next.js TypeScript** path:
 
-## Modules
+- `app/lib/content-studio/*`
+- `app/app/api/content-studio/*`
 
-| Module | Role |
-|--------|------|
-| `brand_profile` | Ingest locked profile from FARO project export **or** infer starter profile from footage |
-| `asset_processing` | Normalize uploads, extract frames, metadata (placeholders) |
-| `generation` | Captions, hashtags, platform crops (placeholders) |
-| `engine` | Shared orchestration — both Workflow A and B call `generate_month` |
+Do not wire FARO UI or Settings to this Python package unless an explicit migration is planned. Model API keys are **not** connected here.
 
-## Run (local)
+## Why it exists
+
+Early modular sketch (`brand_profile`, `asset_processing`, `generation`, `engine`) for a possible future sidecar. Contracts in `content_studio/models.py` should stay loosely aligned with `app/lib/content-studio/types.ts` if revived.
+
+## Run (local experiment only)
 
 ```bash
 cd services/content-studio
@@ -21,8 +21,6 @@ pip install -r requirements.txt
 python -m content_studio.cli --help
 ```
 
-FARO’s Next.js API routes call into this service later (HTTP or subprocess). Today the TypeScript façade mirrors the same contracts with in-process placeholders so the UI can be developed without Python running.
+## Live product path
 
-## Contracts
-
-See `content_studio/models.py` and `app/lib/content-studio/types.ts` — keep them aligned when changing fields.
+Use the TypeScript Content Studio (vision media cards, month plan, Open Design posts, owner controls, export).
