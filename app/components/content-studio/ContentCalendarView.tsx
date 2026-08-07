@@ -191,7 +191,7 @@ export function ContentCalendarView({
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                       post.status === "approved"
-                        ? "bg-emerald-100 text-emerald-800"
+                        ? "bg-[var(--ok)]/15 text-[var(--ok)]"
                         : post.status === "rejected"
                           ? "bg-[var(--danger)]/10 text-[var(--danger)]"
                           : "bg-[var(--surface-2)] text-[var(--subtle)]"

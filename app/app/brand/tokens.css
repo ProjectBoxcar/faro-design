@@ -32,6 +32,8 @@
   --accent: var(--brand-primary);
   --accent-hover: var(--brand-primary-strong);
   --accent-soft: color-mix(in srgb, var(--brand-primary) 12%, var(--brand-paper));
+  /* Alias used by marketing/home chrome */
+  --faro-accent: var(--brand-accent);
   --client: var(--brand-accent);
   --designer: var(--brand-primary);
   --collab: var(--brand-signal);

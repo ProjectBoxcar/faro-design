@@ -1,19 +1,14 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { notFound } from "next/navigation";
-import { getProject, getSections, listEvaluations, listStudioAssets } from "@/lib/queries";
-import { studioBlockedReason, hasApprovedLogo } from "@/lib/studio";
+import { getProject, getSections, listEvaluations } from "@/lib/queries";
 import { methodology } from "@/lib/methodology";
 import {
   phaseProgress,
   phaseUnlocked,
   sectionLock,
   currentPhaseId,
-  firstIncompleteReviewGroup,
-  getReviewGroup,
-  reviewGroupPosition,
   reviewGroupDone,
-  reviewProgress,
   type StatusMap,
 } from "@/lib/flow";
 import { phaseIntro, pillarIntro } from "@/lib/guide";
@@ -26,7 +21,7 @@ import { ViabilityPanel } from "@/components/ViabilityPanel";
 import { listAssets } from "@/lib/design";
 import { finalDeliverableIssue } from "@/lib/design-deliverable";
 import { getCurrentSnapshotForProject } from "@/lib/publish-snapshot";
-import { needsNameWorkshop } from "@/lib/naming-propose";
+import { primaryActionFromJourney } from "@/lib/sidebar-journey";
 
 export const dynamic = "force-dynamic";
 
@@ -47,76 +42,27 @@ export default async function ProjectHub({
   const latestViabilityEval = listEvaluations(id, "viability")[0] ?? null;
 
   const currentPhase = currentPhaseId(statusMap);
-  const overall = reviewProgress(statusMap);
-  // The hand-off is meaningful once the brief & concept are reviewed — not on a
-  // fresh project where there's nothing to hand off yet.
   const handoffReady = reviewGroupDone("brief", statusMap);
-  // Strategy-completeness only ("palette" has no naming prerequisite) — the
-  // logo's extra naming gate is explained inside the Studio itself.
-  const studioUnlocked = !studioBlockedReason(id, "palette");
-  const allAssets = listStudioAssets(id);
-  const approvedAssets = allAssets.filter((a) => a.status === "approved").length;
-  const approvedLogoSvg = allAssets.find((a) => a.kind === "logo" && a.status === "approved")?.payload?.svg;
-
-  // Up-next card — review groups first; after strategy, point at name / logo / design.
-  const reviewGroupId = firstIncompleteReviewGroup(statusMap);
-  const logoUnlocked = !studioBlockedReason(id, "logo");
-  const logoApproved = hasApprovedLogo(id);
-  const nameNeeded = needsNameWorkshop(id);
   const designPackageReady = finalDeliverableIssue(listAssets(id)) === null;
   const snap = getCurrentSnapshotForProject(id);
   const snapshotPackageReady = snap?.payload?.package?.ready ?? null;
-  let next: UpNext | null = null;
-  if (reviewGroupId) {
-    const g = getReviewGroup(reviewGroupId)!;
-    const { pos, total } = reviewGroupPosition(reviewGroupId);
-    next = {
-      projectId: id,
-      href: `/projects/${id}/review/${reviewGroupId}`,
-      name: g.name,
-      label: `Part ${pos} of ${total}`,
-      whatItIs: g.blurb,
-      overall,
-    };
-  } else if (logoUnlocked || studioUnlocked) {
-    if (nameNeeded && !logoApproved) {
-      next = {
+
+  // Single source of truth for “what’s next” — six-stage journey
+  const primary = primaryActionFromJourney(id);
+  const next: UpNext | null = primary
+    ? {
         projectId: id,
-        href: `/projects/${id}/name`,
-        name: "Brand name",
-        label: "Next stage",
-        whatItIs: "Confirm or pick a brand name before logos.",
-        overall,
-      };
-    } else if (!logoApproved) {
-      next = {
-        projectId: id,
-        href: `/projects/${id}/studio`,
-        name: "Logo Workshop",
-        label: "Next stage",
-        whatItIs: "Generate logo directions and approve one.",
-        overall,
-      };
-    } else if (!designPackageReady) {
-      next = {
-        projectId: id,
-        href: `/projects/${id}/design`,
-        name: "Design Studio",
-        label: "Next stage",
-        whatItIs: "Build identity, landing page, and brand deck.",
-        overall,
-      };
-    } else {
-      next = {
-        projectId: id,
-        href: `/projects/${id}/handover`,
-        name: "Brand Handover",
-        label: "Finish line",
-        whatItIs: "Download the package or publish the frozen share link.",
-        overall,
-      };
-    }
-  }
+        href: primary.href,
+        name: primary.name,
+        label: primary.label,
+        whatItIs: primary.detail,
+        overall: primary.overall,
+      }
+    : null;
+
+  // Strategy brief publish only early (before design package is the main finish line)
+  const showStrategyBriefPublish =
+    handoffReady && primary?.stageId !== "handover" && primary?.stageId !== "content" && !designPackageReady;
 
   // Phase accordion
   const phaseItems: PhaseItem[] = methodology.phases.map((phase) => {
@@ -133,53 +79,55 @@ export default async function ProjectHub({
         id: pillar.id,
         name: pillar.name,
         intro: pillarIntro(pillar.id),
-        sections: pillar.sections.filter((s) => !s.internal).map((s) => {
-          const lock = sectionLock(s.id, statusMap);
-          return {
-            id: s.id,
-            name: s.name,
-            status: statusMap.get(s.id) ?? "empty",
-            locked: lock.locked,
-            lockReason: lock.reason,
-            kind: s.kind,
-            internal: s.internal,
-          };
-        }),
+        sections: pillar.sections
+          .filter((s) => !s.internal)
+          .map((s) => {
+            const lock = sectionLock(s.id, statusMap);
+            return {
+              id: s.id,
+              name: s.name,
+              status: statusMap.get(s.id) ?? "empty",
+              locked: lock.locked,
+              lockReason: lock.reason,
+              kind: s.kind,
+              internal: s.internal,
+            };
+          }),
       })),
     };
   });
 
   return (
     <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-12 lg:py-12 2xl:max-w-[104rem]">
-      {drafted === "1" && (
+      {drafted === "1" && primary ? (
         <div className="mb-8 rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-6 py-6">
-          <h2 className="font-serif text-2xl font-medium tracking-tight">Your first draft is ready ✨</h2>
+          <h2 className="font-serif text-2xl font-medium tracking-tight">
+            Your first draft is ready
+          </h2>
           <p className="mt-2 max-w-2xl text-[var(--muted)]">
-            We turned your answers into the first drafts of your brand. Now we&apos;ll walk you through your strategy{" "}
-            <strong className="text-[var(--foreground)]">one step at a time</strong>. Every step is written for you from
-            what you told us — you just read it and tweak anything that&apos;s off. Your progress saves as you go, and
-            you can stop and come back anytime.
+            We turned your answers into first drafts. Continue with{" "}
+            <strong className="text-[var(--foreground)]">{primary.name}</strong>
+            — tweak anything that&apos;s off. Progress saves as you go.
           </p>
-          {reviewGroupId && (
-            <Link
-              href={`/projects/${id}/review/${reviewGroupId}`}
-              className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
-            >
-              Start reviewing <ArrowRight size={16} />
-            </Link>
-          )}
+          <Link
+            href={primary.href}
+            className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+          >
+            Continue · {primary.name} <ArrowRight size={16} />
+          </Link>
           <p className="mt-3 text-xs text-[var(--subtle)]">
-            Prefer the map? The full list of steps is further down under “View all steps.”
+            Prefer the full map? Open “View all steps” below.
           </p>
         </div>
-      )}
+      ) : null}
 
       <div className="mb-8">
-        <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">{project.name}</h1>
+        <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">
+          {project.name}
+        </h1>
         <p className="mt-1.5 text-sm text-[var(--muted)]">
-          Continue where you left off, or revisit any step anytime.
+          One next step at a time — use the journey rail (or Stages on mobile) anytime.
         </p>
-        {/* Internal viability gate — never on the public share link. */}
         <ViabilityPanel
           projectId={id}
           viability={project.viability}
@@ -189,54 +137,6 @@ export default async function ProjectHub({
         />
       </div>
 
-      {/* Phase 2's payoff, starring once the strategy it needs is complete:
-          the Studio turns the finished strategy into the actual brand. */}
-      {studioUnlocked && (
-        <div className="mb-8 rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-6 py-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <h2 className="flex items-center gap-2 font-serif text-2xl font-medium tracking-tight">
-              <Sparkles size={20} className="text-[var(--accent)]" /> Your strategy is ready — now make the brand
-            </h2>
-            {approvedLogoSvg && (
-              <div
-                className="flex h-14 w-40 items-center justify-center rounded-xl border border-[var(--border)] px-4 py-2.5 [&_svg]:max-h-full [&_svg]:max-w-full"
-                style={{ background: "#F5F1E8" }}
-                dangerouslySetInnerHTML={{ __html: approvedLogoSvg }}
-              />
-            )}
-          </div>
-          <p className="mt-2 max-w-2xl text-[var(--muted)]">
-            The Studio turns everything you decided into the actual assets — starting with your logo.
-            The AI designs and critiques candidates from your strategy;{" "}
-            <strong className="text-[var(--foreground)]">nothing becomes real until you approve it</strong>.
-          </p>
-          <Link
-            href={`/projects/${id}/studio`}
-            className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
-          >
-            {approvedAssets > 0
-              ? `Open the Studio · ${approvedAssets} asset${approvedAssets === 1 ? "" : "s"} approved`
-              : "Open the Studio"}{" "}
-            <ArrowRight size={16} />
-          </Link>
-        </div>
-      )}
-
-      {/* The finish line, front and center once the brief pillar is reviewed:
-          view the brief, copy the link, download in any format. */}
-      {handoffReady && (
-        <div className="mb-8">
-          <PublishPanel
-            projectId={id}
-            initialToken={project.share_token}
-            prominent
-            initialPackageReady={designPackageReady}
-            initialSnapshotPackageReady={snapshotPackageReady}
-            initialVersion={snap?.version ?? null}
-          />
-        </div>
-      )}
-
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-12 2xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="min-w-0 space-y-5" id="plan">
           <UpNextCard next={next} />
@@ -244,43 +144,64 @@ export default async function ProjectHub({
         </div>
 
         <aside className="mt-10 space-y-6 lg:mt-0 lg:sticky lg:top-8 lg:self-start">
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
-            <div className="mb-3 flex items-center gap-2">
-              <Sparkles size={18} className="text-[var(--accent)]" />
-              <h2 className="font-serif text-lg font-semibold tracking-tight">Design Studio</h2>
+          {primary && primary.stageId === "design" ? (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
+              <div className="mb-3 flex items-center gap-2">
+                <Sparkles size={18} className="text-[var(--accent)]" />
+                <h2 className="font-serif text-lg font-semibold tracking-tight">Design Studio</h2>
+              </div>
+              <p className="mb-4 text-sm text-[var(--muted)]">
+                Generate identity, pick a direction, then landing page and deck. Package downloads
+                live in Brand Handover when finals are ready.
+              </p>
+              <Link
+                href={primary.href}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+              >
+                Continue Design Studio <ArrowRight size={16} />
+              </Link>
             </div>
-            <p className="mb-4 text-sm text-[var(--muted)]">
-              Once the brief is ready, generate identity proposals, pick a direction, then build the landing page and deck.
-            </p>
-            <Link
-              href={`/projects/${id}/design`}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
-            >
-              Open Design Studio <ArrowRight size={16} />
-            </Link>
-          </div>
+          ) : null}
 
-          {!handoffReady && (
-            <>
+          {primary && (primary.stageId === "handover" || designPackageReady) ? (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
+              <h2 className="font-serif text-lg font-semibold tracking-tight">Brand Handover</h2>
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                Download the package or publish the frozen client share link — the finish line for
+                the brand package.
+              </p>
+              <Link
+                href={`/projects/${id}/handover`}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+              >
+                Open Brand Handover <ArrowRight size={16} />
+              </Link>
+            </div>
+          ) : null}
+
+          {showStrategyBriefPublish ? (
+            <div>
               <h2 className="mb-3 font-serif text-lg font-semibold tracking-tight">
-                Hand off to your designer
+                Strategy brief (optional)
               </h2>
-              {project.share_token ? (
-                <PublishPanel
-                  projectId={id}
-                  initialToken={project.share_token}
-                  initialPackageReady={designPackageReady}
-                  initialSnapshotPackageReady={snapshotPackageReady}
-                  initialVersion={snap?.version ?? null}
-                />
-              ) : (
-                <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
-                  This is the finish line. Once you&apos;ve worked through your strategy, you&apos;ll create a private,
-                  read-only brief to share with your designer right here — there&apos;s nothing to hand off until then.
-                </div>
-              )}
-            </>
-          )}
+              <p className="mb-3 text-xs text-[var(--muted)]">
+                Share a read-only strategy brief. This is not the full brand package — that comes
+                after Design Studio in Brand Handover.
+              </p>
+              <PublishPanel
+                projectId={id}
+                initialToken={project.share_token}
+                initialPackageReady={designPackageReady}
+                initialSnapshotPackageReady={snapshotPackageReady}
+                initialVersion={snap?.version ?? null}
+              />
+            </div>
+          ) : !handoffReady ? (
+            <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
+              Finish strategy drafts first. Then you can share a brief, confirm a name, and build
+              the brand package step by step.
+            </div>
+          ) : null}
         </aside>
       </div>
 

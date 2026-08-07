@@ -1084,9 +1084,9 @@ export function ExpressJourney({
           fix wording,{" "}
           <span className="font-medium text-[var(--foreground)]">Rewrite with AI</span> to polish
           your draft, then <span className="font-medium text-[var(--foreground)]">Ready</span> — the
-          rest of the strategy updates from your change. When you approve, we&apos;ll check your brand
-          name (and suggest better options if it still looks temporary), then open the{" "}
-          <span className="font-medium text-[var(--foreground)]">Logo Workshop</span>.
+          rest of the strategy updates from your change. When essentials look right, continue to{" "}
+          <span className="font-medium text-[var(--foreground)]">Brand name</span>, then the Logo
+          Workshop — or open the full pillar-by-pillar review anytime from the journey rail.
         </p>
       </header>
 
@@ -1372,20 +1372,28 @@ export function ExpressJourney({
 
       {error && <p className="mt-6 text-sm text-[var(--danger)]">{error}</p>}
 
-      <div className="sticky bottom-0 mt-8 flex items-center justify-between gap-3 border-t border-[var(--border)] bg-[var(--background)] py-4">
-        <Link
-          href={`/projects/${projectId}`}
-          className="text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
-        >
-          Open the full workspace instead
-        </Link>
+      <div className="sticky bottom-0 mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] bg-[var(--background)] py-4">
+        <div className="flex flex-col gap-1 text-sm">
+          <Link
+            href={`/projects/${projectId}/review/brief`}
+            className="text-[var(--muted)] transition hover:text-[var(--foreground)]"
+          >
+            Optional: review full strategy pillar by pillar
+          </Link>
+          <Link
+            href={`/projects/${projectId}`}
+            className="text-xs text-[var(--subtle)] transition hover:text-[var(--muted)]"
+          >
+            Open project hub
+          </Link>
+        </div>
         <button
           onClick={approve}
           disabled={approving || refining || Boolean(editingId) || rewriteBusy}
           className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {approving ? <Loader2 size={15} className="animate-spin" /> : approved ? <Check size={15} /> : null}
-          {approved ? "Re-approve & continue" : "Approve strategy & continue"}
+          {approved ? "Re-approve · continue" : "Approve essentials · continue to name"}
           <ArrowRight size={15} />
         </button>
       </div>

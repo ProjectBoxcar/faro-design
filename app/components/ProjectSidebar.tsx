@@ -56,6 +56,7 @@ export function ProjectSidebar({
     if (stage.id === "logo") return pathname.startsWith(`${base}/studio`);
     if (stage.id === "design") return pathname.startsWith(`${base}/design`);
     if (stage.id === "handover") return pathname.startsWith(`${base}/handover`);
+    if (stage.id === "content") return pathname.startsWith(`${base}/content`);
     return pathname === stage.href || pathname.startsWith(`${stage.href}/`);
   }
 

@@ -27,6 +27,11 @@ export type ProjectCardData = {
   logoWorkshopReady: boolean;
   /** An approved logo exists — Design Studio may open. */
   logoApproved: boolean;
+  /** Six-stage journey continue (preferred over heuristics). */
+  continueHref?: string;
+  continueLabel?: string;
+  journeyDone?: number;
+  journeyTotal?: number;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -179,39 +184,12 @@ export function ProjectList({ projects }: { projects: ProjectCardData[] }) {
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {projects.map((p) => {
           const isSelected = selected.has(p.id);
-          const strategyDone =
-            p.published ||
-            p.phase === "planning" ||
-            p.phase === "design" ||
-            p.phase === "finished" ||
-            (p.strategyTotal > 0 && p.strategyComplete >= p.strategyTotal) ||
-            p.logoWorkshopReady ||
-            p.logoApproved;
-          const draftedReady =
-            !strategyDone && p.strategyTotal > 0 && p.strategyFilled >= p.strategyTotal;
-          // Order: strategy → Logo Workshop → Design Studio → Brand Handover
-          const continueHref = p.logoApproved
-            ? `/projects/${p.id}/design`
-            : strategyDone || p.logoWorkshopReady
-            ? `/projects/${p.id}/studio`
-            : draftedReady || p.expressReady
-            ? `/projects/${p.id}/express`
-            : `/projects/${p.id}`;
-          const statusLabel = p.logoApproved
-            ? "Logo approved — continue design"
-            : strategyDone || p.logoWorkshopReady
-            ? "Strategy ready — Logo Workshop"
-            : draftedReady
-            ? "Ready to review"
-            : p.strategyFilled > 0
-            ? "Strategy in progress"
-            : "Not started";
-          const ctaLabel = p.logoApproved
-            ? "Continue"
-            : strategyDone || p.logoWorkshopReady
-            ? "Logo Workshop"
-            : draftedReady
-            ? "Review strategy"
+          const continueHref = p.continueHref || `/projects/${p.id}`;
+          const statusLabel =
+            p.continueLabel ||
+            (p.strategyFilled > 0 ? "In progress" : "Not started");
+          const ctaLabel = p.continueLabel
+            ? `Continue · ${p.continueLabel}`
             : "Continue";
 
           return (

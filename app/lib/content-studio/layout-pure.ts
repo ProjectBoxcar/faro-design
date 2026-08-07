@@ -121,7 +121,7 @@ export function suggestLayoutFromMedia(
   }
 
   // LinkedIn landscape: prefer bottom band for readability at half scale
-  if (platform === "linkedin" && typeZone === "center") {
+  if (platform === "linkedin" && typeZone !== "bottom" && typeZone !== "top") {
     typeZone = "bottom";
     template = "split-band";
   }

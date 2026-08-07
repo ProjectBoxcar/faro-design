@@ -8,7 +8,7 @@ export default async function UnlockPage({
   const { to, error } = await searchParams;
   return (
     <main className="mx-auto flex min-h-[70vh] w-full max-w-sm flex-col justify-center px-5">
-      <h1 className="font-serif text-3xl font-medium tracking-tight">Brand App</h1>
+      <h1 className="font-serif text-3xl font-medium tracking-tight">Faro Design</h1>
       <p className="mt-2 text-sm text-[var(--muted)]">
         This device isn&apos;t unlocked yet. Enter the app password once and you&apos;re set.
       </p>

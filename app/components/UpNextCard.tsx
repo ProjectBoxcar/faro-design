@@ -12,26 +12,26 @@ export type UpNext = {
 };
 
 export function UpNextCard({ next }: { next: UpNext | null }) {
-  // Fallback only when the hub has no review groups and no post-strategy stage.
   if (!next) {
     return (
-      <div className="rounded-2xl border border-[var(--ok)]/40 bg-[var(--surface)] p-6">
+      <div className="rounded-2xl border border-[var(--ok)]/30 bg-[var(--ok)]/10 p-6">
         <div className="flex items-center gap-2 text-[var(--ok)]">
           <PartyPopper size={18} />
-          <span className="font-medium">You&apos;ve reviewed your whole strategy</span>
+          <span className="font-medium">Journey complete</span>
         </div>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Next: confirm your brand name if needed, approve a logo, then finish Design Studio. Use
-          Brand Handover when the package is ready — a strategy brief share is not the full brand
-          package.
+          All stages are done. Revisit any step from the journey rail, or open Content Studio for
+          monthly social content.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="card-shadow rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-7">
-      <div className="text-xs uppercase tracking-wider text-[var(--subtle)]">Up next</div>
+    <div className="card-shadow rounded-2xl border border-[var(--accent)]/30 bg-[var(--surface)] p-7">
+      <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
+        Up next
+      </div>
 
       <div className="mt-2">
         <div className="text-xs text-[var(--muted)]">{next.label}</div>
@@ -46,7 +46,7 @@ export function UpNextCard({ next }: { next: UpNext | null }) {
           href={next.href}
           className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
         >
-          Continue <ArrowRight size={16} />
+          Continue · {next.name} <ArrowRight size={16} />
         </Link>
       </div>
     </div>

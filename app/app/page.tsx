@@ -9,10 +9,8 @@ import { FaroMark } from "@/components/FaroMark";
 import { methodology, getSection } from "@/lib/methodology";
 import { flowSteps, type StatusMap } from "@/lib/flow";
 import { hasApprovedLogo, studioBlockedReason } from "@/lib/studio";
-import { listAssets } from "@/lib/design";
-import { finalDeliverableIssue } from "@/lib/design-deliverable";
-import { isDesignJourneyDone } from "@/lib/project-lifecycle-pure";
 import type { JourneyStep } from "@/components/JourneyProgress";
+import { primaryActionFromJourney, buildProjectJourney } from "@/lib/sidebar-journey";
 
 export const dynamic = "force-dynamic";
 
@@ -38,14 +36,6 @@ async function loadBrandCopy(): Promise<{
     };
   }
 }
-
-const PHASE_SHORT: Record<string, string> = {
-  strategic: "Strategy",
-  handoff: "Brief",
-  planning: "Name & logo",
-  design: "Design",
-  finished: "Done",
-};
 
 function isFilled(status: string | undefined): boolean {
   return status === "draft" || status === "complete" || status === "client_submitted";
@@ -86,34 +76,17 @@ export default async function Home() {
       logoApproved ||
       (strategyIds.length > 0 && strategyFilled >= strategyIds.length);
     const expressReady = isFilled(designPlan) && !strategyJourneyDone;
-    // Design stage is done only when identity + landing + deck finals exist —
-    // not merely "strategy was published and a logo was approved".
-    const designPackageReady = finalDeliverableIssue(listAssets(p.id)) === null;
-    const designJourneyDone = isDesignJourneyDone({
-      currentPhase: p.current_phase,
-      designPackageReady,
-    });
 
-    const steps: JourneyStep[] = methodology.phases.map((phase) => {
-      const ids = requiredByPhase.get(phase.id) ?? [];
-      if (phase.id === "design") {
-        return {
-          id: phase.id,
-          label: phase.name,
-          short: PHASE_SHORT[phase.id] ?? phase.name,
-          done: designJourneyDone ? 1 : 0,
-          total: 1,
-        };
-      }
-      const filled = ids.filter((id) => isFilled(map.get(id))).length;
-      return {
-        id: phase.id,
-        label: phase.name,
-        short: PHASE_SHORT[phase.id] ?? phase.name,
-        done: strategyJourneyDone ? ids.length : filled,
-        total: ids.length,
-      };
-    });
+    // Align card progress with the six-stage project rail
+    const journey = buildProjectJourney(p.id);
+    const primary = primaryActionFromJourney(p.id);
+    const steps: JourneyStep[] = journey.stages.map((s) => ({
+      id: s.id,
+      label: s.name.replace(/^\d+\.\s*/, ""),
+      short: s.name.replace(/^\d+\.\s*/, "").split(" ")[0] || s.id,
+      done: s.status === "done" ? 1 : 0,
+      total: 1,
+    }));
 
     return {
       id: p.id,
@@ -129,6 +102,10 @@ export default async function Home() {
       expressReady,
       logoWorkshopReady,
       logoApproved,
+      continueHref: primary?.href ?? `/projects/${p.id}`,
+      continueLabel: primary?.name ?? "Open project",
+      journeyDone: journey.overall.done,
+      journeyTotal: journey.overall.total,
     };
   });
 

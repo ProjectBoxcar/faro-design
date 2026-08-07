@@ -709,7 +709,7 @@ export function DesignStudio({
                   key={output.kind}
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
                     output.ready
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
+                      ? "bg-[var(--ok)]/15 text-[var(--ok)]"
                       : "bg-[var(--surface-2)] text-[var(--muted)]"
                   }`}
                 >
@@ -726,7 +726,7 @@ export function DesignStudio({
               <li
                 className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
                   deliverableReady
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
+                    ? "bg-[var(--ok)]/15 text-[var(--ok)]"
                     : "bg-[var(--surface-2)] text-[var(--muted)]"
                 }`}
               >
@@ -737,28 +737,20 @@ export function DesignStudio({
           </div>
           <div className="shrink-0 lg:text-right">
             <p className="mb-2 text-xs font-medium text-[var(--muted)]">
-              {deliverableReady ? "Final delivery ready" : `${finalCount} of 3 visuals ready`}
+              {deliverableReady
+                ? "Finals ready — package & publish on Handover"
+                : `${finalCount} of 3 visuals ready`}
             </p>
             <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
               <Link
                 href={`/projects/${projectId}/handover`}
-                className={`inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] ${
+                className={`inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] ${
                   !deliverableReady ? "opacity-90" : ""
                 }`}
               >
                 <PackageCheck size={16} />
-                {deliverableReady ? "Open Brand Handover" : "Open Brand Handover (checklist)"}
+                {deliverableReady ? "Finish in Brand Handover" : "Handover checklist"}
               </Link>
-              {shareToken && deliverableReady && (
-                <button
-                  type="button"
-                  onClick={copyPackageLink}
-                  className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-strong)] px-4 py-2.5 text-sm font-medium transition hover:bg-[var(--surface-2)]"
-                >
-                  {packageLinkCopied ? <Check size={16} /> : <Copy size={16} />}
-                  {packageLinkCopied ? "Copied" : "Copy client link"}
-                </button>
-              )}
             </div>
             <div className="mt-2 flex flex-col items-stretch gap-1 sm:items-end">
               <a
@@ -878,7 +870,7 @@ export function DesignStudio({
                                 : "Not built yet"}
                             </span>
                           </span>
-                          {asset && aligned && <Check size={14} className="text-emerald-600" />}
+                          {asset && aligned && <Check size={14} className="text-[var(--ok)]" />}
                         </button>
                       </li>
                     );
@@ -934,7 +926,7 @@ export function DesignStudio({
                       </span>
                     )}
                     {previewAsset.selected && (
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                      <span className="rounded-full bg-[var(--ok)]/15 px-2 py-0.5 text-xs font-semibold text-[var(--ok)]">
                         Final
                       </span>
                     )}
@@ -964,7 +956,7 @@ export function DesignStudio({
                     </>
                   ) : (
                     <>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--ok)]/15 px-3 py-1.5 text-xs font-semibold text-[var(--ok)]">
                         <Check size={14} /> This is your final {KIND_META[previewAsset.kind].shortLabel}
                       </span>
                       {previewAsset.kind === "design_system" && mockupsIncomplete && !isBuildingMockups && (
@@ -1286,7 +1278,7 @@ function PipelineStep({
                     </span>
                   </button>
                   {isSelected ? (
-                    <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+                    <span className="shrink-0 rounded-full bg-[var(--ok)]/15 px-2 py-1 text-[10px] font-semibold text-[var(--ok)]">
                       Final
                     </span>
                   ) : (

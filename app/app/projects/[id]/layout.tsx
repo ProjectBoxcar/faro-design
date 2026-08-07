@@ -3,7 +3,6 @@ import { getProject } from "@/lib/queries";
 import { ProjectSidebar } from "@/components/ProjectSidebar";
 import { ProjectMobileBar } from "@/components/ProjectMobileBar";
 import { buildProjectJourney } from "@/lib/sidebar-journey";
-import { designStudioBlockedReason, studioBlockedReason } from "@/lib/studio";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +18,6 @@ export default async function ProjectLayout({
   if (!project) notFound();
 
   const journey = buildProjectJourney(id);
-  const logoWorkshopUnlocked = !studioBlockedReason(id, "logo");
-  const designStudioUnlocked = !designStudioBlockedReason(id);
 
   return (
     <div className="flex min-h-screen">
@@ -37,8 +34,7 @@ export default async function ProjectLayout({
           projectId={id}
           projectName={project.name}
           overall={journey.overall}
-          assetStudioUnlocked={logoWorkshopUnlocked}
-          designStudioUnlocked={designStudioUnlocked}
+          stages={journey.stages}
         />
         <main className="flex-1">{children}</main>
       </div>

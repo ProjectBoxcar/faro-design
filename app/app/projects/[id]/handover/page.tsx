@@ -105,7 +105,7 @@ export default async function BrandHandoverPage({
                       key={item.kind}
                       className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
                         item.ready
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
+                          ? "bg-[var(--ok)]/15 text-[var(--ok)]"
                           : "bg-[var(--surface-2)] text-[var(--muted)]"
                       }`}
                     >

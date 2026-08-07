@@ -48,6 +48,8 @@ export function ContentStudioWorkspace({
   const [calendar, setCalendar] = useState(initialCalendar);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Non-error progress (never use danger styling). */
+  const [progressMessage, setProgressMessage] = useState<string | null>(null);
   const [standaloneName, setStandaloneName] = useState("Untitled");
   const [fileNames, setFileNames] = useState<string[]>([]);
 
@@ -219,6 +221,7 @@ export function ContentStudioWorkspace({
     if (!profileId) return;
     setBusy("generate");
     setError(null);
+    setProgressMessage("Writing month strategy from your media (vision + plan)…");
     try {
       // Phase 1: Strategy AI — vision cards + full month (2–3×/week) + owner controls
       const res = await fetch("/api/content-studio", {
@@ -246,7 +249,7 @@ export function ContentStudioWorkspace({
       const posts = cal.posts || [];
       for (let i = 0; i < posts.length; i++) {
         const post = posts[i]!;
-        setError(`Designing ${i + 1}/${posts.length} · ${post.dateIso}…`);
+        setProgressMessage(`Designing post ${i + 1} of ${posts.length} · ${post.dateIso}…`);
         try {
           const dres = await fetch("/api/content-studio", {
             method: "POST",
@@ -273,8 +276,10 @@ export function ContentStudioWorkspace({
       }
       setCalendar({ ...cal, status: "ready" });
       setError(null);
+      setProgressMessage(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generation failed");
+      setProgressMessage(null);
     } finally {
       setBusy(null);
     }
@@ -312,6 +317,16 @@ export function ContentStudioWorkspace({
       {error ? (
         <p role="alert" className="rounded-xl border border-[var(--danger)]/30 bg-[var(--danger)]/5 px-4 py-3 text-sm text-[var(--danger)]">
           {error}
+        </p>
+      ) : null}
+      {progressMessage ? (
+        <p
+          role="status"
+          aria-live="polite"
+          className="rounded-xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--accent)]"
+        >
+          <Loader2 size={14} className="mr-2 inline animate-spin" />
+          {progressMessage}
         </p>
       ) : null}
 
@@ -441,11 +456,11 @@ export function ContentStudioWorkspace({
                 const tags = meta.tags ?? [];
                 const fitColor =
                   card?.brandFit === "strong"
-                    ? "bg-emerald-100 text-emerald-800"
+                    ? "bg-[var(--ok)]/15 text-[var(--ok)]"
                     : card?.brandFit === "moderate"
-                      ? "bg-amber-100 text-amber-900"
+                      ? "bg-[var(--warn)]/15 text-[var(--warn)]"
                       : card?.brandFit === "weak"
-                        ? "bg-stone-200 text-stone-700"
+                        ? "bg-[var(--surface-2)] text-[var(--subtle)]"
                         : "bg-[var(--surface-2)] text-[var(--subtle)]";
                 return (
                   <li
@@ -601,13 +616,7 @@ export function ContentStudioWorkspace({
               Vision + strategy + owner brief · Open Design per post · several minutes
             </span>
           </div>
-          {busy === "generate" || busy === "design" ? (
-            <p className="text-xs text-[var(--muted)]">
-              {busy === "generate"
-                ? `Writing the month strategy (${postsPerWeek}×/week across ~30 days, all media)…`
-                : "Open Design is rendering each post (this can take a few minutes)…"}
-            </p>
-          ) : null}
+
           {assets.filter((a) => a.storagePath).length === 0 ? (
             <p className="text-xs text-[var(--danger)]">Upload or import at least one photo/video first.</p>
           ) : null}

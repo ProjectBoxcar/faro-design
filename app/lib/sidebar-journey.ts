@@ -356,3 +356,40 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
     overall: { done: overallDone, total: stages.length },
   };
 }
+
+/** First stage the owner should act on (current, else first unlocked todo). */
+export function primaryJourneyStage(
+  stages: JourneyStageItem[]
+): JourneyStageItem | null {
+  return (
+    stages.find((s) => s.status === "current") ??
+    stages.find((s) => s.status === "todo") ??
+    null
+  );
+}
+
+/** Hub / list CTA derived from the six-stage journey (single source of truth). */
+export function primaryActionFromJourney(projectId: string): {
+  href: string;
+  name: string;
+  label: string;
+  detail: string;
+  stageId: string;
+  overall: { done: number; total: number };
+} | null {
+  const journey = buildProjectJourney(projectId);
+  const stage = primaryJourneyStage(journey.stages);
+  if (!stage) return null;
+  // Prefer nested current step (e.g. strategy pillar, design substep)
+  const nested = stage.steps?.find((s) => s.status === "current");
+  const href = nested?.href ?? stage.href;
+  const name = nested?.name ?? stage.name.replace(/^\d+\.\s*/, "");
+  return {
+    href,
+    name,
+    label: stage.status === "current" ? "Up next" : "Continue",
+    detail: nested?.detail ?? stage.detail,
+    stageId: stage.id,
+    overall: journey.overall,
+  };
+}
