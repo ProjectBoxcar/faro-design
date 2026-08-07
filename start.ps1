@@ -10,12 +10,6 @@ Write-Host " Faro Design — Quick Start" -ForegroundColor Cyan
 Write-Host " ========================" -ForegroundColor Cyan
 Write-Host ""
 
-if (-not $env:APP_PASSWORD -or -not $env:APP_PASSWORD.Trim()) {
-    Write-Host " Note: APP_PASSWORD is not set. On non-localhost networks the app may be open to LAN." -ForegroundColor Yellow
-    Write-Host " Set APP_PASSWORD in the environment for a simple unlock gate." -ForegroundColor Yellow
-    Write-Host ""
-}
-
 if (-not (Test-Path "app\package.json")) {
     Write-Host "Error: Expected app\package.json in $Root" -ForegroundColor Red
     exit 1
