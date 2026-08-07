@@ -61,7 +61,8 @@ export type OpenDesignGenerateResult = {
 
 /**
  * Run a design LLM completion through the Open Design daemon's Anthropic proxy.
- * All logo / identity / landing / deck model calls go through here.
+ * Design Studio identity/landing/deck + Content Studio post HTML only.
+ * Logos use generateLogoText (OpenAI/Gemini) — never this function.
  */
 export async function generateViaOpenDesign(
   params: OpenDesignGenerateParams

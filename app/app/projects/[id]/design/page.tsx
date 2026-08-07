@@ -1,12 +1,10 @@
 import { notFound } from "next/navigation";
 import { getProject } from "@/lib/queries";
-import { buildBriefContext, listAssets } from "@/lib/design";
-import { designSystemBlockedReason } from "@/lib/design-gates";
-import { hasApprovedLogo } from "@/lib/studio";
+import { listAssets } from "@/lib/design";
+import { canEnterDesignStudio } from "@/lib/studio";
 import { designApiKeyStatus } from "@/lib/settings";
 import { DesignStudio } from "@/components/DesignStudio";
 import { getActiveDesignJob, serializeDesignJob, startDesignJob } from "@/lib/design-jobs";
-import { viabilityActionBlockedReason } from "@/lib/project-gates";
 import { ensureOpenDesignDaemon } from "@/lib/open-design-ensure";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +27,8 @@ export default async function DesignPage({
   // Always resume — never wipe proposals that landed before a refresh/restart.
   if (activeJob) void startDesignJob(activeJob.id, { resume: true });
 
+  const enter = canEnterDesignStudio(id);
+
   return (
     <DesignStudio
       projectId={id}
@@ -36,12 +36,7 @@ export default async function DesignPage({
       initialAssets={assets}
       initialJob={activeJob ? serializeDesignJob(activeJob) : null}
       initialShareToken={project.share_token}
-      generationBlockedReason={
-        viabilityActionBlockedReason(project, "design")
-          ?? designSystemBlockedReason(buildBriefContext(id), {
-            hasApprovedLogo: hasApprovedLogo(id),
-          })
-      }
+      generationBlockedReason={enter.reason}
       apiKeyConfigured={openDesign.configured}
     />
   );

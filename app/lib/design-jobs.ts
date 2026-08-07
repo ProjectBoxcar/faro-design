@@ -16,10 +16,10 @@ import {
 } from "@/lib/design";
 import { finalDeliverableIssue } from "@/lib/design-deliverable";
 import { getProject, setProjectPhase } from "@/lib/queries";
-import { viabilityActionBlockedReason } from "@/lib/project-gates";
 import type { DesignJobKind, DesignJobState } from "@/lib/design-job-types";
 import { classifyAiFailure, formatClassifiedFailure } from "@/lib/ai-failure";
 import { shouldResumeDesignJob } from "@/lib/design-job-resume-pure";
+import { canEnterDesignStudio } from "@/lib/studio";
 
 export type DesignJobRow = typeof design_jobs.$inferSelect;
 
@@ -173,8 +173,8 @@ export function createDesignJob(input: {
 }): DesignJobRow {
   const project = getProject(input.projectId);
   if (!project) throw new Error("Project not found");
-  const blocked = viabilityActionBlockedReason(project, "design");
-  if (blocked) throw new Error(blocked);
+  const enter = canEnterDesignStudio(input.projectId);
+  if (!enter.ok) throw new Error(enter.reason || "Design Studio is locked");
 
   const active = db
     .select()
@@ -293,7 +293,6 @@ export function startDesignJob(
     }
     const project = getProject(latest.project_id);
     if (!project) throw new Error("Project not found");
-    const { canEnterDesignStudio } = await import("@/lib/studio");
     const gate = canEnterDesignStudio(latest.project_id);
     if (!gate.ok) throw new Error(gate.reason || "Design Studio is locked");
     throwIfJobCancelled(jobId);
