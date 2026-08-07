@@ -314,10 +314,10 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       locked: !contentUnlocked && !contentHasWork,
       done: contentDone,
       lockHint: contentBlocked ?? "Finish brand package first",
-      doneDetail: "Content calendar ready",
+      doneDetail: "Month of posts ready",
       todoDetail: contentHasWork
-        ? "Continue calendar & approve posts"
-        : "Lock brand profile and generate social content",
+        ? "Review posts and approve what ships"
+        : "Put the brand to work with a month of posts",
     },
   ];
 
@@ -408,7 +408,7 @@ export function primaryActionFromJourney(projectId: string): {
     label: stage.status === "current" ? "Up next" : "Continue",
     detail:
       stage.id === "strategy"
-        ? "Review strategy essentials, then continue to brand name (full map optional)"
+        ? "Lock strategy essentials—then pick the name logos will use"
         : nested?.detail ?? stage.detail,
     stageId: stage.id,
     overall: journey.overall,

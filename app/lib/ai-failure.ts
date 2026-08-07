@@ -82,8 +82,8 @@ export function classifyAiFailure(
     return {
       code: "open_design_down",
       lane: lane ?? "design",
-      message: "Open Design daemon is not running.",
-      hint: "Run start.bat / start.ps1, or start-open-design.ps1 / npm run od:ensure (port 7456). Design Studio will not fall back to OpenAI or Gemini.",
+      message: "Design helper isn’t running.",
+      hint: "Restart Faro with start.bat so the design helper can start (Open Design on port 7456). Design Studio will not fall back to OpenAI or Gemini.",
       retriable: true,
     };
   }

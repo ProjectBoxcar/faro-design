@@ -1084,8 +1084,8 @@ export function ExpressJourney({
           feel right, approve and continue to the brand name.
         </p>
         <p className="mt-2 text-xs text-[var(--subtle)]">
-          Edit to fix wording, Rewrite with AI to polish, then Apply my edits so related cards can
-          follow. Optional: full strategy map in the journey rail.
+          Edit what doesn&apos;t sound like you. Apply my edits to update related cards. Full map
+          stays optional.
         </p>
       </header>
 

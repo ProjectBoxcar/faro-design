@@ -118,7 +118,7 @@ export function FinalPackageViewer({
               {projectName}
               {snapshotVersion != null ? (
                 <span className="ml-2 align-middle text-sm font-sans font-normal text-[var(--subtle)]">
-                  v{snapshotVersion} · frozen
+                  v{snapshotVersion} · as shared
                 </span>
               ) : null}
             </h1>

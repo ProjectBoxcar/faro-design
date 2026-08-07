@@ -573,9 +573,8 @@ export function DesignStudio({
       <div className="mb-8">
         <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">Design Studio</h1>
         <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">
-          Builds on the logo you approved in the Logo Workshop. Systems must follow your strategy
-          brief only — no invented claims. Compare proposals, delete any you don&apos;t want, pick
-          one, and the Studio applies it to the mockups your plan calls for.
+          Your approved logo leads. Compare three identity directions, choose one final, then build
+          the landing page and deck from that system—tied to your strategy, not guesswork.
         </p>
       </div>
 
@@ -591,13 +590,10 @@ export function DesignStudio({
               ).
             </p>
             <p className="mt-1.5 text-[var(--muted)]">
-              If generation fails saying the helper isn&apos;t running, restart with{" "}
+              If generation fails saying the helper isn&apos;t running, restart Faro with{" "}
               <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">start.bat</code>
-              {" "}or run{" "}
-              <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">
-                npm run od:ensure
-              </code>
-              . Logo Workshop uses a different key — not this path.
+              {" "}and confirm your Claude key in Settings. Logo Workshop uses a different key —
+              not this path.
             </p>
           </div>
         </div>
@@ -649,11 +645,11 @@ export function DesignStudio({
         <div className="min-w-0">
           <p className="text-sm font-medium text-[var(--foreground)]">
             {deliverableReady
-              ? "Visuals ready — finish package on Brand Handover"
-              : `Create & choose finals · ${finalCount}/3 ready`}
+              ? "Visuals ready — finish the package on Brand Handover"
+              : `Choose your finals · ${finalCount}/3 ready`}
           </p>
           <p className="mt-0.5 text-xs text-[var(--muted)]">
-            Downloads and client link live in Brand Handover — not here.
+            Client link and product-team files live on Brand Handover — not here.
           </p>
         </div>
         <Link
@@ -661,7 +657,7 @@ export function DesignStudio({
           className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)]"
         >
           <PackageCheck size={16} />
-          {deliverableReady ? "Open Brand Handover" : "Handover checklist"}
+          {deliverableReady ? "Open Brand Handover" : "See what’s left for handover"}
         </Link>
       </div>
 

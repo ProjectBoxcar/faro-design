@@ -236,11 +236,9 @@ export default function StartPage() {
           <div>
             <h1 className="font-serif text-4xl font-medium leading-tight tracking-tight">Let&apos;s build your brand</h1>
             <p className="mt-3 text-[var(--muted)]">
-              Here&apos;s how it works, in two parts. <strong className="text-[var(--foreground)]">First</strong>, you
-              answer a few quick questions about your brand — that&apos;s the part you&apos;re doing now.{" "}
-              <strong className="text-[var(--foreground)]">Then</strong>, we draft your whole strategy and walk you
-              through it step by step, so you can read each piece and fix anything that&apos;s off. No branding
-              experience needed.
+              <strong className="text-[var(--foreground)]">First</strong>, a few plain questions.{" "}
+              <strong className="text-[var(--foreground)]">Then</strong>, a strategy draft you review and fix—step by
+              step. No branding experience needed.
             </p>
 
             <label className="mt-8 block text-sm font-medium">Brand name</label>

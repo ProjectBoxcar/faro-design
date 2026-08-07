@@ -119,7 +119,7 @@ export function ProjectSidebar({
         </ol>
 
         <p className="mt-4 px-2.5 text-[11px] leading-snug text-[var(--subtle)]">
-          Same order for every project: strategy → name → logo → design → handover.
+          Same order for every project: strategy → name → logo → design → handover → content.
         </p>
       </nav>
 

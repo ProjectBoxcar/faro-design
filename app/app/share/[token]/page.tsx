@@ -65,7 +65,7 @@ export default async function ShareBriefPage({
         <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
           Brand brief
           {version != null ? ` · v${version}` : ""}
-          {fromSnapshot ? " · frozen at publish" : ""}
+          {fromSnapshot ? " · as shared" : ""}
         </p>
         <h1 className="font-serif text-6xl font-medium leading-[1.0] tracking-tight lg:text-7xl">
           {displayName}
@@ -115,7 +115,7 @@ export default async function ShareBriefPage({
 
       <footer className="mt-16 border-t border-[var(--border)] pt-6 text-center text-xs text-[var(--subtle)] print:hidden">
         {fromSnapshot
-          ? "Read-only brand brief — frozen when published. Later edits in Faro do not change this page until re-publish."
+          ? "Read-only brand brief — fixed when shared. Later edits in Faro do not change this page until you share again."
           : "Read-only brand brief."}
       </footer>
     </main>

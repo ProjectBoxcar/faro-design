@@ -29,7 +29,7 @@ const STYLE: Record<
     label: "Looks sound",
     className: "border-[var(--ok)]/30 bg-[var(--ok)]/10 text-[var(--ok)]",
     Icon: CheckCircle2,
-    blurb: "The basics of this brand engagement look solid enough to continue.",
+    blurb: "The basics of this brand project look solid enough to continue.",
   },
   caveat: {
     label: "Proceed with care",

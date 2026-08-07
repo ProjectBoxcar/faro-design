@@ -72,9 +72,9 @@ export default async function BrandHandoverPage({
           Brand Handover
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-          Your final brand package — identity, landing page, and deck. Download files for{" "}
-          <strong className="font-medium text-[var(--foreground)]">product teams</strong>{" "}
-          (tokens, logos, icons, copy), open full screen to present, or share a private client link.
+          Everything you approved in one place—identity, landing page, and deck. Download files for{" "}
+          <strong className="font-medium text-[var(--foreground)]">product teams</strong>, present
+          full screen, or share a private client link.
         </p>
       </header>
 
@@ -125,7 +125,7 @@ export default async function BrandHandoverPage({
                     }`}
                   >
                     {packageReady ? <Check size={13} /> : <span className="h-2 w-2 rounded-full bg-[var(--border-strong)]" />}
-                    Implement pack
+                    Files for product teams
                     {packageReady ? " · ready to download" : " · after finals"}
                   </li>
                 </ul>

@@ -194,7 +194,7 @@ export function ContentStudioWorkspace({
         null
       );
       if (ff && !ff.available) {
-        setError("Vision ran on stills. Video needs ffmpeg (bundled static preferred) — check server logs if video stayed unanalyzed.");
+        setError("Photos reviewed. Video needs the design helper’s video tools—check Settings if clips stayed unreviewed.");
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Analyze failed");
@@ -324,12 +324,12 @@ export function ContentStudioWorkspace({
           Content Studio
         </p>
         <h1 className="mt-1 font-serif text-3xl font-medium tracking-tight lg:text-4xl">
-          Monthly social content
+          Put the brand to work
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
           {mode === "project"
-            ? "Uses this project’s finished brand (strategy, logo, visuals), then plans a month of posts from your photos."
-            : "No finished brand package yet — name the brand, add photos, then generate a month of posts."}
+            ? "Your finished brand becomes a month of posts from your real photos—planned, written, and designed for you to approve."
+            : "Name the brand, add photos, then build a month of posts you can review and post."}
         </p>
         {profile ? (
           <nav className="mt-5 flex flex-wrap gap-1.5" aria-label="Content Studio steps">
@@ -702,7 +702,7 @@ export function ContentStudioWorkspace({
               ) : (
                 <CalendarDays size={16} />
               )}
-              Generate full month ({year}-{String(month).padStart(2, "0")})
+              Build this month’s posts
             </button>
           </div>
             <button

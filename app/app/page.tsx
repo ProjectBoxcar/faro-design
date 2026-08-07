@@ -198,7 +198,7 @@ export default async function Home() {
               href="/start"
               className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition hover:bg-[var(--accent-hover)] hover:shadow-[var(--shadow-pop)]"
             >
-              Start a brand project <ArrowRight size={16} />
+              Start your brand <ArrowRight size={16} />
             </Link>
             {cards.length > 0 && (
               <a
@@ -289,7 +289,7 @@ export default async function Home() {
           <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-12 text-center">
             <p className="font-medium text-[var(--foreground)]">No projects yet.</p>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              Create your first brand engagement to start the strategy journey.
+              Start your first brand project—strategy first, then the assets.
             </p>
             <div className="mt-5 flex justify-center">
               <NewProjectButton />
