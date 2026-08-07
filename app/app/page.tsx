@@ -11,6 +11,9 @@ import { flowSteps, type StatusMap } from "@/lib/flow";
 import { hasApprovedLogo, studioBlockedReason } from "@/lib/studio";
 import type { JourneyStep } from "@/components/JourneyProgress";
 import { primaryActionFromJourney, buildProjectJourney } from "@/lib/sidebar-journey";
+import { getAiLaneHealthSnapshot } from "@/lib/settings";
+import { isOpenDesignDaemonUp } from "@/lib/open-design-engine";
+import { SetupReadinessBanner } from "@/components/SetupReadinessBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +50,13 @@ function isComplete(status: string | undefined): boolean {
 
 export default async function Home() {
   const brandCopy = await loadBrandCopy();
+  let daemonUp: boolean | null = null;
+  try {
+    daemonUp = await isOpenDesignDaemonUp();
+  } catch {
+    daemonUp = false;
+  }
+  const setup = getAiLaneHealthSnapshot(daemonUp);
   const projects = listProjects();
   const requiredByPhase = new Map<string, string[]>();
   for (const step of flowSteps()) {
@@ -204,6 +214,10 @@ export default async function Home() {
           </div>
         </div>
       </header>
+
+      <div className="mx-auto max-w-7xl px-5 pt-8 lg:px-12 2xl:max-w-[110rem]" id="projects">
+        <SetupReadinessBanner lanes={setup.lanes} daemonUp={daemonUp} />
+      </div>
 
       {/* How it works */}
       <section className="border-b border-[var(--border)]">

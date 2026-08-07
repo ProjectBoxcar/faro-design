@@ -85,7 +85,7 @@ export function DesignStudio({
   projectName,
   initialAssets,
   initialJob,
-  initialShareToken,
+  initialShareToken: _initialShareToken,
   generationBlockedReason,
   apiKeyConfigured,
 }: {
@@ -93,10 +93,12 @@ export function DesignStudio({
   projectName: string;
   initialAssets: AssetRow[];
   initialJob: DesignJobState | null;
+  /** Package links live on Brand Handover — prop kept for call-site compat */
   initialShareToken: string | null;
   generationBlockedReason: string | null;
   apiKeyConfigured: boolean;
 }) {
+  void _initialShareToken;
   const router = useRouter();
   const previewFrameRef = useRef<HTMLIFrameElement>(null);
   const [assets, setAssets] = useState<AssetRow[]>(initialAssets);
@@ -107,10 +109,6 @@ export function DesignStudio({
   );
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [discardingKind, setDiscardingKind] = useState<AssetRow["kind"] | null>(null);
-  const [creatingDeliverable, setCreatingDeliverable] = useState(false);
-  const shareToken = initialShareToken;
-  const [packageLinkCopied, setPackageLinkCopied] = useState(false);
-  const [origin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
   const [previewSection, setPreviewSection] = useState<IdentityPreviewSection>("overview");
   const [error, setError] = useState<string | null>(null);
   const [stopping, setStopping] = useState(false);
@@ -532,45 +530,6 @@ export function DesignStudio({
     URL.revokeObjectURL(url);
   }
 
-  async function copyPackageLink() {
-    if (!shareToken) return;
-    try {
-      await navigator.clipboard.writeText(`${origin}/share/${shareToken}/package`);
-      setPackageLinkCopied(true);
-      window.setTimeout(() => setPackageLinkCopied(false), 2000);
-    } catch {
-      setError("Could not copy the package link. Open it and copy the address from your browser.");
-    }
-  }
-
-  async function downloadFinalDeliverable() {
-    setCreatingDeliverable(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams({ projectId, format: "deliverable" });
-      const res = await fetch(`/api/design?${params}`);
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "Final deliverable could not be created");
-      }
-      const blob = await res.blob();
-      const disposition = res.headers.get("Content-Disposition");
-      const filename = disposition?.match(/filename="([^"]+)"/)?.[1]
-        ?? `${projectName.replace(/\s+/g, "-").toLowerCase()}-faro-brand-deliverable.html`;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Final deliverable could not be created");
-    } finally {
-      setCreatingDeliverable(false);
-    }
-  }
 
   const identitySelected = selectedAsset("design_system");
   const landingSelected = selectedAsset("landing_page");
@@ -685,100 +644,42 @@ export function DesignStudio({
         </div>
       )}
 
-      <section
-        id="brand-handover"
-        aria-labelledby="deliverable-title"
-        className="mb-6 scroll-mt-24 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow lg:p-6"
-      >
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="mb-2 flex items-center gap-2">
-              <PackageCheck size={18} className="text-[var(--accent)]" />
-              <h2 id="deliverable-title" className="font-serif text-xl font-medium tracking-tight">
-                Brand Handover
-              </h2>
-            </div>
-            <p className="max-w-xl text-sm text-[var(--muted)]">
-              Final delivery lives in Brand Handover: visual package, client link, offline HTML, and
-              the <strong className="font-medium text-[var(--foreground)]">implement pack</strong>{" "}
-              (tokens, logos, icons for product builds).
-            </p>
-            <ul className="mt-4 flex flex-wrap gap-2" aria-live="polite">
-              {finalOutputs.map((output) => (
-                <li
-                  key={output.kind}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
-                    output.ready
-                      ? "bg-[var(--ok)]/15 text-[var(--ok)]"
-                      : "bg-[var(--surface-2)] text-[var(--muted)]"
-                  }`}
-                >
-                  {output.ready ? <Check size={13} /> : <span className="h-2 w-2 rounded-full bg-[var(--border-strong)]" />}
-                  {output.label}{
-                    output.ready && output.asset?.variant
-                      ? ` · Final ${output.asset.variant}`
-                      : output.asset
-                      ? " · Choose aligned final"
-                      : " · Choose final"
-                  }
-                </li>
-              ))}
-              <li
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
-                  deliverableReady
-                    ? "bg-[var(--ok)]/15 text-[var(--ok)]"
-                    : "bg-[var(--surface-2)] text-[var(--muted)]"
-                }`}
-              >
-                {deliverableReady ? <Check size={13} /> : <span className="h-2 w-2 rounded-full bg-[var(--border-strong)]" />}
-                Implement pack{deliverableReady ? " · included" : " · with finals"}
-              </li>
-            </ul>
-          </div>
-          <div className="shrink-0 lg:text-right">
-            <p className="mb-2 text-xs font-medium text-[var(--muted)]">
-              {deliverableReady
-                ? "Finals ready — package & publish on Handover"
-                : `${finalCount} of 3 visuals ready`}
-            </p>
-            <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
-              <Link
-                href={`/projects/${projectId}/handover`}
-                className={`inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] ${
-                  !deliverableReady ? "opacity-90" : ""
-                }`}
-              >
-                <PackageCheck size={16} />
-                {deliverableReady ? "Finish in Brand Handover" : "Handover checklist"}
-              </Link>
-            </div>
-            <div className="mt-2 flex flex-col items-stretch gap-1 sm:items-end">
-              <a
-                href={deliverableReady ? `/api/projects/${projectId}/brand-pack` : undefined}
-                aria-disabled={!deliverableReady}
-                className={`inline-flex items-center justify-center gap-1.5 text-xs font-medium transition ${
-                  deliverableReady
-                    ? "text-[var(--accent)] hover:underline"
-                    : "pointer-events-none text-[var(--subtle)] opacity-50"
-                }`}
-              >
-                <Download size={13} /> Download implement pack (ZIP)
-              </a>
-              <button
-                type="button"
-                onClick={downloadFinalDeliverable}
-                disabled={!deliverableReady || creatingDeliverable || Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind)}
-                className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-[var(--muted)] transition hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {creatingDeliverable ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-                {creatingDeliverable
-                  ? "Preparing offline package…"
-                  : "Download offline package (includes implement pack)"}
-              </button>
-            </div>
-          </div>
+      {/* Package / publish lives only on Brand Handover — keep Design Studio = create & select */}
+      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-[var(--foreground)]">
+            {deliverableReady
+              ? "Visuals ready — finish package on Brand Handover"
+              : `Create & choose finals · ${finalCount}/3 ready`}
+          </p>
+          <p className="mt-0.5 text-xs text-[var(--muted)]">
+            Downloads, client link, and implement pack are on Handover — not here.
+          </p>
         </div>
-      </section>
+        <Link
+          href={`/projects/${projectId}/handover`}
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)]"
+        >
+          <PackageCheck size={16} />
+          {deliverableReady ? "Open Brand Handover" : "Handover checklist"}
+        </Link>
+      </div>
+
+      {/* Sticky current step for cognitive load */}
+      <div className="sticky top-14 z-20 mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]/95 px-4 py-2.5 shadow-sm backdrop-blur lg:top-4">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
+          Design Studio · create & select
+        </p>
+        <p className="text-sm font-medium text-[var(--foreground)]">
+          {!identitySelected
+            ? "Step 1 — Brand identity system"
+            : !finalOutputs.find((o) => o.kind === "landing_page")?.ready
+              ? "Step 2 — Landing page mockup"
+              : !finalOutputs.find((o) => o.kind === "deck")?.ready
+                ? "Step 3 — Brand deck"
+                : "All finals chosen — continue to Brand Handover"}
+        </p>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         {/* Pipeline sidebar */}

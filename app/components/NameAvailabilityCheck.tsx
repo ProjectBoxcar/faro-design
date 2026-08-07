@@ -13,15 +13,27 @@ export type NameCheck = {
 };
 
 const VERDICT_STYLE: Record<string, { label: string; className: string; Icon: typeof ShieldCheck }> = {
-  pass: { label: "Looks usable", className: "bg-emerald-50 text-emerald-700 border-emerald-200", Icon: ShieldCheck },
-  caveat: { label: "Usable with caveats", className: "bg-amber-50 text-amber-700 border-amber-200", Icon: ShieldQuestion },
-  fail: { label: "Serious conflicts", className: "bg-red-50 text-red-700 border-red-200", Icon: ShieldAlert },
+  pass: {
+    label: "Looks usable",
+    className: "bg-[var(--ok)]/10 text-[var(--ok)] border-[var(--ok)]/30",
+    Icon: ShieldCheck,
+  },
+  caveat: {
+    label: "Usable with caveats",
+    className: "bg-[var(--warn)]/10 text-[var(--warn)] border-[var(--warn)]/30",
+    Icon: ShieldQuestion,
+  },
+  fail: {
+    label: "Serious conflicts",
+    className: "bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/30",
+    Icon: ShieldAlert,
+  },
 };
 
 const RESULT_STYLE: Record<string, string> = {
-  Pass: "text-emerald-700",
-  "Pass with caveat": "text-amber-700",
-  Fail: "text-red-700",
+  Pass: "text-[var(--ok)]",
+  "Pass with caveat": "text-[var(--warn)]",
+  Fail: "text-[var(--danger)]",
 };
 
 export function NameAvailabilityCheck({

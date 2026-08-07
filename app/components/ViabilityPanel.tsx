@@ -27,19 +27,19 @@ const STYLE: Record<
   },
   pass: {
     label: "Pass",
-    className: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    className: "border-[var(--ok)]/30 bg-[var(--ok)]/10 text-[var(--ok)]",
     Icon: CheckCircle2,
     blurb: "The methodology’s non-negotiables look sound for this engagement.",
   },
   caveat: {
     label: "Pass with caveats",
-    className: "border-amber-200 bg-amber-50 text-amber-900",
+    className: "border-[var(--warn)]/30 bg-[var(--warn)]/10 text-[var(--warn)]",
     Icon: AlertTriangle,
     blurb: "You can continue, but some warning signs or non-blocking gaps showed up.",
   },
   fail: {
     label: "Fail",
-    className: "border-red-200 bg-red-50 text-red-800",
+    className: "border-[var(--danger)]/30 bg-[var(--danger)]/10 text-[var(--danger)]",
     Icon: ShieldAlert,
     blurb: "A non-negotiable condition failed. You can still proceed with a logged reason.",
   },

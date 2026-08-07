@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowRight, Lock, Palette, PenTool, Type, MessageSquareText, Shapes, Camera } from "lucide-react";
+import { ArrowRight, Lock, PenTool } from "lucide-react";
 import { getProject, listStudioAssets } from "@/lib/queries";
 import { studioBlockedReason, clearedName } from "@/lib/studio";
 import { needsNameWorkshop } from "@/lib/naming-propose";
@@ -39,14 +39,6 @@ export default async function StudioHub({ params }: { params: Promise<{ id: stri
       : live > 0
         ? { label: `${live} candidate${live === 1 ? "" : "s"} to review`, tone: "text-[var(--accent)]" }
         : { label: "Not started", tone: "text-[var(--subtle)]" };
-
-  const upcoming = [
-    { icon: Palette, name: "Color palette", note: "tokens + contrast rules" },
-    { icon: Type, name: "Typography", note: "families + type scale" },
-    { icon: MessageSquareText, name: "Verbal identity", note: "tagline + core copy" },
-    { icon: Shapes, name: "Visual elements", note: "patterns + icon starters" },
-    { icon: Camera, name: "Photography", note: "art-direction spec" },
-  ];
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-12 lg:py-12">
@@ -116,24 +108,10 @@ export default async function StudioHub({ params }: { params: Promise<{ id: stri
           </Link>
         </div>
       ) : (
-        <div className="mt-8">
-          <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
-            After the logo
-          </h3>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {upcoming.map((u) => (
-              <div
-                key={u.name}
-                className="flex items-center gap-3 rounded-2xl border border-dashed border-[var(--border)] p-4 text-sm text-[var(--subtle)]"
-              >
-                <u.icon size={16} />
-                <span>
-                  {u.name} <span className="text-xs">— {u.note}</span>
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <p className="mt-8 text-xs text-[var(--subtle)]">
+          Later in Design Studio: palette, type, verbal identity, visual elements, photography —
+          built around the approved logo, not separate workshop destinations.
+        </p>
       )}
     </div>
   );

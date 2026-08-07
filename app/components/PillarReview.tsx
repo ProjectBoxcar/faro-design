@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, Loader2, Pencil, Sparkles } from "lucide-react";
+import { FaroLoaderInline } from "@/components/FaroLoader";
 import type { Section } from "@/lib/methodology";
 import { SectionReadout } from "./SectionReadout";
 import { SectionEditor } from "./SectionEditor";
@@ -194,20 +195,23 @@ export function PillarReview({
   return (
     <div>
       {anyGenerating && autoDraftStarted > 0 && (
-        <div className="mb-8 rounded-2xl border border-[var(--designer)]/30 bg-[var(--accent-soft)] px-4 py-3">
+        <div className="mb-8 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-4 py-4">
           <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="flex items-center gap-2 text-[var(--designer)]">
-              <Loader2 size={15} className="animate-spin" />
-              Drafting this pillar…
-            </span>
-            <span className="font-semibold tabular-nums text-[var(--designer)]" aria-live="polite">
+            <FaroLoaderInline label="Drafting this pillar from your earlier answers…" size="sm" />
+            <span className="font-semibold tabular-nums text-[var(--accent)]" aria-live="polite">
               {pillarPct}%
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-3">
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/50 dark:bg-black/20">
+          <div className="mt-3 flex items-center gap-3">
+            <div
+              className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--surface-2)]"
+              role="progressbar"
+              aria-valuenow={pillarPct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
               <div
-                className="h-full rounded-full bg-[var(--designer)] transition-all duration-500"
+                className="h-full rounded-full bg-[var(--accent)] transition-all duration-500"
                 style={{ width: `${pillarPct}%` }}
               />
             </div>
@@ -259,9 +263,8 @@ export function PillarReview({
                     embedded
                   />
                 ) : s.generating ? (
-                  <div className="flex items-center gap-2.5 rounded-lg border border-[var(--designer)]/40 bg-[var(--accent-soft)] p-4 text-sm">
-                    <Loader2 size={16} className="animate-spin text-[var(--designer)]" />
-                    <span className="text-[var(--designer)]">Writing this from your earlier answers…</span>
+                  <div className="rounded-lg border border-[var(--accent)]/30 bg-[var(--accent-soft)] p-4">
+                    <FaroLoaderInline label="Writing this from your earlier answers…" size="sm" />
                   </div>
                 ) : filled ? (
                   <SectionReadout section={step.section} value={s.value} />

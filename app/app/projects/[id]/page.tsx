@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getProject, getSections, listEvaluations } from "@/lib/queries";
 import { methodology } from "@/lib/methodology";
@@ -97,26 +96,16 @@ export default async function ProjectHub({
     };
   });
 
+  // When drafted=1, Up next is the only primary CTA (banner copy only, no second button)
+  const draftedBanner = drafted === "1" && primary;
+
   return (
     <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-12 lg:py-12 2xl:max-w-[104rem]">
-      {drafted === "1" && primary ? (
-        <div className="mb-8 rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-6 py-6">
-          <h2 className="font-serif text-2xl font-medium tracking-tight">
-            Your first draft is ready
-          </h2>
-          <p className="mt-2 max-w-2xl text-[var(--muted)]">
-            We turned your answers into first drafts. Continue with{" "}
-            <strong className="text-[var(--foreground)]">{primary.name}</strong>
-            — tweak anything that&apos;s off. Progress saves as you go.
-          </p>
-          <Link
-            href={primary.href}
-            className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
-          >
-            Continue · {primary.name} <ArrowRight size={16} />
-          </Link>
-          <p className="mt-3 text-xs text-[var(--subtle)]">
-            Prefer the full map? Open “View all steps” below.
+      {draftedBanner ? (
+        <div className="mb-6 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-5 py-4">
+          <p className="text-sm font-medium text-[var(--foreground)]">Your first draft is ready</p>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            Use the single Continue control below — progress saves as you go.
           </p>
         </div>
       ) : null}
@@ -137,56 +126,50 @@ export default async function ProjectHub({
         />
       </div>
 
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-12 2xl:grid-cols-[minmax(0,1fr)_400px]">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-12 2xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0 space-y-5" id="plan">
+          {/* Single primary accent CTA on the hub */}
           <UpNextCard next={next} />
           <FullPlan projectId={id} phases={phaseItems} defaultOpen={plan === "open"} />
         </div>
 
-        <aside className="mt-10 space-y-6 lg:mt-0 lg:sticky lg:top-8 lg:self-start">
-          {primary && primary.stageId === "design" ? (
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
-              <div className="mb-3 flex items-center gap-2">
-                <Sparkles size={18} className="text-[var(--accent)]" />
-                <h2 className="font-serif text-lg font-semibold tracking-tight">Design Studio</h2>
-              </div>
-              <p className="mb-4 text-sm text-[var(--muted)]">
-                Generate identity, pick a direction, then landing page and deck. Package downloads
-                live in Brand Handover when finals are ready.
-              </p>
-              <Link
-                href={primary.href}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
-              >
-                Continue Design Studio <ArrowRight size={16} />
-              </Link>
-            </div>
-          ) : null}
-
-          {primary && (primary.stageId === "handover" || designPackageReady) ? (
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
-              <h2 className="font-serif text-lg font-semibold tracking-tight">Brand Handover</h2>
-              <p className="mt-2 text-sm text-[var(--muted)]">
-                Download the package or publish the frozen client share link — the finish line for
-                the brand package.
-              </p>
-              <Link
-                href={`/projects/${id}/handover`}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
-              >
-                Open Brand Handover <ArrowRight size={16} />
-              </Link>
-            </div>
-          ) : null}
+        <aside className="mt-10 space-y-4 text-sm lg:mt-0 lg:sticky lg:top-8 lg:self-start">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
+            Also available
+          </p>
+          <ul className="space-y-2 text-[var(--muted)]">
+            {primary?.stageId === "design" ? (
+              <li>
+                <Link href={primary.href} className="text-[var(--foreground)] underline-offset-2 hover:underline">
+                  Design Studio
+                </Link>
+                <span className="text-[var(--subtle)]"> — create &amp; select finals</span>
+              </li>
+            ) : null}
+            {primary?.stageId === "handover" || designPackageReady ? (
+              <li>
+                <Link
+                  href={`/projects/${id}/handover`}
+                  className="text-[var(--foreground)] underline-offset-2 hover:underline"
+                >
+                  Brand Handover
+                </Link>
+                <span className="text-[var(--subtle)]"> — package &amp; client link</span>
+              </li>
+            ) : null}
+            {showStrategyBriefPublish ? (
+              <li>
+                <span className="text-[var(--subtle)]">Optional strategy brief share below</span>
+              </li>
+            ) : !handoffReady ? (
+              <li className="text-[var(--subtle)]">Finish strategy drafts to unlock brief share</li>
+            ) : null}
+          </ul>
 
           {showStrategyBriefPublish ? (
-            <div>
-              <h2 className="mb-3 font-serif text-lg font-semibold tracking-tight">
-                Strategy brief (optional)
-              </h2>
-              <p className="mb-3 text-xs text-[var(--muted)]">
-                Share a read-only strategy brief. This is not the full brand package — that comes
-                after Design Studio in Brand Handover.
+            <div className="rounded-xl border border-dashed border-[var(--border)] p-4">
+              <p className="mb-2 text-xs text-[var(--muted)]">
+                Optional: share a strategy brief (not the full brand package).
               </p>
               <PublishPanel
                 projectId={id}
@@ -195,11 +178,6 @@ export default async function ProjectHub({
                 initialSnapshotPackageReady={snapshotPackageReady}
                 initialVersion={snap?.version ?? null}
               />
-            </div>
-          ) : !handoffReady ? (
-            <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
-              Finish strategy drafts first. Then you can share a brief, confirm a name, and build
-              the brand package step by step.
             </div>
           ) : null}
         </aside>

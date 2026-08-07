@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CalendarDays, Loader2, Lock, Upload } from "lucide-react";
+import { FaroLoaderInline } from "@/components/FaroLoader";
 import type {
   BrandProfile,
   ContentAssetTag,
@@ -68,6 +69,21 @@ export function ContentStudioWorkspace({
   });
   const [reusePolicy, setReusePolicy] = useState<MediaReusePolicy>("unique-first");
   const [excludeWeakFit, setExcludeWeakFit] = useState(false);
+  /** Wizard: lock → media → brief → generate → review */
+  type WizardStep = "lock" | "media" | "brief" | "generate" | "review";
+  const [step, setStep] = useState<WizardStep>(() => {
+    if (initialCalendar?.posts?.length) return "review";
+    if (initialProfile) return "media";
+    return "lock";
+  });
+
+  const WIZARD_STEPS: { id: WizardStep; label: string }[] = [
+    { id: "lock", label: "1. Lock brand" },
+    { id: "media", label: "2. Media" },
+    { id: "brief", label: "3. Brief" },
+    { id: "generate", label: "4. Generate" },
+    { id: "review", label: "5. Review" },
+  ];
 
   async function lockFromProject() {
     if (!projectId) return;
@@ -83,6 +99,7 @@ export function ContentStudioWorkspace({
       if (!res.ok) throw new Error(data.error || "Could not lock brand profile");
       setProfileId(data.profileId);
       setProfile(data.profile);
+      setStep("media");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Lock failed");
     } finally {
@@ -118,6 +135,7 @@ export function ContentStudioWorkspace({
       const get = await fetch(`/api/content-studio?profileId=${data.profileId}`);
       const body = await get.json();
       if (get.ok) setAssets(body.assets || []);
+      setStep("media");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Infer failed");
     } finally {
@@ -277,6 +295,7 @@ export function ContentStudioWorkspace({
       setCalendar({ ...cal, status: "ready" });
       setError(null);
       setProgressMessage(null);
+      setStep("review");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generation failed");
       setProgressMessage(null);
@@ -312,6 +331,35 @@ export function ContentStudioWorkspace({
             ? "Uses this project’s finished brand (strategy, logo, visual system) as a locked profile — then builds a content calendar from your raw media."
             : "No FARO brand package yet — upload footage, lock an inferred starter profile, then generate the same calendar output."}
         </p>
+        {profile ? (
+          <nav className="mt-5 flex flex-wrap gap-1.5" aria-label="Content Studio steps">
+            {WIZARD_STEPS.filter((s) => s.id !== "lock").map((s) => {
+              const active = step === s.id;
+              const done =
+                (s.id === "media" && ["brief", "generate", "review"].includes(step)) ||
+                (s.id === "brief" && ["generate", "review"].includes(step)) ||
+                (s.id === "generate" && step === "review") ||
+                (s.id === "review" && Boolean(calendar?.posts?.length));
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => setStep(s.id)}
+                  className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide transition ${
+                    active
+                      ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                      : done
+                        ? "border-[var(--ok)]/30 bg-[var(--ok)]/10 text-[var(--ok)]"
+                        : "border-[var(--border)] text-[var(--subtle)] hover:bg-[var(--surface-2)]"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </nav>
+        ) : null}
       </header>
 
       {error ? (
@@ -320,14 +368,13 @@ export function ContentStudioWorkspace({
         </p>
       ) : null}
       {progressMessage ? (
-        <p
+        <div
           role="status"
           aria-live="polite"
-          className="rounded-xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--accent)]"
+          className="rounded-xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-4 py-3"
         >
-          <Loader2 size={14} className="mr-2 inline animate-spin" />
-          {progressMessage}
-        </p>
+          <FaroLoaderInline label={progressMessage} size="sm" />
+        </div>
       ) : null}
 
       {!profile ? (
@@ -394,6 +441,7 @@ export function ContentStudioWorkspace({
         <>
           <BrandProfileStrip profile={profile} />
 
+          {step === "brief" || step === "generate" ? (
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
             <h3 className="font-medium">Month brief</h3>
             <p className="mt-1 text-xs text-[var(--muted)]">
@@ -431,8 +479,28 @@ export function ContentStudioWorkspace({
                 />
               </label>
             </div>
+            {step === "brief" ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStep("media")}
+                  className="rounded-full border border-[var(--border-strong)] px-4 py-2 text-xs font-medium text-[var(--muted)]"
+                >
+                  Back to media
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep("generate")}
+                  className="rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white"
+                >
+                  Next: Generate
+                </button>
+              </div>
+            ) : null}
           </section>
+          ) : null}
 
+          {step === "media" || step === "generate" ? (
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
             <h3 className="font-medium">Raw media</h3>
             <p className="mt-1 text-xs text-[var(--muted)]">
@@ -559,8 +627,32 @@ export function ContentStudioWorkspace({
                   : ""}
               </span>
             </div>
+            {step === "media" ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={assets.filter((a) => a.storagePath && !a.ownerMeta?.excluded).length === 0}
+                  onClick={() => setStep("brief")}
+                  className="rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white disabled:opacity-50"
+                >
+                  Next: Month brief
+                </button>
+              </div>
+            ) : null}
+            {assets.filter((a) => a.storagePath).length === 0 && step === "media" ? (
+              <p className="mt-3 text-xs text-[var(--danger)]">
+                Upload at least one photo or video to continue.
+              </p>
+            ) : null}
           </section>
+          ) : null}
 
+          {step === "generate" ? (
+          <div className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
+            <h3 className="font-medium">Generate month</h3>
+            <p className="text-xs text-[var(--muted)]">
+              Vision analysis + strategy plan + Open Design per post. This can take several minutes.
+            </p>
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2 text-xs text-[var(--muted)]">
               Cadence
@@ -605,28 +697,38 @@ export function ContentStudioWorkspace({
               onClick={() => void runGenerate()}
               className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
             >
-              {busy === "generate" ? (
+              {busy === "generate" || busy === "design" ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
                 <CalendarDays size={16} />
               )}
               Generate full month ({year}-{String(month).padStart(2, "0")})
             </button>
-            <span className="text-xs text-[var(--subtle)]">
-              Vision + strategy + owner brief · Open Design per post · several minutes
-            </span>
           </div>
-
-          {assets.filter((a) => a.storagePath).length === 0 ? (
-            <p className="text-xs text-[var(--danger)]">Upload or import at least one photo/video first.</p>
+            <button
+              type="button"
+              onClick={() => setStep("brief")}
+              className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
+            >
+              Back to brief
+            </button>
+          </div>
           ) : null}
 
-          {calendar ? (
+          {step === "review" && calendar ? (
             <ContentCalendarView
               key={calendar.id}
               calendar={calendar}
               onUpdated={setCalendar}
             />
+          ) : null}
+          {step === "review" && !calendar ? (
+            <p className="text-sm text-[var(--muted)]">
+              No calendar yet.{" "}
+              <button type="button" className="text-[var(--accent)] underline" onClick={() => setStep("generate")}>
+                Go generate
+              </button>
+            </p>
           ) : null}
         </>
       )}

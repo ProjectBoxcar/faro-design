@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { Section, Field } from "@/lib/methodology";
 import { Sparkles, Trash2, Check, X, RotateCw, Loader2 } from "lucide-react";
+import { FaroLoaderInline } from "@/components/FaroLoader";
 
 type Value = Record<string, unknown>;
 
@@ -17,17 +18,22 @@ function InlineAiProgress() {
   const seconds = elapsed / 2;
   const pct = Math.min(92, Math.max(3, Math.round((1 - Math.exp(-seconds / 12)) * 92)));
   return (
-    <div className="mb-6 rounded-lg border border-[var(--designer)]/40 bg-[var(--accent-soft)] p-4 text-sm">
+    <div className="mb-6 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] p-4 text-sm">
       <div className="flex items-center gap-3">
-        <Loader2 size={18} className="shrink-0 animate-spin text-[var(--designer)]" />
-        <span className="font-medium text-[var(--designer)]">Writing this with AI</span>
-        <span className="ml-auto shrink-0 font-semibold tabular-nums text-[var(--designer)]" aria-live="polite">
+        <FaroLoaderInline label="Writing this with AI" size="sm" className="flex-1" />
+        <span className="ml-auto shrink-0 font-semibold tabular-nums text-[var(--accent)]" aria-live="polite">
           {pct}%
         </span>
       </div>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/50 dark:bg-black/20">
+      <div
+        className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]"
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
         <div
-          className="h-full rounded-full bg-[var(--designer)] transition-all duration-500"
+          className="h-full rounded-full bg-[var(--accent)] transition-all duration-500"
           style={{ width: `${pct}%` }}
         />
       </div>

@@ -97,18 +97,21 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
   }
   const contentDone = Boolean(latestCalendarForProject(projectId)?.posts?.length);
 
-  // Strategy is complete when strategy content is ready (name/logo gates are separate).
-  const strategyDone =
+  // Strategy *stage* is complete when essentials unlock name/logo (Express path),
+  // or owner has already moved past strategy. Deep pillar polish stays optional.
+  const strategyEssentialsDone =
     strategyContentReady ||
     logoUnlocked ||
     logoApproved ||
     designUnlocked ||
     designDone ||
+    nameConfirmed ||
     project.current_phase === "planning" ||
     project.current_phase === "design" ||
     project.current_phase === "finished";
+  const strategyDone = strategyEssentialsDone;
 
-  // Strategy pillar steps (same status rules)
+  // Strategy pillar steps — real completion; incomplete pillars stay optional after essentials
   const groupById = new Map(reviewGroups().map((g) => [g.id, g]));
   const strategySteps: JourneyStepItem[] = [];
   for (const phase of methodology.phases) {
@@ -117,13 +120,15 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       const pr = journeyGroupProgress(pillar.id, statusMap);
       const stepDone = pr.total > 0 && pr.done >= pr.total;
       let status: StageStatus;
-      if (!strategyDone && stepDone) status = "done";
-      else if (strategyDone) status = "done";
-      else if (pillar.id === nextReviewGroup) status = "current";
-      else if (pr.done > 0) status = "todo";
-      else status = strategyDone ? "done" : "todo";
-      // If whole strategy is done, all pillars done
-      if (strategyDone) status = "done";
+      if (stepDone) {
+        status = "done";
+      } else if (!strategyEssentialsDone && pillar.id === nextReviewGroup) {
+        status = "current";
+      } else if (pr.done > 0) {
+        status = "todo";
+      } else {
+        status = "todo";
+      }
       strategySteps.push({
         id: pillar.id,
         name: groupById.get(pillar.id)!.name,
@@ -135,9 +140,13 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
             ? "Complete"
             : status === "current"
               ? "Continue here"
-              : pr.total > 0
-                ? `${Math.min(pr.done, pr.total)} of ${pr.total}`
-                : "Optional"
+              : strategyEssentialsDone
+                ? pr.total > 0
+                  ? `Optional deep review · ${Math.min(pr.done, pr.total)}/${pr.total}`
+                  : "Optional deep review"
+                : pr.total > 0
+                  ? `${Math.min(pr.done, pr.total)} of ${pr.total}`
+                  : "Not started"
         ),
       });
     }
@@ -229,12 +238,12 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       lockHint: "",
       doneDetail:
         strategyProgress.total > 0
-          ? `Complete · ${strategyProgress.done}/${strategyProgress.total} steps`
-          : "Complete",
+          ? `Essentials ready · ${strategyProgress.done}/${strategyProgress.total} steps (deep review optional)`
+          : "Essentials ready",
       todoDetail:
         strategyProgress.total > 0
-          ? `${strategyProgress.done} of ${strategyProgress.total} steps`
-          : "Start with Quick Start",
+          ? `${strategyProgress.done} of ${strategyProgress.total} · Express or pillar review`
+          : "Start with Quick Start / Express",
       steps: strategySteps,
     },
     {
@@ -380,15 +389,27 @@ export function primaryActionFromJourney(projectId: string): {
   const journey = buildProjectJourney(projectId);
   const stage = primaryJourneyStage(journey.stages);
   if (!stage) return null;
-  // Prefer nested current step (e.g. strategy pillar, design substep)
-  const nested = stage.steps?.find((s) => s.status === "current");
-  const href = nested?.href ?? stage.href;
-  const name = nested?.name ?? stage.name.replace(/^\d+\.\s*/, "");
+  // Prefer nested current step for design substeps; strategy essentials always go Express first
+  const nested =
+    stage.id === "strategy"
+      ? undefined
+      : stage.steps?.find((s) => s.status === "current");
+  const href =
+    stage.id === "strategy"
+      ? `/projects/${projectId}/express`
+      : nested?.href ?? stage.href;
+  const name =
+    stage.id === "strategy"
+      ? "Strategy essentials"
+      : nested?.name ?? stage.name.replace(/^\d+\.\s*/, "");
   return {
     href,
     name,
     label: stage.status === "current" ? "Up next" : "Continue",
-    detail: nested?.detail ?? stage.detail,
+    detail:
+      stage.id === "strategy"
+        ? "Review Express essentials, then continue to brand name (deep pillars optional)"
+        : nested?.detail ?? stage.detail,
     stageId: stage.id,
     overall: journey.overall,
   };
