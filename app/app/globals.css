@@ -205,6 +205,25 @@ body {
   animation: faro-persona-ring 1.6s ease-out infinite;
 }
 
+.faro-persona-face {
+  animation: faro-persona-face-in 0.35s ease-out;
+}
+
+@keyframes faro-persona-face-in {
+  from {
+    opacity: 0.35;
+    transform: scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.faro-persona-lamp {
+  animation: faro-coach-lamp 1.4s ease-in-out infinite;
+}
+
 .faro-persona-dot {
   display: inline-block;
   width: 5px;

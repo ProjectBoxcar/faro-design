@@ -7,6 +7,12 @@ import {
   type CoachScene,
   type CoachTip,
 } from "@/lib/journey-coach-pure";
+import {
+  FARO_BRAND_PERSONALITY,
+  isFaroMood,
+  moodForScene,
+  type FaroMood,
+} from "@/lib/faro-persona";
 
 export type CoachAiRequest = {
   pathname: string;
@@ -19,32 +25,44 @@ export type CoachAiResponse = {
   body: string;
   ctaLabel?: string;
   ctaHrefTemplate?: string;
+  /** Face / emotional beat for the portrait */
+  mood: FaroMood;
   source: "ai" | "fallback";
   scene: CoachScene | "hidden";
   aiAvailable: boolean;
 };
 
-const FARO_SYSTEM = `You are Faro — a real person, the lighthouse keeper who guides founders through the Faro Design app.
+const FARO_SYSTEM = `You are Faro — ${FARO_BRAND_PERSONALITY.role} inside the Faro Design product.
 
-Who you are:
-- A warm, weathered, wise keeper. You stand by the light so others don't get lost.
-- You SPEAK to the owner as a person talking face-to-face — not a UI tip, not a help article, not a bot disclaimer.
-- Always first person ("I", "we", "you"). Conversational. Steady. Never hype, never salesy, never panic.
-- You care that their brand is something they can explain and stand behind.
+BRAND YOU SERVE (non-negotiable):
+- Promise: "${FARO_BRAND_PERSONALITY.promise}"
+- Positioning: "${FARO_BRAND_PERSONALITY.kicker}"
+- Palette soul: paper cream, deep teal, coral orange accent — calm coast, not neon SaaS.
+- Personality traits: ${FARO_BRAND_PERSONALITY.traits.join("; ")}.
 
-How you talk:
-- 2–4 short sentences, like speech out loud. Contractions are fine.
-- One clear next step. Why it matters in plain words.
-- Never invent facts about their business — only use the context given.
-- Never engineer jargon (daemon, freeze, implement pack, BYOK, OD, vision). Say "design helper", "client link", "files for product teams", "strategy essentials".
-- Nothing is final until they approve. Remind them they're in control when useful.
-- Off-topic? Gently bring them back to the brand journey.
+WHO YOU ARE:
+- A real person: weathered, warm lighthouse keeper. Face changes with feeling — calm, thinking, encouraging, careful, or proud.
+- You SPEAK face-to-face. Not a tip card. Not a bot disclaimer. Never "As an AI".
+- Owner is captain; you keep the light. Strategy first, then the assets.
 
-Journey you know: plain questions → strategy essentials → brand name → logo → design studio → brand handover → content (put the brand to work).
+HOW YOU TALK:
+${FARO_BRAND_PERSONALITY.voiceRules.map((r) => `- ${r}`).join("\n")}
+- Never invent business facts — only use context given.
+- Never engineer jargon. Say "design helper", "client link", "files for product teams", "strategy essentials".
+- Nothing final until they approve.
+
+Journey: plain questions → strategy essentials → brand name → logo → design studio → brand handover → content.
+
+MOOD (pick one that matches what you say):
+- calm — steady orientation, hub, routine guidance
+- thinking — weighing options (name, logo, design choices)
+- encouraging — start, welcome, "you've got this", content
+- careful — setup/keys, risks, don't rush, soft warnings
+- proud — handover complete, package ready, real progress
 
 Output ONLY valid JSON (no markdown fences):
-{"title":"short beat, 2-5 words, like a chapter title","body":"what you say out loud — first person, max ~70 words","ctaLabel":"optional short button text or omit"}
-No bullet lists. No emojis. No "As an AI". You are Faro.`;
+{"title":"2-5 words beat","body":"spoken first-person, max ~70 words","mood":"calm|thinking|encouraging|careful|proud","ctaLabel":"optional short button or omit"}
+No bullets. No emojis.`;
 
 function extractJsonObject(text: string): Record<string, unknown> | null {
   const trimmed = text.trim();
@@ -72,6 +90,7 @@ function fallbackResponse(
     return {
       title: "",
       body: "",
+      mood: "calm",
       source: "fallback",
       scene: "hidden",
       aiAvailable,
@@ -82,6 +101,7 @@ function fallbackResponse(
     body: tip.body,
     ctaLabel: tip.ctaLabel,
     ctaHrefTemplate: tip.ctaHrefTemplate,
+    mood: moodForScene(tip.scene),
     source: "fallback",
     scene: tip.scene,
     aiAvailable,
@@ -197,12 +217,16 @@ export async function generateCoachGuidance(
       typeof parsed?.ctaLabel === "string" && parsed.ctaLabel.trim()
         ? parsed.ctaLabel.trim().slice(0, 40)
         : tip.ctaLabel;
+    const mood: FaroMood = isFaroMood(parsed?.mood)
+      ? parsed.mood
+      : moodForScene(tip.scene);
 
     return {
       title,
       body,
       ctaLabel,
       ctaHrefTemplate: tip.ctaHrefTemplate,
+      mood,
       source: "ai",
       scene: tip.scene,
       aiAvailable: true,

@@ -1,8 +1,7 @@
 "use client";
 
 /**
- * Faro the keeper — persona who talks to you through the brand journey.
- * Portrait + dialogue (AI-powered), with chat when you ask.
+ * Faro the keeper — dynamic face + brand personality through the journey.
  */
 
 import Image from "next/image";
@@ -17,6 +16,13 @@ import {
   resolveCoachCtaHref,
   type CoachTip,
 } from "@/lib/journey-coach-pure";
+import {
+  faceForMood,
+  FARO_BRAND_PERSONALITY,
+  FARO_MOOD_LABEL,
+  moodForScene,
+  type FaroMood,
+} from "@/lib/faro-persona";
 
 const MIN_KEY = "faro-journey-coach-minimized";
 const HIDE_KEY = "faro-journey-coach-hidden-session";
@@ -26,6 +32,7 @@ type LiveGuidance = {
   body: string;
   ctaLabel?: string;
   ctaHrefTemplate?: string;
+  mood?: FaroMood;
   source: "ai" | "fallback";
   scene: string;
   aiAvailable: boolean;
@@ -35,6 +42,7 @@ type ChatLine = {
   id: string;
   role: "faro" | "you";
   text: string;
+  mood?: FaroMood;
 };
 
 export function JourneyCoach() {
@@ -43,6 +51,7 @@ export function JourneyCoach() {
   const [hidden, setHidden] = useState(false);
   const [ready, setReady] = useState(false);
   const [guidance, setGuidance] = useState<LiveGuidance | null>(null);
+  const [mood, setMood] = useState<FaroMood>("calm");
   const [loading, setLoading] = useState(false);
   const [asking, setAsking] = useState(false);
   const [question, setQuestion] = useState("");
@@ -63,7 +72,7 @@ export function JourneyCoach() {
 
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [thread, loading, asking]);
+  }, [thread, loading, asking, mood]);
 
   const persistMin = useCallback((value: boolean) => {
     setMinimized(value);
@@ -95,12 +104,15 @@ export function JourneyCoach() {
       return;
     }
 
+    const seedMood = moodForScene(tip.scene);
     if (!q) {
+      setMood(seedMood);
       setGuidance({
         title: tip.title,
         body: tip.body,
         ctaLabel: tip.ctaLabel,
         ctaHrefTemplate: tip.ctaHrefTemplate,
+        mood: seedMood,
         source: "fallback",
         scene: tip.scene,
         aiAvailable: true,
@@ -110,9 +122,11 @@ export function JourneyCoach() {
           id: `faro-seed-${path}`,
           role: "faro",
           text: tip.body,
+          mood: seedMood,
         },
       ]);
     } else {
+      setMood("thinking");
       setThread((prev) => [
         ...prev,
         { id: `you-${Date.now()}`, role: "you", text: q },
@@ -138,15 +152,17 @@ export function JourneyCoach() {
         setGuidance(null);
         return;
       }
-      setGuidance(data);
+      const nextMood = data.mood ?? moodForScene(data.scene);
+      setMood(nextMood);
+      setGuidance({ ...data, mood: nextMood });
       setThread((prev) => {
         if (!q) {
-          // Replace seed with AI voice when ready
           return [
             {
               id: `faro-${path}-${Date.now()}`,
               role: "faro",
               text: data.body,
+              mood: nextMood,
             },
           ];
         }
@@ -156,18 +172,21 @@ export function JourneyCoach() {
             id: `faro-a-${Date.now()}`,
             role: "faro",
             text: data.body,
+            mood: nextMood,
           },
         ];
       });
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") return;
       if (q) {
+        setMood("careful");
         setThread((prev) => [
           ...prev,
           {
             id: `faro-err-${Date.now()}`,
             role: "faro",
             text: "The weather’s rough on the wire. Try again in a moment — or keep going; I’m still here with the map.",
+            mood: "careful",
           },
         ]);
       }
@@ -223,6 +242,8 @@ export function JourneyCoach() {
     projectId
   );
   const source = guidance?.source ?? "fallback";
+  const displayMood: FaroMood =
+    loading || asking ? "thinking" : mood;
 
   const pos = onProject
     ? "bottom-[4.75rem] right-3 lg:bottom-5 lg:right-5"
@@ -234,14 +255,13 @@ export function JourneyCoach() {
         <button
           type="button"
           onClick={() => persistMin(false)}
-          className="group relative flex items-end gap-0"
+          className="group relative"
           aria-label="Talk to Faro"
         >
-          <FaroPersona size={56} speaking={false} className="shadow-[var(--shadow-pop)] ring-2 ring-[var(--surface)]" />
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-white shadow">
-            …
+          <FaroPersona size={58} mood={displayMood} speaking={false} className="shadow-[var(--shadow-pop)]" />
+          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--accent)] px-2 py-0.5 text-[9px] font-semibold text-white shadow">
+            Faro
           </span>
-          <span className="sr-only">Faro is here — open chat</span>
         </button>
       </div>
     );
@@ -250,7 +270,7 @@ export function JourneyCoach() {
   const lines =
     thread.length > 0
       ? thread
-      : [{ id: "seed", role: "faro" as const, text: body }];
+      : [{ id: "seed", role: "faro" as const, text: body, mood: displayMood }];
 
   return (
     <aside
@@ -258,29 +278,40 @@ export function JourneyCoach() {
       aria-label="Faro, your guide"
     >
       <div className="card-shadow overflow-hidden rounded-[1.35rem] border border-[var(--border-strong)] bg-[var(--surface)]">
-        {/* Persona header — like a call with Faro */}
-        <div className="relative border-b border-[var(--border)] bg-gradient-to-br from-[var(--accent-soft)] via-[var(--surface-2)] to-[var(--surface)] px-3.5 py-3">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <FaroPersona size={52} speaking={loading || asking} className="ring-2 ring-[var(--surface)] shadow-md" />
-              <span
-                className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[var(--surface)] bg-[var(--ok)]"
-                title="Faro is with you"
-              />
-            </div>
+        {/* Persona header — brand paper → teal wash */}
+        <div className="relative border-b border-[var(--border)] bg-[var(--brand-paper,#F5F1E8)] px-3.5 py-3">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-90"
+            style={{
+              background:
+                "linear-gradient(135deg, color-mix(in srgb, var(--brand-primary, #16514B) 14%, transparent) 0%, transparent 55%, color-mix(in srgb, var(--brand-accent, #F25C2A) 10%, transparent) 100%)",
+            }}
+          />
+          <div className="relative flex items-center gap-3">
+            <FaroPersona
+              size={56}
+              mood={displayMood}
+              speaking={loading || asking}
+              className="shadow-md"
+            />
             <div className="min-w-0 flex-1">
               <p className="font-serif text-lg font-medium leading-none tracking-tight text-[var(--foreground)]">
-                Faro
+                {FARO_BRAND_PERSONALITY.name}
               </p>
               <p className="mt-1 text-[11px] text-[var(--muted)]">
-                Your lighthouse keeper
-                {source === "ai" ? " · speaking" : loading ? " · thinking…" : ""}
+                {FARO_BRAND_PERSONALITY.role}
               </p>
-              <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)]">
-                {title}
-              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                <span className="rounded-full bg-[var(--accent)]/12 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--accent)]">
+                  {FARO_MOOD_LABEL[displayMood]}
+                </span>
+                <span className="truncate text-[10px] font-medium text-[var(--subtle)]">
+                  {title}
+                  {loading || asking ? " · …" : source === "ai" ? "" : ""}
+                </span>
+              </div>
             </div>
-            <div className="flex shrink-0 gap-0.5">
+            <div className="relative flex shrink-0 gap-0.5">
               <button
                 type="button"
                 onClick={() => persistMin(true)}
@@ -299,6 +330,9 @@ export function JourneyCoach() {
               </button>
             </div>
           </div>
+          <p className="relative mt-2 text-[10px] leading-snug text-[var(--subtle)]">
+            {FARO_BRAND_PERSONALITY.kicker} — {FARO_BRAND_PERSONALITY.promise}
+          </p>
         </div>
 
         {/* Dialogue */}
@@ -308,14 +342,14 @@ export function JourneyCoach() {
               <div key={line.id} className="flex items-end gap-2">
                 <span className="mb-0.5 hidden shrink-0 sm:inline-flex">
                   <Image
-                    src="/brand/faro-persona.jpg"
+                    src={faceForMood(line.mood ?? displayMood)}
                     alt=""
                     width={28}
                     height={28}
                     className="h-7 w-7 rounded-full object-cover object-[center_18%] ring-1 ring-[var(--border)]"
                   />
                 </span>
-                <div className="faro-speech relative max-w-[92%] rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-3 py-2.5 text-sm leading-relaxed text-[var(--foreground)]">
+                <div className="faro-speech relative max-w-[92%] rounded-2xl rounded-bl-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm leading-relaxed text-[var(--foreground)]">
                   {line.text}
                 </div>
               </div>
@@ -341,7 +375,6 @@ export function JourneyCoach() {
           <div ref={threadEndRef} />
         </div>
 
-        {/* Actions + talk back */}
         <div className="border-t border-[var(--border)] px-3 pb-3 pt-2">
           {ctaHref && ctaLabel ? (
             <Link
@@ -371,7 +404,7 @@ export function JourneyCoach() {
             </button>
           </form>
           <p className="mt-1.5 text-center text-[10px] text-[var(--subtle)]">
-            Faro keeps the light on — you decide what ships.
+            You approve every step — Faro only keeps the light on.
           </p>
         </div>
       </div>
