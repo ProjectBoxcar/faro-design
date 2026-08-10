@@ -1,48 +1,23 @@
 "use client";
 
 /**
- * Faro — animated lighthouse robot face (brand beacon as a living guide).
- * Moving lamp-eyes, mood-driven look, soft blink. Pure SVG/CSS — no photo.
+ * Simple Faro robot face — lighthouse lamp-eyes that follow the cursor.
  */
 
+import { useEffect, useRef, useState } from "react";
 import { FARO_MOOD_LABEL, type FaroMood } from "@/lib/faro-persona";
 
 type Props = {
   size?: number;
   mood?: FaroMood;
-  /** Thinking / loading — eyes search a bit faster */
   speaking?: boolean;
   className?: string;
   showMoodRing?: boolean;
+  /** When false, eyes stay centered (tiny bubble avatars) */
+  trackCursor?: boolean;
 };
 
-/**
- * Pupil offset (viewBox units) by mood — where the robot is “looking”.
- */
-function pupilOffset(mood: FaroMood, speaking: boolean): { x: number; y: number } {
-  if (speaking) return { x: 0, y: 0.4 };
-  switch (mood) {
-    case "thinking":
-      return { x: 1.6, y: -0.6 };
-    case "encouraging":
-      return { x: 0, y: 0.3 };
-    case "careful":
-      return { x: 0, y: 0.9 };
-    case "proud":
-      return { x: 0, y: -0.5 };
-    case "calm":
-    default:
-      return { x: 0, y: 0 };
-  }
-}
-
-function eyeOpen(mood: FaroMood): number {
-  // scale of vertical open amount (1 = full)
-  if (mood === "careful") return 0.72;
-  if (mood === "proud") return 1.05;
-  if (mood === "encouraging") return 1.08;
-  return 1;
-}
+const MAX_LOOK = 3.2; // viewBox units inside each eye
 
 export function FaroPersona({
   size = 72,
@@ -50,16 +25,53 @@ export function FaroPersona({
   speaking = false,
   className = "",
   showMoodRing = true,
+  trackCursor = true,
 }: Props) {
-  const px = pupilOffset(mood, speaking);
-  const open = eyeOpen(mood);
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const [look, setLook] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (!trackCursor) {
+      setLook({ x: 0, y: 0 });
+      return;
+    }
+
+    function onMove(e: MouseEvent) {
+      const el = rootRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      // Normalize by distance so far cursor still looks that way, clamped
+      const dist = Math.hypot(dx, dy) || 1;
+      const strength = Math.min(1, dist / 180);
+      const nx = (dx / dist) * MAX_LOOK * strength;
+      const ny = (dy / dist) * MAX_LOOK * strength;
+      setLook({ x: nx, y: ny });
+    }
+
+    function onLeave() {
+      // Soft return when pointer leaves window
+      setLook({ x: 0, y: 0 });
+    }
+
+    window.addEventListener("mousemove", onMove, { passive: true });
+    window.addEventListener("mouseleave", onLeave);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseleave", onLeave);
+    };
+  }, [trackCursor]);
+
   const lamp =
     mood === "careful"
       ? "var(--brand-accent, #F25C2A)"
       : mood === "proud"
         ? "var(--brand-signal, #E8B417)"
         : "var(--brand-accent, #F25C2A)";
-  const body = "var(--brand-primary, #16514B)";
+  const teal = "var(--brand-primary, #16514B)";
   const paper = "var(--brand-paper, #F5F1E8)";
   const ink = "var(--brand-ink, #111111)";
 
@@ -70,8 +82,15 @@ export function FaroPersona({
         ? "ring-[var(--brand-signal)]/50"
         : "ring-[var(--accent)]/30";
 
+  // Slight mood bias on pupil when not tracking strongly
+  const biasY =
+    mood === "careful" ? 0.4 : mood === "proud" ? -0.25 : mood === "thinking" ? -0.15 : 0;
+  const px = look.x;
+  const py = look.y + biasY;
+
   return (
     <span
+      ref={rootRef}
       className={`relative inline-flex shrink-0 items-center justify-center ${className} ${
         speaking ? "faro-persona-speaking" : ""
       }`}
@@ -81,131 +100,73 @@ export function FaroPersona({
       aria-label={`Faro, ${FARO_MOOD_LABEL[mood]}`}
     >
       <span
-        className={`relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-[var(--surface-2)] ${
+        className={`relative flex h-full w-full items-center justify-center overflow-hidden rounded-full ${
           showMoodRing ? `ring-2 ${ringClass}` : ""
         }`}
+        style={{ background: paper }}
       >
         <svg
-          viewBox="0 0 80 80"
+          viewBox="0 0 64 64"
           width={size}
           height={size}
-          className={`faro-robot-face faro-robot-mood-${mood} ${speaking ? "is-speaking" : ""}`}
+          className={`faro-robot-face ${speaking ? "is-speaking" : ""}`}
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          {/* Soft paper disc */}
-          <circle cx="40" cy="40" r="38" fill={paper} />
+          {/* Simple circular robot head */}
+          <circle cx="32" cy="34" r="22" fill={teal} />
+          <circle cx="32" cy="34" r="18" fill={paper} />
 
-          {/* Outer beacon ring */}
+          {/* Tiny cupola lamp */}
+          <rect x="28" y="8" width="8" height="5" rx="1" fill={teal} />
           <circle
-            cx="40"
-            cy="40"
-            r="34"
-            stroke={body}
-            strokeWidth="1.5"
-            opacity="0.35"
-            className="faro-robot-ring"
-          />
-
-          {/* Head / lantern housing — teal tower top */}
-          <path
-            d="M22 48 C22 28 28 16 40 16 C52 16 58 28 58 48 L54 58 C54 62 48 66 40 66 C32 66 26 62 26 58 Z"
-            fill={body}
-          />
-          {/* Paper face plate (robot face) */}
-          <ellipse cx="40" cy="42" rx="16" ry="17" fill={paper} />
-          <ellipse cx="40" cy="42" rx="16" ry="17" stroke={ink} strokeWidth="0.6" opacity="0.12" />
-
-          {/* Cupola / antenna lamp on top */}
-          <rect x="36" y="10" width="8" height="6" rx="1" fill={body} />
-          <circle
-            cx="40"
-            cy="9"
-            r="4"
+            cx="32"
+            cy="7"
+            r="3.2"
             fill={lamp}
             className={speaking ? "faro-robot-lamp-on" : "faro-robot-lamp"}
           />
-          {/* Beam when speaking */}
-          <g className="faro-robot-beams" opacity={speaking ? 0.55 : 0.22}>
-            <path d="M40 9 L62 2 L64 10 Z" fill={lamp} />
-            <path d="M40 9 L18 2 L16 10 Z" fill={lamp} />
+
+          {/* Left eye socket */}
+          <circle cx="24" cy="33" r="7" fill={ink} opacity="0.92" />
+          {/* Right eye socket */}
+          <circle cx="40" cy="33" r="7" fill={ink} opacity="0.92" />
+
+          {/* Pupils — follow cursor */}
+          <g className="faro-robot-pupils-live">
+            <circle cx={24 + px} cy={33 + py} r="3.1" fill={lamp} />
+            <circle cx={40 + px} cy={33 + py} r="3.1" fill={lamp} />
+            <circle cx={23.2 + px} cy={32.2 + py} r="0.85" fill={paper} opacity="0.9" />
+            <circle cx={39.2 + px} cy={32.2 + py} r="0.85" fill={paper} opacity="0.9" />
           </g>
 
-          {/* Eyes — robot lamps in windows */}
-          <g className="faro-robot-eyes" style={{ transformOrigin: "40px 38px" }}>
-            {/* Left eye socket */}
-            <ellipse
-              cx="33"
-              cy="38"
-              rx="5.2"
-              ry={4.6 * open}
-              fill={ink}
-              opacity="0.9"
-            />
-            {/* Right eye socket */}
-            <ellipse
-              cx="47"
-              cy="38"
-              rx="5.2"
-              ry={4.6 * open}
-              fill={ink}
-              opacity="0.9"
-            />
-            {/* Pupils / lamps — move with mood + idle drift */}
-            <g className="faro-robot-pupils" style={{ transform: `translate(${px.x}px, ${px.y}px)` }}>
-              <circle cx="33" cy="38" r="2.4" fill={lamp} className="faro-robot-pupil" />
-              <circle cx="47" cy="38" r="2.4" fill={lamp} className="faro-robot-pupil" />
-              {/* Specular dots */}
-              <circle cx="32.2" cy="37.2" r="0.7" fill={paper} opacity="0.85" />
-              <circle cx="46.2" cy="37.2" r="0.7" fill={paper} opacity="0.85" />
-            </g>
-            {/* Blink lids */}
-            <g className="faro-robot-lids">
-              <ellipse cx="33" cy="38" rx="5.4" ry={4.8 * open} fill={body} className="faro-robot-lid" />
-              <ellipse cx="47" cy="38" rx="5.4" ry={4.8 * open} fill={body} className="faro-robot-lid" />
-            </g>
+          {/* Blink lids (CSS) */}
+          <g className="faro-robot-lids-simple">
+            <ellipse cx="24" cy="33" rx="7.2" ry="7.2" fill={teal} className="faro-robot-lid" />
+            <ellipse cx="40" cy="33" rx="7.2" ry="7.2" fill={teal} className="faro-robot-lid" />
           </g>
 
-          {/* Mouth — simple robot slot, shape by mood */}
+          {/* Simple mouth slot */}
           {mood === "encouraging" || mood === "proud" ? (
             <path
-              d="M34 50 Q40 55 46 50"
-              stroke={ink}
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              fill="none"
-              opacity="0.55"
-            />
-          ) : mood === "careful" ? (
-            <path
-              d="M35 51 L45 51"
-              stroke={ink}
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              opacity="0.5"
-            />
-          ) : mood === "thinking" ? (
-            <path
-              d="M36 51 Q40 49 44 51"
+              d="M27 44 Q32 48 37 44"
               stroke={ink}
               strokeWidth="1.5"
               strokeLinecap="round"
               fill="none"
               opacity="0.45"
             />
+          ) : mood === "careful" ? (
+            <line x1="28" y1="45" x2="36" y2="45" stroke={ink} strokeWidth="1.4" strokeLinecap="round" opacity="0.4" />
           ) : (
-            <rect x="36" y="50" width="8" height="2" rx="1" fill={ink} opacity="0.35" />
+            <rect x="29" y="44" width="6" height="1.8" rx="0.9" fill={ink} opacity="0.3" />
           )}
-
-          {/* Gallery line under face */}
-          <rect x="28" y="58" width="24" height="3" rx="0.5" fill={paper} opacity="0.35" />
         </svg>
       </span>
     </span>
   );
 }
 
-/** Tiny face for speech-bubble row */
 export function FaroPersonaMini({
   mood = "calm",
   speaking = false,
@@ -213,5 +174,13 @@ export function FaroPersonaMini({
   mood?: FaroMood;
   speaking?: boolean;
 }) {
-  return <FaroPersona size={28} mood={mood} speaking={speaking} showMoodRing={false} />;
+  return (
+    <FaroPersona
+      size={28}
+      mood={mood}
+      speaking={speaking}
+      showMoodRing={false}
+      trackCursor={false}
+    />
+  );
 }

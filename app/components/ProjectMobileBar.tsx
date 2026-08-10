@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import type { JourneyStageItem, StageStatus } from "@/lib/sidebar-journey";
 
 function stageTone(status: StageStatus, active: boolean): string {
@@ -71,6 +72,7 @@ export function ProjectMobileBar({
             </p>
           ) : null}
         </div>
+        <LanguageSwitcher className="shrink-0 scale-90" />
         <button
           type="button"
           onClick={() => setOpen(true)}

@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 const Body = z.object({
   pathname: z.string().min(1).max(500),
   question: z.string().max(400).optional().nullable(),
+  locale: z.enum(["en", "es"]).optional().nullable(),
 });
 
 export async function POST(req: Request) {
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
     const guidance = await generateCoachGuidance({
       pathname: parsed.data.pathname,
       question: parsed.data.question,
+      locale: parsed.data.locale ?? "en",
     });
     return NextResponse.json(guidance);
   } catch (e) {

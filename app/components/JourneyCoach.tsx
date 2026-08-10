@@ -21,6 +21,7 @@ import {
   moodForScene,
   type FaroMood,
 } from "@/lib/faro-persona";
+import { useLocale } from "@/components/LocaleProvider";
 
 const MIN_KEY = "faro-journey-coach-minimized";
 const HIDE_KEY = "faro-journey-coach-hidden-session";
@@ -45,6 +46,7 @@ type ChatLine = {
 
 export function JourneyCoach() {
   const pathname = usePathname() || "/";
+  const { locale, t } = useLocale();
   const [minimized, setMinimized] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [ready, setReady] = useState(false);
@@ -94,105 +96,112 @@ export function JourneyCoach() {
   const projectId = projectIdFromPath(pathname);
   const onProject = Boolean(projectId);
 
-  const fetchGuidance = useCallback(async (path: string, q?: string) => {
-    const tip = coachTipFromPath(path);
-    if (tip.scene === "hidden") {
-      setGuidance(null);
-      setThread([]);
-      return;
-    }
-
-    const seedMood = moodForScene(tip.scene);
-    if (!q) {
-      setMood(seedMood);
-      setGuidance({
-        title: tip.title,
-        body: tip.body,
-        ctaLabel: tip.ctaLabel,
-        ctaHrefTemplate: tip.ctaHrefTemplate,
-        mood: seedMood,
-        source: "fallback",
-        scene: tip.scene,
-        aiAvailable: true,
-      });
-      setThread([
-        {
-          id: `faro-seed-${path}`,
-          role: "faro",
-          text: tip.body,
-          mood: seedMood,
-        },
-      ]);
-    } else {
-      setMood("thinking");
-      setThread((prev) => [
-        ...prev,
-        { id: `you-${Date.now()}`, role: "you", text: q },
-      ]);
-    }
-
-    abortRef.current?.abort();
-    const ac = new AbortController();
-    abortRef.current = ac;
-    setLoading(!q);
-    if (q) setAsking(true);
-
-    try {
-      const res = await fetch("/api/journey-coach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pathname: path, question: q || null }),
-        signal: ac.signal,
-      });
-      if (!res.ok) throw new Error("coach failed");
-      const data = (await res.json()) as LiveGuidance;
-      if (data.scene === "hidden") {
+  const fetchGuidance = useCallback(
+    async (path: string, q?: string) => {
+      const tip = coachTipFromPath(path);
+      if (tip.scene === "hidden") {
         setGuidance(null);
+        setThread([]);
         return;
       }
-      const nextMood = data.mood ?? moodForScene(data.scene);
-      setMood(nextMood);
-      setGuidance({ ...data, mood: nextMood });
-      setThread((prev) => {
-        if (!q) {
+
+      const seedMood = moodForScene(tip.scene);
+      if (!q) {
+        setMood(seedMood);
+        setGuidance({
+          title: tip.title,
+          body: tip.body,
+          ctaLabel: tip.ctaLabel,
+          ctaHrefTemplate: tip.ctaHrefTemplate,
+          mood: seedMood,
+          source: "fallback",
+          scene: tip.scene,
+          aiAvailable: true,
+        });
+        setThread([
+          {
+            id: `faro-seed-${path}`,
+            role: "faro",
+            text: tip.body,
+            mood: seedMood,
+          },
+        ]);
+      } else {
+        setMood("thinking");
+        setThread((prev) => [
+          ...prev,
+          { id: `you-${Date.now()}`, role: "you", text: q },
+        ]);
+      }
+
+      abortRef.current?.abort();
+      const ac = new AbortController();
+      abortRef.current = ac;
+      setLoading(!q);
+      if (q) setAsking(true);
+
+      try {
+        const res = await fetch("/api/journey-coach", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pathname: path,
+            question: q || null,
+            locale,
+          }),
+          signal: ac.signal,
+        });
+        if (!res.ok) throw new Error("coach failed");
+        const data = (await res.json()) as LiveGuidance;
+        if (data.scene === "hidden") {
+          setGuidance(null);
+          return;
+        }
+        const nextMood = data.mood ?? moodForScene(data.scene);
+        setMood(nextMood);
+        setGuidance({ ...data, mood: nextMood });
+        setThread((prev) => {
+          if (!q) {
+            return [
+              {
+                id: `faro-${path}-${Date.now()}`,
+                role: "faro",
+                text: data.body,
+                mood: nextMood,
+              },
+            ];
+          }
           return [
+            ...prev,
             {
-              id: `faro-${path}-${Date.now()}`,
+              id: `faro-a-${Date.now()}`,
               role: "faro",
               text: data.body,
               mood: nextMood,
             },
           ];
+        });
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") return;
+        if (q) {
+          setMood("careful");
+          setThread((prev) => [
+            ...prev,
+            {
+              id: `faro-err-${Date.now()}`,
+              role: "faro",
+              text: t("coach.error"),
+              mood: "careful",
+            },
+          ]);
         }
-        return [
-          ...prev,
-          {
-            id: `faro-a-${Date.now()}`,
-            role: "faro",
-            text: data.body,
-            mood: nextMood,
-          },
-        ];
-      });
-    } catch (e) {
-      if (e instanceof Error && e.name === "AbortError") return;
-      if (q) {
-        setMood("careful");
-        setThread((prev) => [
-          ...prev,
-          {
-            id: `faro-err-${Date.now()}`,
-            role: "faro",
-            text: "The weather’s rough on the wire. Try again in a moment — or keep going; I’m still here with the map.",
-            mood: "careful",
-          },
-        ]);
+      } finally {
+        setLoading(false);
+        setAsking(false);
       }
-    } finally {
-      setLoading(false);
-      setAsking(false);
-    }
-  }, []);
+    },
+    [locale, t]
+  );
 
   useEffect(() => {
     if (!ready || hidden) return;
@@ -201,14 +210,16 @@ export function JourneyCoach() {
       setThread([]);
       return;
     }
-    if (pathKeyRef.current === pathname) return;
-    pathKeyRef.current = pathname;
+    // Refetch when path or language changes
+    const key = `${pathname}::${locale}`;
+    if (pathKeyRef.current === key) return;
+    pathKeyRef.current = key;
     setQuestion("");
     void fetchGuidance(pathname);
     return () => {
       abortRef.current?.abort();
     };
-  }, [pathname, ready, hidden, seedTip.scene, fetchGuidance]);
+  }, [pathname, locale, ready, hidden, seedTip.scene, fetchGuidance]);
 
   async function submitQuestion(e: React.FormEvent) {
     e.preventDefault();
@@ -254,7 +265,7 @@ export function JourneyCoach() {
           type="button"
           onClick={() => persistMin(false)}
           className="group relative"
-          aria-label="Talk to Faro"
+          aria-label={t("coach.open")}
         >
           <FaroPersona size={58} mood={displayMood} speaking={false} className="shadow-[var(--shadow-pop)]" />
           <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--accent)] px-2 py-0.5 text-[9px] font-semibold text-white shadow">
@@ -297,7 +308,7 @@ export function JourneyCoach() {
                 {FARO_BRAND_PERSONALITY.name}
               </p>
               <p className="mt-1 text-[11px] text-[var(--muted)]">
-                {FARO_BRAND_PERSONALITY.role}
+                {t("coach.role")}
               </p>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
                 <span className="rounded-full bg-[var(--accent)]/12 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--accent)]">
@@ -314,7 +325,7 @@ export function JourneyCoach() {
                 type="button"
                 onClick={() => persistMin(true)}
                 className="rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
-                aria-label="Minimize Faro"
+                aria-label={t("coach.minimize")}
               >
                 <ChevronDown size={16} />
               </button>
@@ -322,7 +333,7 @@ export function JourneyCoach() {
                 type="button"
                 onClick={hideSession}
                 className="rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
-                aria-label="Hide Faro for this session"
+                aria-label={t("coach.hide")}
               >
                 <X size={16} />
               </button>
@@ -360,7 +371,7 @@ export function JourneyCoach() {
                 <span className="faro-persona-dot" />
                 <span className="faro-persona-dot" style={{ animationDelay: "0.15s" }} />
                 <span className="faro-persona-dot" style={{ animationDelay: "0.3s" }} />
-                <span className="sr-only">Faro is thinking</span>
+                <span className="sr-only">{t("coach.thinking")}</span>
               </div>
             </div>
           )}
@@ -380,23 +391,23 @@ export function JourneyCoach() {
             <input
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Talk to Faro…"
+              placeholder={t("coach.talkPlaceholder")}
               maxLength={400}
               disabled={asking}
               className="min-w-0 flex-1 rounded-full border border-[var(--border-strong)] bg-[var(--field)] px-3.5 py-2 text-xs text-[var(--foreground)] outline-none placeholder:text-[var(--subtle)] focus:border-[var(--accent)]"
-              aria-label="Talk to Faro"
+              aria-label={t("coach.talkPlaceholder")}
             />
             <button
               type="submit"
               disabled={asking || !question.trim()}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)] text-white disabled:opacity-40"
-              aria-label="Send to Faro"
+              aria-label={t("coach.open")}
             >
               {asking ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
             </button>
           </form>
           <p className="mt-1.5 text-center text-[10px] text-[var(--subtle)]">
-            You approve every step — Faro only keeps the light on.
+            {t("coach.footer")}
           </p>
         </div>
       </div>

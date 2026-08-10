@@ -18,6 +18,8 @@ export type CoachAiRequest = {
   pathname: string;
   /** Optional freeform question from the owner */
   question?: string | null;
+  /** UI language — Faro answers in this language */
+  locale?: "en" | "es" | null;
 };
 
 export type CoachAiResponse = {
@@ -181,9 +183,16 @@ export async function generateCoachGuidance(
     pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? null;
   const context = buildContextBlock(pathname, projectId);
   const question = (input.question ?? "").trim().slice(0, 400);
+  const locale = input.locale === "es" ? "es" : "en";
+  const langLine =
+    locale === "es"
+      ? "LANGUAGE: Speak entirely in Spanish (Spain/LatAm neutral). title, body, ctaLabel all in Spanish."
+      : "LANGUAGE: Speak entirely in English.";
 
   const userPrompt = [
-    "Static seed for this screen (improve or rewrite in your voice; keep intent):",
+    langLine,
+    "",
+    "Static seed for this screen (improve or rewrite in your voice; keep intent; translate if needed):",
     `title: ${tip.title}`,
     `body: ${tip.body}`,
     tip.ctaLabel ? `suggestedCta: ${tip.ctaLabel}` : null,

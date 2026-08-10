@@ -266,26 +266,16 @@ body {
   }
 }
 
-.faro-robot-lids .faro-robot-lid {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: faro-robot-blink 4.8s ease-in-out infinite;
-  /* lids sit on top and “close” by scaling — default fully open via opacity 0 */
-  opacity: 0;
-}
-
-/* Real blink: cover pupils briefly using lid opacity + scale */
-.faro-robot-eyes {
-  /* container for blink on lids */
-}
-
-.faro-robot-lids {
+/* Simple blink covers pupils briefly */
+.faro-robot-lids-simple {
   pointer-events: none;
 }
 
-.faro-robot-lids .faro-robot-lid {
+.faro-robot-lids-simple .faro-robot-lid {
+  transform-box: fill-box;
+  transform-origin: center;
   opacity: 0;
-  animation: faro-robot-lid-blink 5s ease-in-out infinite;
+  animation: faro-robot-lid-blink 5.2s ease-in-out infinite;
 }
 
 @keyframes faro-robot-lid-blink {
@@ -294,25 +284,10 @@ body {
   48%,
   100% {
     opacity: 0;
-    transform: scaleY(0.15);
   }
   46% {
     opacity: 1;
-    transform: scaleY(1);
   }
-}
-
-.faro-robot-pupils {
-  transform-box: fill-box;
-  animation: faro-robot-look 7s ease-in-out infinite;
-}
-
-.faro-robot-mood-thinking .faro-robot-pupils {
-  animation: faro-robot-look-think 3.2s ease-in-out infinite;
-}
-
-.faro-robot-face.is-speaking .faro-robot-pupils {
-  animation: faro-robot-look 2.2s ease-in-out infinite;
 }
 
 .faro-robot-lamp,
