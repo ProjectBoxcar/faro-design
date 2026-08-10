@@ -12,7 +12,10 @@ import {
 } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
 import { FaroMark } from "./FaroMark";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useLocale } from "@/components/LocaleProvider";
 import type { JourneyStageItem, JourneyStepItem, StageStatus } from "@/lib/sidebar-journey";
+import { stageLabelKey } from "@/lib/i18n/messages";
 
 export type { JourneyStageItem, JourneyStepItem, StageStatus };
 
@@ -33,6 +36,7 @@ export function ProjectSidebar({
   overall: { done: number; total: number };
 }) {
   const pathname = usePathname();
+  const { t } = useLocale();
 
   function isStageActive(stage: JourneyStageItem): boolean {
     const base = `/projects/${projectId}`;
@@ -73,30 +77,33 @@ export function ProjectSidebar({
           href="/"
           className="inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
         >
-          <ArrowLeft size={15} /> All projects
+          <ArrowLeft size={15} /> {t("nav.allProjects")}
         </Link>
       </div>
 
       <div className="px-5">
-        <Link
-          href="/"
-          className="mb-3 block text-[var(--foreground)] opacity-80 transition hover:opacity-100"
-          aria-label="Faro Design home"
-        >
-          <FaroMark className="h-6 w-auto max-w-[11rem]" />
-        </Link>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <Link
+            href="/"
+            className="block text-[var(--foreground)] opacity-80 transition hover:opacity-100"
+            aria-label="Faro Design home"
+          >
+            <FaroMark className="h-6 w-auto max-w-[11rem]" />
+          </Link>
+          <LanguageSwitcher />
+        </div>
         <Link href={`/projects/${projectId}`} className="block">
           <h1 className="font-serif text-xl font-normal tracking-tight">{projectName}</h1>
         </Link>
         {clientName && <p className="text-sm text-[var(--muted)]">{clientName}</p>}
         {greenfield && (
-          <p className="mt-1 text-xs text-[var(--subtle)]">New brand — no existing materials</p>
+          <p className="mt-1 text-xs text-[var(--subtle)]">{t("projects.greenfield")}</p>
         )}
         <div className="mt-4">
           <div className="mb-1 flex items-center justify-between text-xs text-[var(--subtle)]">
-            <span>Journey</span>
+            <span>{t("nav.journey")}</span>
             <span className="tabular-nums">
-              {overall.done}/{overall.total} stages
+              {overall.done}/{overall.total}
             </span>
           </div>
           <ProgressBar done={overall.done} total={overall.total} showPercent />
@@ -105,7 +112,7 @@ export function ProjectSidebar({
 
       <nav aria-label="Project journey" className="mt-5 flex-1 overflow-y-auto px-3 pb-6">
         <p className="px-2.5 pb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
-          Stages
+          {t("nav.stages")}
         </p>
         <ol className="space-y-1">
           {stages.map((stage) => (
@@ -119,7 +126,7 @@ export function ProjectSidebar({
         </ol>
 
         <p className="mt-4 px-2.5 text-[11px] leading-snug text-[var(--subtle)]">
-          Same order for every project: strategy → name → logo → design → handover → content.
+          {t("nav.journeyOrder")}
         </p>
       </nav>
 
@@ -128,7 +135,7 @@ export function ProjectSidebar({
           href="/settings"
           className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm text-[var(--muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
         >
-          <Settings size={15} /> Settings
+          <Settings size={15} /> {t("nav.settings")}
         </Link>
       </div>
     </aside>
@@ -144,6 +151,7 @@ function StageRow({
   active: boolean;
   pathname: string;
 }) {
+  const { t } = useLocale();
   const hasSteps = Boolean(stage.steps?.length);
   const locked = stage.status === "locked";
   // Auto: expand the stage you are on, or the stage that is "Next".
@@ -168,6 +176,9 @@ function StageRow({
     return () => window.removeEventListener("hashchange", read);
   }, [pathname]);
 
+  const num = stage.name.match(/^(\d+\.\s*)/)?.[1] ?? "";
+  const stageTitle = `${num}${t(stageLabelKey(stage.id))}`;
+
   const rowClass = [
     "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition",
     locked ? "cursor-not-allowed opacity-55" : "hover:bg-[var(--surface-2)]",
@@ -179,7 +190,7 @@ function StageRow({
       <StatusDot status={stage.status} active={active} size="lg" />
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium text-[var(--foreground)]">{stage.name}</span>
+          <span className="truncate text-sm font-medium text-[var(--foreground)]">{stageTitle}</span>
           <StatusBadge status={stage.status} viewing={active && stage.status !== "done"} />
         </span>
         <span className="mt-0.5 block truncate text-[11px] text-[var(--subtle)]">{stage.detail}</span>

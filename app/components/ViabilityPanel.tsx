@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, ShieldAlert, ShieldQuestion } from "lucide-react";
 import type { EvalScore } from "@/lib/db/types";
+import { useLocale } from "@/components/LocaleProvider";
 
 export type ViabilityPanelProps = {
   projectId: string;
@@ -15,33 +16,22 @@ export type ViabilityPanelProps = {
   personal: boolean;
 };
 
-const STYLE: Record<
-  string,
-  { label: string; className: string; Icon: typeof CheckCircle2; blurb: string }
-> = {
+const STYLE_CLASS: Record<string, { className: string; Icon: typeof CheckCircle2 }> = {
   pending: {
-    label: "Not checked yet",
     className: "border-[var(--border-strong)] bg-[var(--surface)] text-[var(--muted)]",
     Icon: ShieldQuestion,
-    blurb: "This check runs automatically once the key business answers are on file.",
   },
   pass: {
-    label: "Looks sound",
     className: "border-[var(--ok)]/30 bg-[var(--ok)]/10 text-[var(--ok)]",
     Icon: CheckCircle2,
-    blurb: "The basics of this brand project look solid enough to continue.",
   },
   caveat: {
-    label: "Proceed with care",
     className: "border-[var(--warn)]/30 bg-[var(--warn)]/10 text-[var(--warn)]",
     Icon: AlertTriangle,
-    blurb: "You can continue, but a few warning signs or soft gaps showed up.",
   },
   fail: {
-    label: "Needs attention",
     className: "border-[var(--danger)]/30 bg-[var(--danger)]/10 text-[var(--danger)]",
     Icon: ShieldAlert,
-    blurb: "Something foundational failed this check. You can still continue with a short reason.",
   },
 };
 
@@ -53,6 +43,7 @@ export function ViabilityPanel({
   personal,
 }: ViabilityPanelProps) {
   const router = useRouter();
+  const { t } = useLocale();
   const [open, setOpen] = useState(viability === "fail" && !overrideNote);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<"override" | "recheck" | null>(null);
@@ -63,8 +54,24 @@ export function ViabilityPanel({
   // Effective display: override turns fail into an annotated pass.
   const displayKey =
     localOverride && localViability === "pass" ? "pass" : localViability;
-  const style = STYLE[displayKey] ?? STYLE.pending;
-  const Icon = style.Icon;
+  const shell = STYLE_CLASS[displayKey] ?? STYLE_CLASS.pending;
+  const Icon = shell.Icon;
+  const labelKey =
+    displayKey === "pending"
+      ? "viability.notChecked"
+      : displayKey === "pass"
+        ? "viability.pass"
+        : displayKey === "caveat"
+          ? "viability.caveat"
+          : "viability.fail";
+  const blurbKey =
+    displayKey === "pending"
+      ? "viability.notCheckedBlurb"
+      : displayKey === "pass"
+        ? "viability.passBlurb"
+        : displayKey === "caveat"
+          ? "viability.caveatBlurb"
+          : "viability.failBlurb";
 
   async function recheck() {
     setBusy("recheck");
@@ -122,18 +129,21 @@ export function ViabilityPanel({
   if (localViability === "pending" && !scores?.length) return null;
 
   return (
-    <div className={`mt-4 rounded-2xl border p-4 ${style.className}`}>
+    <div className={`mt-4 rounded-2xl border p-4 ${shell.className}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-2.5">
           <Icon size={18} className="mt-0.5 shrink-0" />
           <div className="min-w-0">
             <div className="text-sm font-semibold">
-              Brand foundation: {localOverride ? "Looks sound (noted)" : style.label}
+              {t("viability.brandFoundation")}:{" "}
+              {localOverride ? t("viability.looksSoundNoted") : t(labelKey)}
             </div>
             <p className="mt-0.5 text-xs leading-relaxed opacity-90">
               {localOverride
-                ? `Proceeding with a logged reason. ${personal ? "Personal project — commercial non-negotiables don’t block." : ""}`
-                : style.blurb}
+                ? personal
+                  ? t("viability.passBlurb")
+                  : t("viability.passBlurb")
+                : t(blurbKey)}
             </p>
             {localOverride && (
               <p className="mt-2 rounded-lg bg-white/50 px-2.5 py-1.5 text-xs">

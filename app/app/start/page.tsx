@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { FaroLoaderPanel } from "@/components/FaroLoader";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useLocale } from "@/components/LocaleProvider";
 
 type Answers = {
   offering: string;
@@ -15,54 +17,13 @@ type Answers = {
   taste: string;
 };
 
-const QUESTIONS: {
-  key: keyof Answers;
-  title: string;
-  help: string;
-  placeholder: string;
-}[] = [
-  {
-    key: "offering",
-    title: "What do you sell, and who is it for?",
-    help: "Describe what you actually offer and the kind of client who gets the most out of it. Don't worry about polish — just tell it plainly.",
-    placeholder: "We help independent architecture studios… Our best clients are…",
-  },
-  {
-    key: "story",
-    title: "How did it start, and where are you taking it?",
-    help: "How the business began, anything that shaped how you work, and where you'd like it to be in a few years.",
-    placeholder: "I started this after… What I learned was… In a few years I want…",
-  },
-  {
-    key: "difference",
-    title: "What makes you different — and what do you believe about your industry?",
-    help: "What clients get from you that they can't get elsewhere, and any convictions you hold about how your field should work.",
-    placeholder: "Unlike most studios we… I believe our industry gets ___ wrong because…",
-  },
-  {
-    key: "operations",
-    title: "How does the business run, and where does it show up?",
-    help: "How many products/services you offer, your price level (premium, mid-range, budget), where the brand appears (website, Instagram, packaging, storefront…), and how customers find you.",
-    placeholder: "Three services, premium-priced. The brand lives on our website, Instagram and packaging. Most clients come from referrals…",
-  },
-  {
-    key: "edge",
-    title: "What's one thing that's true about you a competitor couldn't honestly say?",
-    help: "The hardest-to-copy thing — a standard you hold, a way you work, something only you could claim.",
-    placeholder: "We've never shipped a brand we didn't believe in…",
-  },
-  {
-    key: "taste",
-    title: "How should the brand look and feel?",
-    help: "Brands or styles you admire, the feeling you want people to have, and anything you definitely don't want (colors, moods, clichés). This guides the design work.",
-    placeholder: "Clean and calm, like Aesop or Apple. Warm but confident. Please no neon colors or startup clichés…",
-  },
-];
+const Q_KEYS = ["offering", "story", "difference", "operations", "edge", "taste"] as const;
 
-const TOTAL_STEPS = QUESTIONS.length + 1; // intro details + questions
+const TOTAL_STEPS = Q_KEYS.length + 1;
 
 export default function StartPage() {
   const router = useRouter();
+  const { t } = useLocale();
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [client, setClient] = useState("");
@@ -80,12 +41,13 @@ export default function StartPage() {
   const [error, setError] = useState<string | null>(null);
 
   const isDetails = step === 0;
-  const questionIndex = step - 1; // 0..QUESTIONS.length-1 while in questions
-  const isQuestion = questionIndex >= 0 && questionIndex < QUESTIONS.length;
-  const isLastQuestion = questionIndex === QUESTIONS.length - 1;
+  const questionIndex = step - 1;
+  const isQuestion = questionIndex >= 0 && questionIndex < Q_KEYS.length;
+  const isLastQuestion = questionIndex === Q_KEYS.length - 1;
+  const qKey = isQuestion ? Q_KEYS[questionIndex] : null;
+  const qn = questionIndex + 1;
 
-  const currentAnswer =
-    isQuestion ? answers[QUESTIONS[questionIndex].key].trim() : "";
+  const currentAnswer = qKey ? answers[qKey].trim() : "";
   const canAdvance = isDetails
     ? name.trim().length > 0
     : isQuestion
@@ -95,11 +57,11 @@ export default function StartPage() {
   function next() {
     setError(null);
     if (isDetails && !name.trim()) {
-      setError("Give your brand a name to continue.");
+      setError(t("start.needName"));
       return;
     }
     if (isQuestion && !currentAnswer) {
-      setError("Write a short answer to continue.");
+      setError(t("start.needAnswer"));
       return;
     }
     setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
@@ -109,10 +71,9 @@ export default function StartPage() {
     setStep((s) => Math.max(s - 1, 0));
   }
 
-  // Escape hatch: skip the interview and open an empty workspace to fill by hand.
   async function startBlank() {
     if (!name.trim()) {
-      setError("Give your brand a name first.");
+      setError(t("start.needNameFirst"));
       return;
     }
     setBuilding(true);
@@ -121,24 +82,29 @@ export default function StartPage() {
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), client_name: client.trim() || null, greenfield, personal }),
+        body: JSON.stringify({
+          name: name.trim(),
+          client_name: client.trim() || null,
+          greenfield,
+          personal,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.id) {
-        setError(data.error ?? "Couldn't create the project.");
+        setError(data.error ?? t("common.error"));
         setBuilding(false);
         return;
       }
       router.push(`/projects/${data.id}`);
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("common.error"));
       setBuilding(false);
     }
   }
 
   async function build() {
     if (!currentAnswer) {
-      setError("Write a short answer to continue.");
+      setError(t("start.needAnswer"));
       return;
     }
     setBuilding(true);
@@ -157,11 +123,10 @@ export default function StartPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!data.projectId) {
-        setError(data.error ?? "Something went wrong. Please try again.");
+        setError(data.error ?? t("common.error"));
         setBuilding(false);
         return;
       }
-      // Answers are saved even when AI is skipped or expansion fails.
       if (data.aiSkipped) {
         router.push(
           `/projects/${data.projectId}?aiSkipped=1${
@@ -171,8 +136,6 @@ export default function StartPage() {
         return;
       }
       if (data.error || (typeof data.filled === "number" && data.filled === 0 && res.status !== 201)) {
-        // Raw answers on file; strategy drafts did not complete — still open express
-        // so they can resume, with a clear warning in the URL.
         const warn = encodeURIComponent(
           String(data.error ?? "Could not draft strategy from your answers. Your answers were saved.")
         );
@@ -180,15 +143,13 @@ export default function StartPage() {
         return;
       }
       if (!res.ok) {
-        setError(data.error ?? "Something went wrong. Please try again.");
+        setError(data.error ?? t("common.error"));
         setBuilding(false);
         return;
       }
-      // Land on the express journey: the full strategy drafts in the background
-      // and the owner reviews the finished brief + design plan on one page.
       router.push(`/projects/${data.projectId}/express`);
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("common.error"));
       setBuilding(false);
     }
   }
@@ -198,8 +159,8 @@ export default function StartPage() {
       <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center px-6 py-16">
         <FaroLoaderPanel
           beaconSize="hero"
-          title="Drafting your strategy…"
-          description="We're turning your answers into a first draft of your brand's foundations. Next, you'll review it step by step."
+          title={t("start.draftingTitle")}
+          description={t("start.draftingDesc")}
         />
       </main>
     );
@@ -207,19 +168,21 @@ export default function StartPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-6 py-10 lg:py-16">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex items-center justify-between gap-3">
         <Link
           href="/"
           className="inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
         >
-          <ArrowLeft size={15} /> Home
+          <ArrowLeft size={15} /> {t("common.home")}
         </Link>
-        <div className="text-xs text-[var(--subtle)]">
-          Step {step + 1} of {TOTAL_STEPS}
+        <div className="flex items-center gap-3">
+          <LanguageSwitcher />
+          <div className="text-xs text-[var(--subtle)]">
+            {t("start.stepOf", { n: step + 1, total: TOTAL_STEPS })}
+          </div>
         </div>
       </div>
 
-      {/* Progress */}
       <div className="mb-10 flex gap-1.5">
         {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
           <div
@@ -234,32 +197,27 @@ export default function StartPage() {
       <div className="flex-1">
         {isDetails && (
           <div>
-            <h1 className="font-serif text-4xl font-medium leading-tight tracking-tight">Let&apos;s build your brand</h1>
-            <p className="mt-3 text-[var(--muted)]">
-              <strong className="text-[var(--foreground)]">First</strong>, a few plain questions.{" "}
-              <strong className="text-[var(--foreground)]">Then</strong>, a strategy draft you review and fix—step by
-              step. No branding experience needed.
-            </p>
+            <h1 className="font-serif text-4xl font-medium leading-tight tracking-tight">
+              {t("start.title")}
+            </h1>
+            <p className="mt-3 text-[var(--muted)]">{t("start.intro")}</p>
 
-            <label className="mt-8 block text-sm font-medium">Brand name</label>
+            <label className="mt-8 block text-sm font-medium">{t("start.brandName")}</label>
             <input
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && next()}
-              placeholder="e.g. Finisterra — or a temporary working title"
+              placeholder={t("start.brandNamePh")}
               className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-4 py-3 text-lg outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
             />
-            <p className="mt-1.5 text-xs text-[var(--subtle)]">
-              A working title is fine. After your strategy draft, we can suggest a stronger brand name
-              before logos.
-            </p>
+            <p className="mt-1.5 text-xs text-[var(--subtle)]">{t("start.brandNameHint")}</p>
 
-            <label className="mt-5 block text-sm font-medium">Company / your name (optional)</label>
+            <label className="mt-5 block text-sm font-medium">{t("start.company")}</label>
             <input
               value={client}
               onChange={(e) => setClient(e.target.value)}
-              placeholder="Who this brand belongs to"
+              placeholder={t("start.companyPh")}
               className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-4 py-3 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
             />
 
@@ -270,7 +228,7 @@ export default function StartPage() {
                 onChange={(e) => setGreenfield(e.target.checked)}
                 className="mt-0.5"
               />
-              This is a brand-new brand with no existing logo or materials yet.
+              {t("start.greenfield")}
             </label>
 
             <label className="mt-3 flex items-start gap-2.5 text-sm text-[var(--muted)]">
@@ -280,55 +238,49 @@ export default function StartPage() {
                 onChange={(e) => setPersonal(e.target.checked)}
                 className="mt-0.5"
               />
-              This is my own project — no paying client behind it (yet).
+              {t("start.personal")}
             </label>
 
             <button
               onClick={startBlank}
               className="mt-6 text-sm text-[var(--subtle)] underline-offset-2 transition hover:text-[var(--muted)] hover:underline"
             >
-              Prefer to fill everything in yourself? Start a blank project.
+              {t("start.blank")}
             </button>
           </div>
         )}
 
-        {isQuestion && (
+        {isQuestion && qKey && (
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
-              Question {questionIndex + 1} of {QUESTIONS.length}
+              {t("start.questionOf", { n: qn, total: Q_KEYS.length })}
             </div>
             <h1 className="mt-2 font-serif text-3xl font-medium leading-tight tracking-tight lg:text-4xl">
-              {QUESTIONS[questionIndex].title}
+              {t(`start.q${qn}Title`)}
             </h1>
-            <p className="mt-3 text-[var(--muted)]">{QUESTIONS[questionIndex].help}</p>
+            <p className="mt-3 text-[var(--muted)]">{t(`start.q${qn}Help`)}</p>
             <textarea
               autoFocus
-              value={answers[QUESTIONS[questionIndex].key]}
-              onChange={(e) =>
-                setAnswers((a) => ({ ...a, [QUESTIONS[questionIndex].key]: e.target.value }))
-              }
-              placeholder={QUESTIONS[questionIndex].placeholder}
+              value={answers[qKey]}
+              onChange={(e) => setAnswers((a) => ({ ...a, [qKey]: e.target.value }))}
+              placeholder={t(`start.q${qn}Ph`)}
               rows={7}
               className="mt-5 w-full resize-y rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-4 py-3 leading-relaxed outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
             />
-            <p className="mt-2 text-xs text-[var(--subtle)]">
-              A few sentences is plenty — Next unlocks once you type something.
-            </p>
+            <p className="mt-2 text-xs text-[var(--subtle)]">{t("start.typeHint")}</p>
           </div>
         )}
-
       </div>
 
       {error && <p className="mt-6 text-sm text-[var(--danger)]">{error}</p>}
 
-      {/* Nav */}
       <div className="mt-10 flex items-center justify-between gap-3">
         {step > 0 ? (
           <button
             onClick={back}
             className="inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm text-[var(--muted)] transition hover:bg-[var(--surface-2)]"
           >
-            <ArrowLeft size={15} /> Back
+            <ArrowLeft size={15} /> {t("common.back")}
           </button>
         ) : (
           <span />
@@ -340,7 +292,7 @@ export default function StartPage() {
             disabled={!canAdvance || building}
             className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Finish &amp; create my draft <Check size={16} />
+            {t("start.finish")} <Check size={16} />
           </button>
         ) : (
           <button
@@ -348,7 +300,7 @@ export default function StartPage() {
             disabled={!canAdvance}
             className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isDetails ? "Start" : "Next"} <ArrowRight size={15} />
+            {isDetails ? t("start.startBtn") : t("common.next")} <ArrowRight size={15} />
           </button>
         )}
       </div>

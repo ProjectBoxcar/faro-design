@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Trash2 } from "lucide-react";
 import { DeleteProjectButton } from "@/components/DeleteProjectButton";
 import { JourneyProgress, type JourneyStep } from "@/components/JourneyProgress";
+import { useLocale } from "@/components/LocaleProvider";
 
 export type ProjectCardData = {
   id: string;
@@ -43,6 +44,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export function ProjectList({ projects }: { projects: ProjectCardData[] }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -188,11 +190,8 @@ export function ProjectList({ projects }: { projects: ProjectCardData[] }) {
           const statusLabel =
             p.continueLabel ||
             (p.strategyFilled > 0 ? "In progress" : "Not started");
-          const ctaLabel = p.continueLabel
-            ? p.continueLabel.length > 28
-              ? "Continue"
-              : `Continue · ${p.continueLabel}`
-            : "Continue";
+          // continueLabel is often an English stage name from the server — keep short CTA
+          const ctaLabel = t("projects.continue");
 
           return (
             <li
