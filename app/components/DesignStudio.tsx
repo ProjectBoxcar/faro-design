@@ -26,6 +26,7 @@ import {
   type IdentityPreviewSection,
 } from "@/lib/design-preview";
 import { FaroBeacon } from "@/components/FaroLoader";
+import { useLocale } from "@/components/LocaleProvider";
 import {
   DesignGenerationWindow,
   type DesignGenerationKind,
@@ -100,6 +101,7 @@ export function DesignStudio({
 }) {
   void _initialShareToken;
   const router = useRouter();
+  const { t } = useLocale();
   const previewFrameRef = useRef<HTMLIFrameElement>(null);
   const [assets, setAssets] = useState<AssetRow[]>(initialAssets);
   const [loading, setLoading] = useState<GenerationState>(() =>
@@ -571,11 +573,10 @@ export function DesignStudio({
   return (
     <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-12 lg:py-12 2xl:max-w-[104rem]">
       <div className="mb-8">
-        <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">Design Studio</h1>
-        <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">
-          Your approved logo leads. Compare three identity directions, choose one final, then build
-          the landing page and deck from that system—tied to your strategy, not guesswork.
-        </p>
+        <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">
+          {t("design.title")}
+        </h1>
+        <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">{t("design.lede")}</p>
       </div>
 
       {!apiKeyConfigured && (
@@ -645,19 +646,17 @@ export function DesignStudio({
         <div className="min-w-0">
           <p className="text-sm font-medium text-[var(--foreground)]">
             {deliverableReady
-              ? "Visuals ready — finish the package on Brand Handover"
-              : `Choose your finals · ${finalCount}/3 ready`}
+              ? t("design.visualsReady")
+              : t("design.chooseFinals", { n: finalCount })}
           </p>
-          <p className="mt-0.5 text-xs text-[var(--muted)]">
-            Client link and product-team files live on Brand Handover — not here.
-          </p>
+          <p className="mt-0.5 text-xs text-[var(--muted)]">{t("design.handoverNote")}</p>
         </div>
         <Link
           href={`/projects/${projectId}/handover`}
           className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)]"
         >
           <PackageCheck size={16} />
-          {deliverableReady ? "Open Brand Handover" : "See what’s left for handover"}
+          {deliverableReady ? t("design.openHandover") : t("design.leftForHandover")}
         </Link>
       </div>
 

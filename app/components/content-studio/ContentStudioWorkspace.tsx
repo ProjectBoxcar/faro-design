@@ -13,6 +13,7 @@ import type {
 } from "@/lib/content-studio/types";
 import { BrandProfileStrip } from "@/components/content-studio/BrandProfileStrip";
 import { ContentCalendarView } from "@/components/content-studio/ContentCalendarView";
+import { useLocale } from "@/components/LocaleProvider";
 
 const ASSET_TAG_OPTIONS: { id: ContentAssetTag; label: string }[] = [
   { id: "hero", label: "Hero" },
@@ -42,6 +43,7 @@ export function ContentStudioWorkspace({
   initialAssets = [],
   initialCalendar = null,
 }: Props) {
+  const { t } = useLocale();
   const [blockedReason] = useState(initialBlockedReason);
   const [profileId, setProfileId] = useState(initialProfileId);
   const [profile, setProfile] = useState(initialProfile);
@@ -308,11 +310,9 @@ export function ContentStudioWorkspace({
     return (
       <div className="mx-auto max-w-2xl px-5 py-16 text-center">
         <Lock className="mx-auto text-[var(--subtle)]" size={28} />
-        <h1 className="mt-4 font-serif text-3xl font-medium tracking-tight">Content Studio</h1>
+        <h1 className="mt-4 font-serif text-3xl font-medium tracking-tight">{t("stage.content")}</h1>
         <p className="mt-3 text-sm text-[var(--muted)]">{blockedReason}</p>
-        <p className="mt-2 text-xs text-[var(--subtle)]">
-          Finish Logo Workshop and Design Studio finals first — Content Studio uses your locked brand package.
-        </p>
+        <p className="mt-2 text-xs text-[var(--subtle)]">{t("content.blocked")}</p>
       </div>
     );
   }
@@ -324,12 +324,10 @@ export function ContentStudioWorkspace({
           Content Studio
         </p>
         <h1 className="mt-1 font-serif text-3xl font-medium tracking-tight lg:text-4xl">
-          Put the brand to work
+          {t("content.title")}
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-          {mode === "project"
-            ? "Your finished brand becomes a month of posts from your real photos—planned, written, and designed for you to approve."
-            : "Name the brand, add photos, then build a month of posts you can review and post."}
+          {mode === "project" ? t("content.projectBlurb") : t("content.standaloneBlurb")}
         </p>
         {profile ? (
           <nav className="mt-5 flex flex-wrap gap-1.5" aria-label="Content Studio steps">
