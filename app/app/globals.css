@@ -205,23 +205,132 @@ body {
   animation: faro-persona-ring 1.6s ease-out infinite;
 }
 
-.faro-persona-face {
-  animation: faro-persona-face-in 0.35s ease-out;
+/* Lighthouse robot face — eyes, blink, lamp */
+@keyframes faro-robot-blink {
+  0%,
+  42%,
+  46%,
+  100% {
+    transform: scaleY(1);
+  }
+  44% {
+    transform: scaleY(0.08);
+  }
 }
 
-@keyframes faro-persona-face-in {
-  from {
-    opacity: 0.35;
-    transform: scale(1.04);
+@keyframes faro-robot-look {
+  0%,
+  100% {
+    transform: translate(0, 0);
   }
-  to {
+  25% {
+    transform: translate(1.2px, 0.3px);
+  }
+  50% {
+    transform: translate(-0.8px, 0.2px);
+  }
+  75% {
+    transform: translate(0.6px, -0.4px);
+  }
+}
+
+@keyframes faro-robot-look-think {
+  0%,
+  100% {
+    transform: translate(1.4px, -0.5px);
+  }
+  50% {
+    transform: translate(2px, -0.8px);
+  }
+}
+
+@keyframes faro-robot-lamp-pulse {
+  0%,
+  100% {
     opacity: 1;
-    transform: scale(1);
+    filter: drop-shadow(0 0 2px color-mix(in srgb, var(--brand-accent, #f25c2a) 70%, transparent));
+  }
+  50% {
+    opacity: 0.75;
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--brand-accent, #f25c2a) 90%, transparent));
   }
 }
 
-.faro-persona-lamp {
-  animation: faro-coach-lamp 1.4s ease-in-out infinite;
+@keyframes faro-robot-beam-sweep {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.faro-robot-lids .faro-robot-lid {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: faro-robot-blink 4.8s ease-in-out infinite;
+  /* lids sit on top and “close” by scaling — default fully open via opacity 0 */
+  opacity: 0;
+}
+
+/* Real blink: cover pupils briefly using lid opacity + scale */
+.faro-robot-eyes {
+  /* container for blink on lids */
+}
+
+.faro-robot-lids {
+  pointer-events: none;
+}
+
+.faro-robot-lids .faro-robot-lid {
+  opacity: 0;
+  animation: faro-robot-lid-blink 5s ease-in-out infinite;
+}
+
+@keyframes faro-robot-lid-blink {
+  0%,
+  44%,
+  48%,
+  100% {
+    opacity: 0;
+    transform: scaleY(0.15);
+  }
+  46% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+.faro-robot-pupils {
+  transform-box: fill-box;
+  animation: faro-robot-look 7s ease-in-out infinite;
+}
+
+.faro-robot-mood-thinking .faro-robot-pupils {
+  animation: faro-robot-look-think 3.2s ease-in-out infinite;
+}
+
+.faro-robot-face.is-speaking .faro-robot-pupils {
+  animation: faro-robot-look 2.2s ease-in-out infinite;
+}
+
+.faro-robot-lamp,
+.faro-robot-lamp-on {
+  animation: faro-robot-lamp-pulse 2s ease-in-out infinite;
+}
+
+.faro-robot-face.is-speaking .faro-robot-lamp-on {
+  animation: faro-robot-lamp-pulse 0.9s ease-in-out infinite;
+}
+
+.faro-robot-beams {
+  transform-origin: 40px 9px;
+  animation: faro-robot-beam-sweep 2.6s ease-in-out infinite;
+}
+
+.faro-robot-face.is-speaking .faro-robot-beams {
+  animation: faro-robot-beam-sweep 1.1s ease-in-out infinite;
 }
 
 .faro-persona-dot {
@@ -247,7 +356,12 @@ body {
   .faro-coach-lamp,
   .faro-coach-glow,
   .faro-persona-speaking,
-  .faro-persona-dot {
+  .faro-persona-dot,
+  .faro-robot-pupils,
+  .faro-robot-lids .faro-robot-lid,
+  .faro-robot-lamp,
+  .faro-robot-lamp-on,
+  .faro-robot-beams {
     animation: none;
     transform: none;
   }

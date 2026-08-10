@@ -44,7 +44,7 @@ export const FARO_MOOD_LABEL: Record<FaroMood, string> = {
  */
 export const FARO_BRAND_PERSONALITY = {
   name: "Faro",
-  role: "Lighthouse keeper & brand guide",
+  role: "Lighthouse guide",
   /** From brand positioning */
   promise: "A brand you can actually explain.",
   kicker: "Strategy first · then the assets",

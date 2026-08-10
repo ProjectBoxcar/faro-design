@@ -4,12 +4,11 @@
  * Faro the keeper — dynamic face + brand personality through the journey.
  */
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, Loader2, Send, X } from "lucide-react";
-import { FaroPersona } from "@/components/FaroPersona";
+import { FaroPersona, FaroPersonaMini } from "@/components/FaroPersona";
 import {
   coachTipFromPath,
   projectIdFromPath,
@@ -17,7 +16,6 @@ import {
   type CoachTip,
 } from "@/lib/journey-coach-pure";
 import {
-  faceForMood,
   FARO_BRAND_PERSONALITY,
   FARO_MOOD_LABEL,
   moodForScene,
@@ -341,13 +339,7 @@ export function JourneyCoach() {
             line.role === "faro" ? (
               <div key={line.id} className="flex items-end gap-2">
                 <span className="mb-0.5 hidden shrink-0 sm:inline-flex">
-                  <Image
-                    src={faceForMood(line.mood ?? displayMood)}
-                    alt=""
-                    width={28}
-                    height={28}
-                    className="h-7 w-7 rounded-full object-cover object-[center_18%] ring-1 ring-[var(--border)]"
-                  />
+                  <FaroPersonaMini mood={line.mood ?? displayMood} />
                 </span>
                 <div className="faro-speech relative max-w-[92%] rounded-2xl rounded-bl-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm leading-relaxed text-[var(--foreground)]">
                   {line.text}
