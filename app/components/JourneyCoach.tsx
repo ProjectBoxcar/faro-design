@@ -92,13 +92,13 @@ export function JourneyCoach() {
     }
   }, []);
 
-  const seedTip = coachTipFromPath(pathname);
+  const seedTip = coachTipFromPath(pathname, locale);
   const projectId = projectIdFromPath(pathname);
   const onProject = Boolean(projectId);
 
   const fetchGuidance = useCallback(
     async (path: string, q?: string) => {
-      const tip = coachTipFromPath(path);
+      const tip = coachTipFromPath(path, locale);
       if (tip.scene === "hidden") {
         setGuidance(null);
         setThread([]);
@@ -231,18 +231,16 @@ export function JourneyCoach() {
 
   if (!ready || seedTip.scene === "hidden" || hidden) return null;
 
-  const tip = (guidance ?? (seedTip as CoachTip)) as LiveGuidance | CoachTip;
-  const title = "title" in tip ? tip.title : (seedTip as CoachTip).title;
-  const body = "body" in tip ? tip.body : (seedTip as CoachTip).body;
-  const ctaLabel =
-    "ctaLabel" in tip ? tip.ctaLabel : (seedTip as CoachTip).ctaLabel;
+  const activeTip: CoachTip = seedTip;
+  const tip = (guidance ?? activeTip) as LiveGuidance | CoachTip;
+  const title = "title" in tip ? tip.title : activeTip.title;
+  const body = "body" in tip ? tip.body : activeTip.body;
+  const ctaLabel = "ctaLabel" in tip ? tip.ctaLabel : activeTip.ctaLabel;
   const ctaTemplate =
-    "ctaHrefTemplate" in tip
-      ? tip.ctaHrefTemplate
-      : (seedTip as CoachTip).ctaHrefTemplate;
+    "ctaHrefTemplate" in tip ? tip.ctaHrefTemplate : activeTip.ctaHrefTemplate;
   const ctaHref = resolveCoachCtaHref(
     {
-      scene: seedTip.scene === "hidden" ? "home" : seedTip.scene,
+      scene: activeTip.scene,
       title,
       body,
       ctaLabel,

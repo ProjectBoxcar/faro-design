@@ -11,6 +11,14 @@ describe("journey-coach-pure", () => {
     expect(coachTipFromPath("/start").scene).toBe("start");
   });
 
+  it("localizes coach tips", () => {
+    const en = coachTipFromPath("/", "en");
+    const es = coachTipFromPath("/", "es");
+    if (en.scene === "hidden" || es.scene === "hidden") throw new Error("expected tips");
+    expect(en.body).not.toEqual(es.body);
+    expect(es.body.toLowerCase()).toMatch(/faro|marca|preguntas/);
+  });
+
   it("maps full project journey stages", () => {
     const id = "abc";
     expect(coachTipFromPath(`/projects/${id}`).scene).toBe("hub");

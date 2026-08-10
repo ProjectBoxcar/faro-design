@@ -163,7 +163,8 @@ export async function generateCoachGuidance(
   input: CoachAiRequest
 ): Promise<CoachAiResponse> {
   const pathname = (input.pathname || "/").split("?")[0] || "/";
-  const tip = coachTipFromPath(pathname);
+  const localeEarly = input.locale === "es" ? "es" : "en";
+  const tip = coachTipFromPath(pathname, localeEarly);
   const aiAvailable = hasApiKey();
 
   if (tip.scene === "hidden") {

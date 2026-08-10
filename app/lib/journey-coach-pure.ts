@@ -3,6 +3,9 @@
  * Used by the floating guide from welcome through Brand Handover / Content Studio.
  */
 
+import { translate } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/types";
+
 export type CoachScene =
   | "home"
   | "start"
@@ -30,107 +33,81 @@ export type CoachTip = {
   ctaHrefTemplate?: string;
 };
 
-const TIPS: Record<Exclude<CoachScene, "hidden">, CoachTip> = {
+const SCENE_KEYS: Record<
+  Exclude<CoachScene, "hidden">,
+  { title: string; body: string; cta?: string; href?: string }
+> = {
   home: {
-    scene: "home",
-    title: "Glad you’re here",
-    body: "I’m Faro. I’ll walk with you from a few plain questions to a brand you can explain — and a package you can hand off. Nothing is final until you say so. Ready when you are.",
-    ctaLabel: "Start your brand",
-    ctaHrefTemplate: "/start",
+    title: "coachTip.homeTitle",
+    body: "coachTip.homeBody",
+    cta: "home.startBrand",
+    href: "/start",
   },
-  start: {
-    scene: "start",
-    title: "Honest answers",
-    body: "Don’t polish these for me. A few true lines beat a perfect essay. I’ll turn them into a strategy draft you can read and fix — you’re still the author.",
-  },
-  settings: {
-    scene: "settings",
-    title: "Keeping the light on",
-    body: "I need a Claude key for strategy and design, and OpenAI or Gemini for logos. Start Faro with start.bat so the design helper is awake. Then we can go far.",
-  },
-  hub: {
-    scene: "hub",
-    title: "Your map",
-    body: "This is home base. Hit Continue for the next real step. The rail is our path: strategy, name, logo, design, handover, then content. One light at a time.",
-  },
-  strategy: {
-    scene: "strategy",
-    title: "Does this sound like you?",
-    body: "Read the essentials. Change anything that isn’t your voice. Apply your edits so the rest can follow — then approve when it feels true, and we’ll name the brand.",
-  },
-  strategy_map: {
-    scene: "strategy_map",
-    title: "The deep chart",
-    body: "This full map is optional. Use it when you want every pillar. Day to day, stick with Continue and the essentials — don’t get lost in the fog.",
-  },
-  name: {
-    scene: "name",
-    title: "What we call it",
-    body: "Here we lock the name that goes on the mark. A working title was fine before; now choose what you’ll stand behind when the logo ships.",
-  },
-  logo: {
-    scene: "logo",
-    title: "The face of it",
-    body: "Look at the directions. Keep what feels right, drop the rest. When you approve one mark, Design Studio builds the system around it — not the other way around.",
-  },
-  design: {
-    scene: "design",
-    title: "System and mockups",
-    body: "Your logo leads. Pick one identity, then build the landing page and deck. When you’re ready to share or download, meet me on Brand Handover — that’s where the client link lives.",
-  },
-  handover: {
-    scene: "handover",
-    title: "Safe harbour",
-    body: "Everything you approved, in one place. Download files for product teams, present full screen, or share a private client link. This is the handoff — clean and calm.",
-  },
-  content: {
-    scene: "content",
-    title: "Out into the weather",
-    body: "The brand is built. Now we put it to work — a month of posts from your real photos. You still approve what ships. I just keep the light steady.",
-  },
+  start: { title: "coachTip.startTitle", body: "coachTip.startBody" },
+  settings: { title: "coachTip.settingsTitle", body: "coachTip.settingsBody" },
+  hub: { title: "coachTip.hubTitle", body: "coachTip.hubBody" },
+  strategy: { title: "coachTip.strategyTitle", body: "coachTip.strategyBody" },
+  strategy_map: { title: "coachTip.mapTitle", body: "coachTip.mapBody" },
+  name: { title: "coachTip.nameTitle", body: "coachTip.nameBody" },
+  logo: { title: "coachTip.logoTitle", body: "coachTip.logoBody" },
+  design: { title: "coachTip.designTitle", body: "coachTip.designBody" },
+  handover: { title: "coachTip.handoverTitle", body: "coachTip.handoverBody" },
+  content: { title: "coachTip.contentTitle", body: "coachTip.contentBody" },
   content_standalone: {
-    scene: "content_standalone",
-    title: "Content without the full voyage",
-    body: "We can plan posts from photos here. If you want the full Faro package — strategy through handover — start a project from home. I’ll be there either way.",
-    ctaLabel: "Home",
-    ctaHrefTemplate: "/",
+    title: "coachTip.contentSoloTitle",
+    body: "coachTip.contentSoloBody",
+    cta: "common.home",
+    href: "/",
   },
 };
+
+function tipForScene(scene: Exclude<CoachScene, "hidden">, locale: AppLocale): CoachTip {
+  const keys = SCENE_KEYS[scene];
+  return {
+    scene,
+    title: translate(locale, keys.title),
+    body: translate(locale, keys.body),
+    ctaLabel: keys.cta ? translate(locale, keys.cta) : undefined,
+    ctaHrefTemplate: keys.href,
+  };
+}
 
 /**
  * Map Next.js pathname → coach tip.
  * Returns scene "hidden" for public share / unlock (no owner coach).
  */
-export function coachTipFromPath(pathname: string): CoachTip | { scene: "hidden" } {
+export function coachTipFromPath(
+  pathname: string,
+  locale: AppLocale = "en"
+): CoachTip | { scene: "hidden" } {
   const path = (pathname || "/").split("?")[0] || "/";
 
   if (path.startsWith("/share") || path.startsWith("/unlock")) {
     return { scene: "hidden" };
   }
 
-  if (path === "/" || path === "") return TIPS.home;
-  if (path.startsWith("/start")) return TIPS.start;
-  if (path.startsWith("/settings")) return TIPS.settings;
+  if (path === "/" || path === "") return tipForScene("home", locale);
+  if (path.startsWith("/start")) return tipForScene("start", locale);
+  if (path.startsWith("/settings")) return tipForScene("settings", locale);
   if (path === "/content-studio" || path.startsWith("/content-studio/")) {
-    return TIPS.content_standalone;
+    return tipForScene("content_standalone", locale);
   }
 
   const projectMatch = path.match(/^\/projects\/([^/]+)(?:\/(.*))?$/);
   if (projectMatch) {
     const rest = projectMatch[2] ?? "";
-    if (!rest || rest === "") return TIPS.hub;
-    if (rest.startsWith("express")) return TIPS.strategy;
-    if (rest.startsWith("review")) return TIPS.strategy_map;
-    if (rest.startsWith("name")) return TIPS.name;
-    if (rest.startsWith("studio")) return TIPS.logo;
-    if (rest.startsWith("design")) return TIPS.design;
-    if (rest.startsWith("handover")) return TIPS.handover;
-    if (rest.startsWith("content")) return TIPS.content;
-    // Section editor under project root
-    return TIPS.strategy_map;
+    if (!rest || rest === "") return tipForScene("hub", locale);
+    if (rest.startsWith("express")) return tipForScene("strategy", locale);
+    if (rest.startsWith("review")) return tipForScene("strategy_map", locale);
+    if (rest.startsWith("name")) return tipForScene("name", locale);
+    if (rest.startsWith("studio")) return tipForScene("logo", locale);
+    if (rest.startsWith("design")) return tipForScene("design", locale);
+    if (rest.startsWith("handover")) return tipForScene("handover", locale);
+    if (rest.startsWith("content")) return tipForScene("content", locale);
+    return tipForScene("strategy_map", locale);
   }
 
-  return TIPS.home;
+  return tipForScene("home", locale);
 }
 
 /** Extract project id from pathname when on a project route. */

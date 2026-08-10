@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Loader2, Pencil, Sparkles, Square, X } from "lucide-react";
 import { FaroLoaderPanel } from "@/components/FaroLoader";
+import { useLocale } from "@/components/LocaleProvider";
 import { countBasedPercent } from "@/lib/generation-progress";
 
 // One value block of a strategy section, already reduced to plain JSON.
@@ -284,6 +285,11 @@ function SectionEditorInline({
   );
 }
 
+function ApplyEditsLabel() {
+  const { t } = useLocale();
+  return <>{t("express.applyEdits")}</>;
+}
+
 /** Shared hint under Rewrite with AI. */
 function RewriteHint({ saving }: { saving?: boolean }) {
   return (
@@ -382,7 +388,7 @@ function CardShell({
                 className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
               >
                 {readyBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                Apply my edits
+                <ApplyEditsLabel />
               </button>
             </div>
             <RewriteHint saving={draftSaving} />
@@ -623,6 +629,7 @@ export function ExpressJourney({
   approved: boolean;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [state, setState] = useState<ExpressStateDto>(initialState);
   const [sections, setSections] = useState(initialSections);
   const [approving, setApproving] = useState(false);
@@ -1074,19 +1081,13 @@ export function ExpressJourney({
     <main className="mx-auto w-full max-w-3xl px-6 py-10 lg:py-14">
       <header className="mb-8">
         <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
-          Strategy review
+          {t("express.kicker")}
         </div>
         <h1 className="mt-2 font-serif text-4xl font-medium leading-tight tracking-tight lg:text-5xl">
-          {projectName} — strategy essentials
+          {projectName} {t("express.titleSuffix")}
         </h1>
-        <p className="mt-3 max-w-2xl text-[var(--muted)]">
-          Read the essentials. Change anything that doesn&apos;t sound like you. When these cards
-          feel right, approve and continue to the brand name.
-        </p>
-        <p className="mt-2 text-xs text-[var(--subtle)]">
-          Edit what doesn&apos;t sound like you. Apply my edits to update related cards. Full map
-          stays optional.
-        </p>
+        <p className="mt-3 max-w-2xl text-[var(--muted)]">{t("express.lede")}</p>
+        <p className="mt-2 text-xs text-[var(--subtle)]">{t("express.helper")}</p>
       </header>
 
       {refining && refine && (
@@ -1094,11 +1095,11 @@ export function ExpressJourney({
           <div className="flex items-center gap-3">
             <Loader2 size={16} className="shrink-0 animate-spin text-[var(--accent)]" />
             <div className="min-w-0 flex-1">
-              <div className="font-medium">Updating the strategy from your edit</div>
+              <div className="font-medium">{t("express.updating")}</div>
               <div className="text-[var(--muted)]">
                 {refine.currentName
-                  ? `Rewriting ${refine.currentName}…`
-                  : "Applying your change…"}
+                  ? t("express.rewriting", { name: refine.currentName })
+                  : t("express.applying")}
               </div>
             </div>
             <span className="shrink-0 text-sm font-semibold tabular-nums text-[var(--accent)]">
@@ -1337,7 +1338,7 @@ export function ExpressJourney({
                             className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
                           >
                             {readyBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                            Apply my edits
+                            <ApplyEditsLabel />
                           </button>
                         </div>
                         <RewriteHint saving={draftSaving && editingId === id} />
@@ -1377,13 +1378,13 @@ export function ExpressJourney({
             href={`/projects/${projectId}/review/brief`}
             className="text-[var(--muted)] transition hover:text-[var(--foreground)]"
           >
-            Optional: open the full strategy map
+            {t("express.fullMap")}
           </Link>
           <Link
             href={`/projects/${projectId}`}
             className="text-xs text-[var(--subtle)] transition hover:text-[var(--muted)]"
           >
-            Project hub
+            {t("express.projectHub")}
           </Link>
         </div>
         <button
@@ -1392,7 +1393,7 @@ export function ExpressJourney({
           className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {approving ? <Loader2 size={15} className="animate-spin" /> : approved ? <Check size={15} /> : null}
-          {approved ? "Re-approve · continue" : "Approve strategy · continue to brand name"}
+          {approved ? t("express.reapprove") : t("express.approve")}
           <ArrowRight size={15} />
         </button>
       </div>

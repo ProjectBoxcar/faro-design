@@ -1,74 +1,49 @@
 import type { AppLocale } from "@/lib/i18n/types";
+import { en, es, type Catalog } from "@/lib/i18n/catalog";
 
-/** Chrome + coach UI strings. Expand as screens adopt t(). */
-export type MessageKey =
-  | "nav.contentStudio"
-  | "nav.settings"
-  | "nav.allProjects"
-  | "nav.journey"
-  | "nav.stages"
-  | "nav.journeyOrder"
-  | "nav.language"
-  | "home.startBrand"
-  | "home.yourProjects"
-  | "home.kicker"
-  | "coach.role"
-  | "coach.talkPlaceholder"
-  | "coach.footer"
-  | "coach.thinking"
-  | "coach.error"
-  | "coach.open"
-  | "coach.hide"
-  | "coach.minimize";
+const TABLES: Record<AppLocale, Catalog> = { en, es };
 
-const en: Record<MessageKey, string> = {
-  "nav.contentStudio": "Content Studio",
-  "nav.settings": "Settings",
-  "nav.allProjects": "All projects",
-  "nav.journey": "Journey",
-  "nav.stages": "Stages",
-  "nav.journeyOrder":
-    "Same order for every project: strategy → name → logo → design → handover → content.",
-  "nav.language": "Language",
-  "home.startBrand": "Start your brand",
-  "home.yourProjects": "Your projects",
-  "home.kicker": "Strategy first · then the assets",
-  "coach.role": "Lighthouse guide",
-  "coach.talkPlaceholder": "Talk to Faro…",
-  "coach.footer": "You approve every step — Faro only keeps the light on.",
-  "coach.thinking": "Faro is thinking",
-  "coach.error":
-    "The weather’s rough on the wire. Try again in a moment — or keep going; I’m still here with the map.",
-  "coach.open": "Talk to Faro",
-  "coach.hide": "Hide Faro for this session",
-  "coach.minimize": "Minimize Faro",
-};
+/** Dot-path key into the catalog, e.g. "start.q1.title" */
+export type MessageKey = string;
 
-const es: Record<MessageKey, string> = {
-  "nav.contentStudio": "Content Studio",
-  "nav.settings": "Ajustes",
-  "nav.allProjects": "Todos los proyectos",
-  "nav.journey": "Recorrido",
-  "nav.stages": "Etapas",
-  "nav.journeyOrder":
-    "Mismo orden en cada proyecto: estrategia → nombre → logo → diseño → entrega → contenido.",
-  "nav.language": "Idioma",
-  "home.startBrand": "Empieza tu marca",
-  "home.yourProjects": "Tus proyectos",
-  "home.kicker": "Primero la estrategia · luego los activos",
-  "coach.role": "Guía faro",
-  "coach.talkPlaceholder": "Habla con Faro…",
-  "coach.footer": "Tú apruebas cada paso — Faro solo mantiene la luz.",
-  "coach.thinking": "Faro está pensando",
-  "coach.error":
-    "Hay tormenta en el cable. Intenta en un momento — o sigue; sigo aquí con el mapa.",
-  "coach.open": "Hablar con Faro",
-  "coach.hide": "Ocultar a Faro en esta sesión",
-  "coach.minimize": "Minimizar a Faro",
-};
+function getPath(obj: unknown, path: string): unknown {
+  const parts = path.split(".");
+  let cur: unknown = obj;
+  for (const p of parts) {
+    if (cur == null || typeof cur !== "object") return undefined;
+    cur = (cur as Record<string, unknown>)[p];
+  }
+  return cur;
+}
 
-const TABLES: Record<AppLocale, Record<MessageKey, string>> = { en, es };
+/**
+ * Translate a catalog key. Optional `{name}` interpolation via vars.
+ */
+export function translate(
+  locale: AppLocale,
+  key: MessageKey,
+  vars?: Record<string, string | number>
+): string {
+  let raw = getPath(TABLES[locale], key);
+  if (typeof raw !== "string") {
+    raw = getPath(TABLES.en, key);
+  }
+  if (typeof raw !== "string") return key;
+  if (!vars) return raw;
+  return raw.replace(/\{(\w+)\}/g, (_, name: string) =>
+    vars[name] != null ? String(vars[name]) : `{${name}}`
+  );
+}
 
-export function translate(locale: AppLocale, key: MessageKey): string {
-  return TABLES[locale]?.[key] ?? TABLES.en[key] ?? key;
+/** Stage id → display label key */
+export function stageLabelKey(stageId: string): MessageKey {
+  const map: Record<string, MessageKey> = {
+    strategy: "stage.strategy",
+    name: "stage.name",
+    logo: "stage.logo",
+    design: "stage.design",
+    handover: "stage.handover",
+    content: "stage.content",
+  };
+  return map[stageId] ?? stageId;
 }

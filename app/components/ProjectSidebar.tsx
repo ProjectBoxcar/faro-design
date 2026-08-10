@@ -15,6 +15,7 @@ import { FaroMark } from "./FaroMark";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLocale } from "@/components/LocaleProvider";
 import type { JourneyStageItem, JourneyStepItem, StageStatus } from "@/lib/sidebar-journey";
+import { stageLabelKey } from "@/lib/i18n/messages";
 
 export type { JourneyStageItem, JourneyStepItem, StageStatus };
 
@@ -96,7 +97,7 @@ export function ProjectSidebar({
         </Link>
         {clientName && <p className="text-sm text-[var(--muted)]">{clientName}</p>}
         {greenfield && (
-          <p className="mt-1 text-xs text-[var(--subtle)]">New brand — no existing materials</p>
+          <p className="mt-1 text-xs text-[var(--subtle)]">{t("projects.greenfield")}</p>
         )}
         <div className="mt-4">
           <div className="mb-1 flex items-center justify-between text-xs text-[var(--subtle)]">
@@ -150,6 +151,7 @@ function StageRow({
   active: boolean;
   pathname: string;
 }) {
+  const { t } = useLocale();
   const hasSteps = Boolean(stage.steps?.length);
   const locked = stage.status === "locked";
   // Auto: expand the stage you are on, or the stage that is "Next".
@@ -174,6 +176,9 @@ function StageRow({
     return () => window.removeEventListener("hashchange", read);
   }, [pathname]);
 
+  const num = stage.name.match(/^(\d+\.\s*)/)?.[1] ?? "";
+  const stageTitle = `${num}${t(stageLabelKey(stage.id))}`;
+
   const rowClass = [
     "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition",
     locked ? "cursor-not-allowed opacity-55" : "hover:bg-[var(--surface-2)]",
@@ -185,7 +190,7 @@ function StageRow({
       <StatusDot status={stage.status} active={active} size="lg" />
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium text-[var(--foreground)]">{stage.name}</span>
+          <span className="truncate text-sm font-medium text-[var(--foreground)]">{stageTitle}</span>
           <StatusBadge status={stage.status} viewing={active && stage.status !== "done"} />
         </span>
         <span className="mt-0.5 block truncate text-[11px] text-[var(--subtle)]">{stage.detail}</span>

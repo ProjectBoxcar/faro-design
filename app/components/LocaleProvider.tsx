@@ -20,7 +20,7 @@ import {
 type LocaleContextValue = {
   locale: AppLocale;
   setLocale: (locale: AppLocale) => void;
-  t: (key: MessageKey) => string;
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string;
   locales: typeof APP_LOCALES;
 };
 
@@ -59,7 +59,21 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     setLocaleState(next);
   }, []);
 
-  const t = useCallback((key: MessageKey) => translate(locale, key), [locale]);
+  const t = useCallback(
+    (key: MessageKey, vars?: Record<string, string | number>) =>
+      translate(locale, key, vars),
+    [locale]
+  );
+
+  // Keep a cookie so server code can read locale later if needed
+  useEffect(() => {
+    if (!ready) return;
+    try {
+      document.cookie = `${LOCALE_STORAGE_KEY}=${locale};path=/;max-age=31536000;samesite=lax`;
+    } catch {
+      /* ignore */
+    }
+  }, [locale, ready]);
 
   const value = useMemo(
     () => ({ locale, setLocale, t, locales: APP_LOCALES }),
