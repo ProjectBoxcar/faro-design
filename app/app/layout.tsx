@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { EB_Garamond, Inter } from "next/font/google";
+import { JourneyCoach } from "@/components/JourneyCoach";
 import "./globals.css";
 
 // Faro system: display = EB Garamond; body = system / Inter.
@@ -49,7 +50,10 @@ export default function RootLayout({
         } as React.CSSProperties
       }
     >
-      <body className="min-h-full font-sans">{children}</body>
+      <body className="min-h-full font-sans">
+        {children}
+        <JourneyCoach />
+      </body>
     </html>
   );
 }
