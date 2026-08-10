@@ -1,15 +1,16 @@
 "use client";
 
 /**
- * Faro journey coach — AI-powered lighthouse guide from welcome through the journey.
- * Falls back to static wise tips when strategy AI is off or slow.
+ * Faro the keeper — persona who talks to you through the brand journey.
+ * Portrait + dialogue (AI-powered), with chat when you ask.
  */
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Loader2, Send, X } from "lucide-react";
-import { FaroCoachMark } from "@/components/FaroCoachMark";
+import { ChevronDown, Loader2, Send, X } from "lucide-react";
+import { FaroPersona } from "@/components/FaroPersona";
 import {
   coachTipFromPath,
   projectIdFromPath,
@@ -30,6 +31,12 @@ type LiveGuidance = {
   aiAvailable: boolean;
 };
 
+type ChatLine = {
+  id: string;
+  role: "faro" | "you";
+  text: string;
+};
+
 export function JourneyCoach() {
   const pathname = usePathname() || "/";
   const [minimized, setMinimized] = useState(false);
@@ -39,9 +46,10 @@ export function JourneyCoach() {
   const [loading, setLoading] = useState(false);
   const [asking, setAsking] = useState(false);
   const [question, setQuestion] = useState("");
-  const [showAsk, setShowAsk] = useState(false);
+  const [thread, setThread] = useState<ChatLine[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const pathKeyRef = useRef("");
+  const threadEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     try {
@@ -52,6 +60,10 @@ export function JourneyCoach() {
     }
     setReady(true);
   }, []);
+
+  useEffect(() => {
+    threadEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [thread, loading, asking]);
 
   const persistMin = useCallback((value: boolean) => {
     setMinimized(value);
@@ -75,68 +87,106 @@ export function JourneyCoach() {
   const projectId = projectIdFromPath(pathname);
   const onProject = Boolean(projectId);
 
-  const fetchGuidance = useCallback(
-    async (path: string, q?: string) => {
-      const tip = coachTipFromPath(path);
-      if (tip.scene === "hidden") {
+  const fetchGuidance = useCallback(async (path: string, q?: string) => {
+    const tip = coachTipFromPath(path);
+    if (tip.scene === "hidden") {
+      setGuidance(null);
+      setThread([]);
+      return;
+    }
+
+    if (!q) {
+      setGuidance({
+        title: tip.title,
+        body: tip.body,
+        ctaLabel: tip.ctaLabel,
+        ctaHrefTemplate: tip.ctaHrefTemplate,
+        source: "fallback",
+        scene: tip.scene,
+        aiAvailable: true,
+      });
+      setThread([
+        {
+          id: `faro-seed-${path}`,
+          role: "faro",
+          text: tip.body,
+        },
+      ]);
+    } else {
+      setThread((prev) => [
+        ...prev,
+        { id: `you-${Date.now()}`, role: "you", text: q },
+      ]);
+    }
+
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    setLoading(!q);
+    if (q) setAsking(true);
+
+    try {
+      const res = await fetch("/api/journey-coach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pathname: path, question: q || null }),
+        signal: ac.signal,
+      });
+      if (!res.ok) throw new Error("coach failed");
+      const data = (await res.json()) as LiveGuidance;
+      if (data.scene === "hidden") {
         setGuidance(null);
         return;
       }
-
-      // Instant seed so the lighthouse always has words
-      if (!q) {
-        setGuidance({
-          title: tip.title,
-          body: tip.body,
-          ctaLabel: tip.ctaLabel,
-          ctaHrefTemplate: tip.ctaHrefTemplate,
-          source: "fallback",
-          scene: tip.scene,
-          aiAvailable: true,
-        });
-      }
-
-      abortRef.current?.abort();
-      const ac = new AbortController();
-      abortRef.current = ac;
-      setLoading(!q);
-      if (q) setAsking(true);
-
-      try {
-        const res = await fetch("/api/journey-coach", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pathname: path, question: q || null }),
-          signal: ac.signal,
-        });
-        if (!res.ok) throw new Error("coach failed");
-        const data = (await res.json()) as LiveGuidance;
-        if (data.scene === "hidden") {
-          setGuidance(null);
-          return;
+      setGuidance(data);
+      setThread((prev) => {
+        if (!q) {
+          // Replace seed with AI voice when ready
+          return [
+            {
+              id: `faro-${path}-${Date.now()}`,
+              role: "faro",
+              text: data.body,
+            },
+          ];
         }
-        setGuidance(data);
-      } catch (e) {
-        if (e instanceof Error && e.name === "AbortError") return;
-        // keep seed tip
-      } finally {
-        setLoading(false);
-        setAsking(false);
+        return [
+          ...prev,
+          {
+            id: `faro-a-${Date.now()}`,
+            role: "faro",
+            text: data.body,
+          },
+        ];
+      });
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return;
+      if (q) {
+        setThread((prev) => [
+          ...prev,
+          {
+            id: `faro-err-${Date.now()}`,
+            role: "faro",
+            text: "The weather’s rough on the wire. Try again in a moment — or keep going; I’m still here with the map.",
+          },
+        ]);
       }
-    },
-    []
-  );
+    } finally {
+      setLoading(false);
+      setAsking(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!ready || hidden) return;
     if (seedTip.scene === "hidden") {
       setGuidance(null);
+      setThread([]);
       return;
     }
     if (pathKeyRef.current === pathname) return;
     pathKeyRef.current = pathname;
     setQuestion("");
-    setShowAsk(false);
     void fetchGuidance(pathname);
     return () => {
       abortRef.current?.abort();
@@ -147,8 +197,8 @@ export function JourneyCoach() {
     e.preventDefault();
     const q = question.trim();
     if (!q || asking) return;
-    await fetchGuidance(pathname, q);
     setQuestion("");
+    await fetchGuidance(pathname, q);
   }
 
   if (!ready || seedTip.scene === "hidden" || hidden) return null;
@@ -173,11 +223,10 @@ export function JourneyCoach() {
     projectId
   );
   const source = guidance?.source ?? "fallback";
-  const aiAvailable = guidance?.aiAvailable ?? true;
 
   const pos = onProject
-    ? "bottom-[4.75rem] right-3 lg:bottom-6 lg:right-6"
-    : "bottom-4 right-3 sm:bottom-6 sm:right-6";
+    ? "bottom-[4.75rem] right-3 lg:bottom-5 lg:right-5"
+    : "bottom-4 right-3 sm:bottom-5 sm:right-5";
 
   if (minimized) {
     return (
@@ -185,139 +234,145 @@ export function JourneyCoach() {
         <button
           type="button"
           onClick={() => persistMin(false)}
-          className="faro-coach-lighthouse group relative flex flex-col items-center"
-          aria-label="Open Faro guide"
+          className="group relative flex items-end gap-0"
+          aria-label="Talk to Faro"
         >
-          <FaroCoachMark size={52} lit />
-          <span className="mt-1 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--foreground)] shadow-[var(--shadow-card)]">
-            Faro
+          <FaroPersona size={56} speaking={false} className="shadow-[var(--shadow-pop)] ring-2 ring-[var(--surface)]" />
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-white shadow">
+            …
           </span>
+          <span className="sr-only">Faro is here — open chat</span>
         </button>
       </div>
     );
   }
 
-  return (
-    <aside className={`fixed z-[60] w-[min(100vw-1.5rem,21rem)] ${pos}`} aria-label="Faro journey guide">
-      {/* Lighthouse figure + light beam panel */}
-      <div className="relative">
-        <div className="pointer-events-none absolute -left-2 bottom-2 z-10 sm:-left-3">
-          <FaroCoachMark size={64} lit={!loading} />
-        </div>
+  const lines =
+    thread.length > 0
+      ? thread
+      : [{ id: "seed", role: "faro" as const, text: body }];
 
-        <div
-          className="faro-coach-panel card-shadow relative ml-10 overflow-hidden border border-[var(--border-strong)] bg-[var(--surface)] sm:ml-12"
-          style={{
-            clipPath:
-              "polygon(8% 0, 100% 0, 100% 100%, 0 100%, 0 12%, 6% 6%)",
-            borderRadius: "1.25rem 1.25rem 1.25rem 0.35rem",
-          }}
-        >
-          {/* Beacon stripe header */}
-          <div className="flex items-start gap-2 border-b border-[var(--border)] bg-gradient-to-r from-[var(--accent-soft)] via-[var(--surface-2)] to-[var(--surface)] px-3.5 py-2.5 pl-4">
-            <div className="min-w-0 flex-1 pt-0.5">
-              <div className="flex items-center gap-2">
-                <p className="font-serif text-base font-medium tracking-tight text-[var(--foreground)]">
-                  Faro
-                </p>
-                <span className="rounded-full bg-[var(--accent)]/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--accent)]">
-                  {source === "ai" ? "Live guide" : aiAvailable ? "Beacon" : "Steady light"}
-                </span>
-              </div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--accent)]">
+  return (
+    <aside
+      className={`fixed z-[60] w-[min(100vw-1.25rem,22.5rem)] ${pos}`}
+      aria-label="Faro, your guide"
+    >
+      <div className="card-shadow overflow-hidden rounded-[1.35rem] border border-[var(--border-strong)] bg-[var(--surface)]">
+        {/* Persona header — like a call with Faro */}
+        <div className="relative border-b border-[var(--border)] bg-gradient-to-br from-[var(--accent-soft)] via-[var(--surface-2)] to-[var(--surface)] px-3.5 py-3">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <FaroPersona size={52} speaking={loading || asking} className="ring-2 ring-[var(--surface)] shadow-md" />
+              <span
+                className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[var(--surface)] bg-[var(--ok)]"
+                title="Faro is with you"
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-serif text-lg font-medium leading-none tracking-tight text-[var(--foreground)]">
+                Faro
+              </p>
+              <p className="mt-1 text-[11px] text-[var(--muted)]">
+                Your lighthouse keeper
+                {source === "ai" ? " · speaking" : loading ? " · thinking…" : ""}
+              </p>
+              <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)]">
                 {title}
-                {loading ? " · thinking…" : ""}
               </p>
             </div>
-            <div className="flex shrink-0 items-center gap-0.5">
+            <div className="flex shrink-0 gap-0.5">
               <button
                 type="button"
                 onClick={() => persistMin(true)}
-                className="rounded-lg p-1.5 text-[var(--muted)] transition hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
-                aria-label="Minimize guide"
-                title="Minimize"
+                className="rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
+                aria-label="Minimize Faro"
               >
                 <ChevronDown size={16} />
               </button>
               <button
                 type="button"
                 onClick={hideSession}
-                className="rounded-lg p-1.5 text-[var(--muted)] transition hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
-                aria-label="Hide guide for this session"
-                title="Hide for this session"
+                className="rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
+                aria-label="Hide Faro for this session"
               >
                 <X size={16} />
               </button>
             </div>
           </div>
+        </div>
 
-          <div className="px-3.5 py-3 pl-4">
-            <p className="text-sm leading-relaxed text-[var(--muted)]">
-              {loading && !guidance ? (
-                <span className="inline-flex items-center gap-2">
-                  <Loader2 size={14} className="animate-spin text-[var(--accent)]" />
-                  Finding the next light…
-                </span>
-              ) : (
-                body
-              )}
-            </p>
-
-            {ctaHref && ctaLabel ? (
-              <Link
-                href={ctaHref}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)]"
-              >
-                {ctaLabel}
-              </Link>
-            ) : null}
-
-            <div className="mt-3 border-t border-[var(--border)] pt-2.5">
-              {!showAsk ? (
-                <button
-                  type="button"
-                  onClick={() => setShowAsk(true)}
-                  className="text-[11px] font-medium text-[var(--accent)] underline-offset-2 hover:underline"
-                >
-                  Ask Faro for guidance
-                </button>
-              ) : (
-                <form onSubmit={submitQuestion} className="flex items-center gap-1.5">
-                  <input
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                    placeholder="What should I focus on?"
-                    maxLength={400}
-                    disabled={asking}
-                    className="min-w-0 flex-1 rounded-full border border-[var(--border-strong)] bg-[var(--field)] px-3 py-1.5 text-xs text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
-                    aria-label="Ask Faro"
+        {/* Dialogue */}
+        <div className="flex max-h-[min(42vh,280px)] flex-col gap-2.5 overflow-y-auto px-3 py-3">
+          {lines.map((line) =>
+            line.role === "faro" ? (
+              <div key={line.id} className="flex items-end gap-2">
+                <span className="mb-0.5 hidden shrink-0 sm:inline-flex">
+                  <Image
+                    src="/brand/faro-persona.jpg"
+                    alt=""
+                    width={28}
+                    height={28}
+                    className="h-7 w-7 rounded-full object-cover object-[center_18%] ring-1 ring-[var(--border)]"
                   />
-                  <button
-                    type="submit"
-                    disabled={asking || !question.trim()}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-white disabled:opacity-40"
-                    aria-label="Send question"
-                  >
-                    {asking ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <Send size={13} />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAsk(false);
-                      setQuestion("");
-                    }}
-                    className="text-[10px] text-[var(--subtle)]"
-                  >
-                    Close
-                  </button>
-                </form>
-              )}
+                </span>
+                <div className="faro-speech relative max-w-[92%] rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-3 py-2.5 text-sm leading-relaxed text-[var(--foreground)]">
+                  {line.text}
+                </div>
+              </div>
+            ) : (
+              <div key={line.id} className="flex justify-end">
+                <div className="max-w-[88%] rounded-2xl rounded-br-md bg-[var(--accent)] px-3 py-2.5 text-sm leading-relaxed text-white">
+                  {line.text}
+                </div>
+              </div>
+            )
+          )}
+          {(loading || asking) && (
+            <div className="flex items-end gap-2">
+              <span className="mb-0.5 hidden h-7 w-7 shrink-0 sm:block" />
+              <div className="inline-flex items-center gap-1.5 rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--muted)]">
+                <span className="faro-persona-dot" />
+                <span className="faro-persona-dot" style={{ animationDelay: "0.15s" }} />
+                <span className="faro-persona-dot" style={{ animationDelay: "0.3s" }} />
+                <span className="sr-only">Faro is thinking</span>
+              </div>
             </div>
-          </div>
+          )}
+          <div ref={threadEndRef} />
+        </div>
+
+        {/* Actions + talk back */}
+        <div className="border-t border-[var(--border)] px-3 pb-3 pt-2">
+          {ctaHref && ctaLabel ? (
+            <Link
+              href={ctaHref}
+              className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)]"
+            >
+              {ctaLabel}
+            </Link>
+          ) : null}
+          <form onSubmit={submitQuestion} className="flex items-center gap-1.5">
+            <input
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="Talk to Faro…"
+              maxLength={400}
+              disabled={asking}
+              className="min-w-0 flex-1 rounded-full border border-[var(--border-strong)] bg-[var(--field)] px-3.5 py-2 text-xs text-[var(--foreground)] outline-none placeholder:text-[var(--subtle)] focus:border-[var(--accent)]"
+              aria-label="Talk to Faro"
+            />
+            <button
+              type="submit"
+              disabled={asking || !question.trim()}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)] text-white disabled:opacity-40"
+              aria-label="Send to Faro"
+            >
+              {asking ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+            </button>
+          </form>
+          <p className="mt-1.5 text-center text-[10px] text-[var(--subtle)]">
+            Faro keeps the light on — you decide what ships.
+          </p>
         </div>
       </div>
     </aside>
