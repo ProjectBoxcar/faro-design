@@ -144,6 +144,39 @@ body {
   animation: faro-generation-focus 0.35s ease-out;
 }
 
+/* Journey coach lighthouse character */
+@keyframes faro-coach-beam {
+  0%,
+  100% {
+    opacity: 0.28;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes faro-coach-lamp {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+.faro-coach-beam {
+  animation: faro-coach-beam 2.8s ease-in-out infinite;
+}
+
+.faro-coach-lamp {
+  animation: faro-coach-lamp 1.8s ease-in-out infinite;
+}
+
+.faro-coach-glow {
+  animation: faro-coach-lamp 1.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .faro-generation-progress,
   .faro-generation-spark,
@@ -153,7 +186,10 @@ body {
   .faro-loader-beams,
   .faro-loader-lamp,
   .faro-loader-ring,
-  .faro-loader-halo {
+  .faro-loader-halo,
+  .faro-coach-beam,
+  .faro-coach-lamp,
+  .faro-coach-glow {
     animation: none;
     transform: none;
   }
