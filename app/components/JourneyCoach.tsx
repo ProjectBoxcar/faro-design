@@ -37,6 +37,7 @@ import {
 import {
   explainElement,
   findExplainTarget,
+  hoverContextPayload,
   type HoverExplain,
 } from "@/lib/faro-hover-explain";
 import { useLocale } from "@/components/LocaleProvider";
@@ -44,7 +45,8 @@ import { useLocale } from "@/components/LocaleProvider";
 const MIN_KEY = "faro-journey-coach-minimized";
 const HIDE_KEY = "faro-journey-coach-hidden-session";
 const INTERACT_MS = 4500;
-const HOVER_DWELL_MS = 140;
+const HOVER_DWELL_MS = 120;
+const HOVER_AI_MS = 550;
 
 type LiveGuidance = {
   title: string;
@@ -97,6 +99,8 @@ export function JourneyCoach() {
   const prevDockRef = useRef<DockRect | null>(null);
   const hoverKeyRef = useRef("");
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverAiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverAiAbortRef = useRef<AbortController | null>(null);
   const lastPointerRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -143,9 +147,11 @@ export function JourneyCoach() {
       if (!el) {
         hoverKeyRef.current = "";
         setHover(null);
+        if (hoverAiTimerRef.current) clearTimeout(hoverAiTimerRef.current);
+        hoverAiAbortRef.current?.abort();
         return;
       }
-      const exp = explainElement(el, locale);
+      const exp = explainElement(el, locale, pathname);
       if (!exp) {
         hoverKeyRef.current = "";
         setHover(null);
@@ -157,11 +163,57 @@ export function JourneyCoach() {
         hoverKeyRef.current = exp.key;
         setHover(exp);
         setBubbleOpen(true);
+        // Deep catalog knowledge is enough; only enrich shallow heuristics with AI
+        if (hoverAiTimerRef.current) clearTimeout(hoverAiTimerRef.current);
+        hoverAiAbortRef.current?.abort();
+        if (!exp.deep) {
+          hoverAiTimerRef.current = setTimeout(() => {
+            void enrichHoverWithAi(exp, pathname, locale);
+          }, HOVER_AI_MS);
+        }
       } else {
-        setHover(exp); // refresh element rect owner
+        setHover(exp);
       }
       interactionRef.current = exp.el;
       interactionUntilRef.current = Date.now() + INTERACT_MS;
+    }
+
+    async function enrichHoverWithAi(
+      exp: HoverExplain,
+      path: string,
+      loc: typeof locale
+    ) {
+      if (hoverKeyRef.current !== exp.key) return;
+      hoverAiAbortRef.current?.abort();
+      const ac = new AbortController();
+      hoverAiAbortRef.current = ac;
+      try {
+        const ctx = hoverContextPayload(exp.el, path);
+        const res = await fetch("/api/journey-coach", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pathname: path,
+            locale: loc,
+            mode: "hover",
+            hover: ctx,
+          }),
+          signal: ac.signal,
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { title?: string; body?: string; source?: string };
+        if (hoverKeyRef.current !== exp.key) return;
+        if (data.source === "ai" && data.body?.trim()) {
+          setHover({
+            ...exp,
+            title: data.title?.trim() || exp.title,
+            body: data.body.trim(),
+            deep: true,
+          });
+        }
+      } catch {
+        /* keep local explain */
+      }
     }
 
     function onMove(e: MouseEvent) {
@@ -205,8 +257,10 @@ export function JourneyCoach() {
       document.removeEventListener("focusin", onFocusIn, true);
       document.removeEventListener("click", onClick, true);
       if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      if (hoverAiTimerRef.current) clearTimeout(hoverAiTimerRef.current);
+      hoverAiAbortRef.current?.abort();
     };
-  }, [scene, ready, hidden, locale]);
+  }, [scene, ready, hidden, locale, pathname]);
 
   /** Reposition next to hovered control / scene anchor */
   const recomputeDock = useCallback(() => {

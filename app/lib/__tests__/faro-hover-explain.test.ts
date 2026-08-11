@@ -18,7 +18,8 @@ describe("faro-hover-explain", () => {
       fakeEl({ "data-faro-anchor": "faro-start-brand" }, "Start"),
       "en"
     );
-    expect(exp?.body.toLowerCase()).toMatch(/interview|strategy|approve/);
+    expect(exp?.deep).toBe(true);
+    expect(exp?.body.toLowerCase()).toMatch(/interview|strategy|essential/);
   });
 
   it("uses data-faro-explain when present", () => {

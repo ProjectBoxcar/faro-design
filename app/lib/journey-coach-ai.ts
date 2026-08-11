@@ -20,6 +20,15 @@ export type CoachAiRequest = {
   question?: string | null;
   /** UI language — Faro answers in this language */
   locale?: "en" | "es" | null;
+  /** Hover explain: control under the cursor */
+  mode?: "guide" | "hover" | null;
+  hover?: {
+    label?: string | null;
+    href?: string | null;
+    tag?: string | null;
+    role?: string | null;
+    anchor?: string | null;
+  } | null;
 };
 
 export type CoachAiResponse = {
@@ -190,29 +199,59 @@ export async function generateCoachGuidance(
       ? "LANGUAGE: Speak entirely in Spanish (Spain/LatAm neutral). title, body, ctaLabel all in Spanish."
       : "LANGUAGE: Speak entirely in English.";
 
-  const userPrompt = [
-    langLine,
-    "",
-    "Static seed for this screen (improve or rewrite in your voice; keep intent; translate if needed):",
-    `title: ${tip.title}`,
-    `body: ${tip.body}`,
-    tip.ctaLabel ? `suggestedCta: ${tip.ctaLabel}` : null,
-    "",
-    "Live context:",
-    context,
-    "",
-    question
-      ? `The owner asks: ${question}\nAnswer wisely for this moment in the journey.`
-      : "No freeform question — give the best guidance for this screen right now.",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const isHover = input.mode === "hover";
+  const hover = input.hover;
+
+  const hoverSystem = `${FARO_SYSTEM}
+
+HOVER MODE (control under cursor):
+- You have COMPLETE product knowledge of Faro Design.
+- Explain THIS control: what it does, why it matters in the journey, what happens next, any caution.
+- Short: 2 crisp sentences max (~55 words). Clear. Insightful. Never vague, never "something nice", never "check the next page".
+- Prefer concrete Faro facts: stages, gates (approve, apply edits), lanes (strategy/logo/design), package vs client link.
+- title = 2-5 words naming the control's role; body = the insight.`;
+
+  const userPrompt = isHover
+    ? [
+        langLine,
+        "",
+        "The owner is pointing at this control:",
+        `label: ${hover?.label ?? "(unknown)"}`,
+        `tag: ${hover?.tag ?? ""}`,
+        `href: ${hover?.href ?? ""}`,
+        `anchor: ${hover?.anchor ?? ""}`,
+        `role: ${hover?.role ?? ""}`,
+        "",
+        "App context:",
+        context,
+        "",
+        "Explain it with full Faro product knowledge — short, clear, insightful.",
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : [
+        langLine,
+        "",
+        "Static seed for this screen (improve or rewrite in your voice; keep intent; translate if needed):",
+        `title: ${tip.title}`,
+        `body: ${tip.body}`,
+        tip.ctaLabel ? `suggestedCta: ${tip.ctaLabel}` : null,
+        "",
+        "Live context:",
+        context,
+        "",
+        question
+          ? `The owner asks: ${question}\nAnswer wisely for this moment in the journey.`
+          : "No freeform question — give the best guidance for this screen right now.",
+      ]
+        .filter(Boolean)
+        .join("\n");
 
   try {
     const { text } = await generateStrategyText({
       model: MODELS.parsing,
-      maxTokens: 280,
-      system: FARO_SYSTEM,
+      maxTokens: isHover ? 200 : 280,
+      system: isHover ? hoverSystem : FARO_SYSTEM,
       messages: [{ role: "user", content: userPrompt }],
     });
     const parsed = extractJsonObject(text);

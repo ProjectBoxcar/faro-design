@@ -1,9 +1,10 @@
 /**
- * Explain whatever the cursor is over — catalog + element heuristics.
+ * Explain whatever the cursor is over — deep product knowledge, not filler.
  */
 
 import { translate } from "@/lib/i18n/messages";
 import type { AppLocale } from "@/lib/i18n/types";
+import { matchProductKnowledge } from "@/lib/faro-product-knowledge";
 
 export type HoverExplain = {
   title: string;
@@ -11,42 +12,29 @@ export type HoverExplain = {
   /** Anchor id or synthetic key */
   key: string;
   el: HTMLElement;
+  /** True when explanation is from product knowledge (not weak generic) */
+  deep: boolean;
 };
 
-/** data-faro-anchor id → i18n keys under explain.* */
-const ANCHOR_EXPLAIN: Record<string, { title: string; body: string }> = {
-  "faro-start-brand": { title: "explain.startBrand.title", body: "explain.startBrand.body" },
-  "faro-home-projects": { title: "explain.homeProjects.title", body: "explain.homeProjects.body" },
-  "faro-lang": { title: "explain.lang.title", body: "explain.lang.body" },
-  "faro-start-next": { title: "explain.startNext.title", body: "explain.startNext.body" },
-  "faro-start-finish": { title: "explain.startFinish.title", body: "explain.startFinish.body" },
-  "faro-start-name": { title: "explain.startName.title", body: "explain.startName.body" },
-  "faro-express-approve": {
-    title: "explain.expressApprove.title",
-    body: "explain.expressApprove.body",
-  },
-  "faro-express-apply": { title: "explain.expressApply.title", body: "explain.expressApply.body" },
-  "faro-design-handover": {
-    title: "explain.designHandover.title",
-    body: "explain.designHandover.body",
-  },
-  "faro-hub-continue": { title: "explain.hubContinue.title", body: "explain.hubContinue.body" },
-  "faro-journey-current": {
-    title: "explain.journeyCurrent.title",
-    body: "explain.journeyCurrent.body",
-  },
-  "faro-handover-pack": { title: "explain.handoverPack.title", body: "explain.handoverPack.body" },
-  "faro-handover-share": {
-    title: "explain.handoverShare.title",
-    body: "explain.handoverShare.body",
-  },
-  "faro-content-generate": {
-    title: "explain.contentGenerate.title",
-    body: "explain.contentGenerate.body",
-  },
+/** data-faro-anchor id → knowledge id under explain.k.* */
+const ANCHOR_TO_KNOWLEDGE: Record<string, string> = {
+  "faro-start-brand": "startBrand",
+  "faro-home-projects": "projectsList",
+  "faro-lang": "language",
+  "faro-start-next": "nextStep",
+  "faro-start-finish": "finishDraft",
+  "faro-start-name": "nameField",
+  "faro-express-approve": "approveStrategy",
+  "faro-express-apply": "applyEdits",
+  "faro-design-handover": "handover",
+  "faro-hub-continue": "continueJourney",
+  "faro-journey-current": "journeyCurrent",
+  "faro-handover-pack": "productPack",
+  "faro-handover-share": "sharePackage",
+  "faro-content-generate": "contentMonth",
 };
 
-function cleanText(s: string, max = 80): string {
+function cleanText(s: string, max = 100): string {
   return s.replace(/\s+/g, " ").trim().slice(0, max);
 }
 
@@ -56,10 +44,39 @@ function labelFromEl(el: HTMLElement): string {
   const title = el.getAttribute("title");
   if (title?.trim()) return cleanText(title);
   const text = el.innerText || el.textContent || "";
-  if (text.trim()) return cleanText(text, 60);
+  if (text.trim()) return cleanText(text, 72);
   const ph = el.getAttribute("placeholder");
   if (ph?.trim()) return cleanText(ph);
   return el.tagName.toLowerCase();
+}
+
+function hrefFromEl(el: HTMLElement): string | null {
+  const direct = el.getAttribute("href");
+  if (direct) return direct;
+  try {
+    const a = el.closest?.("a[href]");
+    if (a && "getAttribute" in a) {
+      return (a as HTMLElement).getAttribute("href");
+    }
+  } catch {
+    /* node tests without full DOM */
+  }
+  return null;
+}
+
+function knowledgeExplain(
+  knowledgeId: string,
+  locale: AppLocale,
+  el: HTMLElement,
+  key: string
+): HoverExplain | null {
+  const title = translate(locale, `explain.k.${knowledgeId}.title`);
+  const body = translate(locale, `explain.k.${knowledgeId}.body`);
+  // Missing keys fall back to the key string itself
+  if (!title || title.startsWith("explain.k.") || !body || body.startsWith("explain.k.")) {
+    return null;
+  }
+  return { key, title, body, el, deep: true };
 }
 
 /**
@@ -96,38 +113,72 @@ export function findExplainTarget(from: Element | null): HTMLElement | null {
 }
 
 /**
- * Build a short Faro explanation for an element.
+ * Build a short, clear, insightful Faro explanation for an element.
  */
-export function explainElement(el: HTMLElement, locale: AppLocale): HoverExplain | null {
-  // Explicit author string
+export function explainElement(
+  el: HTMLElement,
+  locale: AppLocale,
+  pathname?: string | null
+): HoverExplain | null {
+  // Explicit author string (product writers can pin deep copy)
   const explicit = el.getAttribute("data-faro-explain");
   if (explicit?.trim()) {
     const label = labelFromEl(el);
     return {
       key: `explicit:${label}`,
       title: label,
-      body: cleanText(explicit, 220),
+      body: cleanText(explicit, 280),
       el,
+      deep: true,
     };
   }
 
-  const anchor = el.getAttribute("data-faro-anchor");
-  if (anchor && ANCHOR_EXPLAIN[anchor]) {
-    const keys = ANCHOR_EXPLAIN[anchor];
-    return {
-      key: anchor,
-      title: translate(locale, keys.title),
-      body: translate(locale, keys.body),
-      el,
-    };
-  }
-
-  // Heuristic from control type + visible label
   const label = labelFromEl(el);
+  const href = hrefFromEl(el);
+  const path =
+    pathname ??
+    (typeof window !== "undefined" ? window.location.pathname : null);
+
+  // 1) Anchored product knowledge
+  const anchor = el.getAttribute("data-faro-anchor");
+  if (anchor && ANCHOR_TO_KNOWLEDGE[anchor]) {
+    const hit = knowledgeExplain(
+      ANCHOR_TO_KNOWLEDGE[anchor],
+      locale,
+      el,
+      anchor
+    );
+    if (hit) return hit;
+  }
+
+  // 2) Keyword / href / path knowledge
+  const matched = matchProductKnowledge({ label, href, pathname: path });
+  if (matched) {
+    const hit = knowledgeExplain(matched.id, locale, el, `k:${matched.id}:${label}`);
+    if (hit) return hit;
+  }
+
+  // 3) Heading on a known path — stage insight
   const tag = el.tagName.toLowerCase();
+  if (tag === "h1" || tag === "h2" || tag === "h3") {
+    const pathHit = matchProductKnowledge({ label: "", href: null, pathname: path });
+    if (pathHit) {
+      const hit = knowledgeExplain(pathHit.id, locale, el, `h:${pathHit.id}`);
+      if (hit) {
+        return {
+          ...hit,
+          title: label.length > 2 ? label : hit.title,
+          key: `heading:${pathHit.id}:${label}`,
+        };
+      }
+    }
+  }
+
+  // 4) Strong generic only when we have a real label — still useful, not fluffy
+  if (!label || label.length < 2) return null;
+
   const role = el.getAttribute("role") || "";
   const type = (el.getAttribute("type") || "").toLowerCase();
-
   let bodyKey = "explain.generic.control";
   if (tag === "a" || role === "link") bodyKey = "explain.generic.link";
   else if (tag === "button" || role === "button") bodyKey = "explain.generic.button";
@@ -136,14 +187,23 @@ export function explainElement(el: HTMLElement, locale: AppLocale): HoverExplain
   else if (tag === "h1" || tag === "h2" || tag === "h3") bodyKey = "explain.generic.heading";
   else if (type === "checkbox") bodyKey = "explain.generic.checkbox";
 
-  const body = translate(locale, bodyKey, { label: label || "…" });
-  // Skip empty/useless
-  if (!label || label.length < 2) return null;
-
   return {
     key: `heuristic:${tag}:${label}`,
     title: label,
-    body,
+    body: translate(locale, bodyKey, { label }),
     el,
+    deep: false,
+  };
+}
+
+/** Payload for optional AI enrichment when local knowledge is shallow */
+export function hoverContextPayload(el: HTMLElement, pathname: string) {
+  return {
+    label: labelFromEl(el),
+    href: hrefFromEl(el),
+    tag: el.tagName.toLowerCase(),
+    role: el.getAttribute("role"),
+    anchor: el.getAttribute("data-faro-anchor"),
+    pathname,
   };
 }

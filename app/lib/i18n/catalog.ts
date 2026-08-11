@@ -345,69 +345,177 @@ export const en: Catalog = {
       "We can plan posts from photos here. If you want the full Faro package — strategy through handover — start a project from home. I'll be there either way.",
   },
   explain: {
-    startBrand: {
-      title: "Start your brand",
-      body: "This begins the interview — a few plain questions, then a strategy draft you review. Nothing is final until you approve.",
-    },
-    homeProjects: {
-      title: "Your projects",
-      body: "Jump to the project list. Continue opens the next step on each brand journey.",
-    },
-    lang: {
-      title: "Language",
-      body: "Switch the whole UI between English and Spanish. Faro’s voice follows this choice too.",
-    },
-    startNext: {
-      title: "Next step",
-      body: "Save this answer and move forward. You can go back anytime.",
-    },
-    startFinish: {
-      title: "Create my draft",
-      body: "I’ll turn your answers into a first strategy draft. Then we review essentials together.",
-    },
-    startName: {
-      title: "Brand name",
-      body: "A working title is fine. You’ll confirm a stronger name later before logos.",
-    },
-    expressApprove: {
-      title: "Approve strategy",
-      body: "Locks the essentials you just reviewed and opens the brand name step. You can re-approve later if you edit.",
-    },
-    expressApply: {
-      title: "Apply my edits",
-      body: "Saves your wording and updates related strategy cards so the story stays consistent.",
-    },
-    designHandover: {
-      title: "Brand Handover",
-      body: "Where downloads and the client link live. Finish choosing finals here in Design Studio first if anything is still open.",
-    },
-    hubContinue: {
-      title: "Continue",
-      body: "Opens the next unfinished step on this project’s journey.",
-    },
-    journeyCurrent: {
-      title: "Current stage",
-      body: "This is where the journey wants your attention next. Open it to keep moving.",
-    },
-    handoverPack: {
-      title: "Files for product teams",
-      body: "Downloads tokens, logos, icons, and copy so engineers can build UI that matches the brand.",
-    },
-    handoverShare: {
-      title: "Share brand package",
-      body: "Creates a private client link. What they see is frozen until you share again.",
-    },
-    contentGenerate: {
-      title: "Build this month’s posts",
-      body: "Plans a full month from your photos, then designs each post. Takes a few minutes — keep the tab open.",
+    /** Deep product knowledge — short, clear, insightful (not filler). */
+    k: {
+      startBrand: {
+        title: "Begin the voyage",
+        body: "Opens the six-question interview. Plain answers beat polish — I draft strategy essentials you can edit before anything becomes final.",
+      },
+      projectsList: {
+        title: "Your brand projects",
+        body: "Each card is one engagement. Continue jumps to the next unfinished stage — strategy, name, logo, design, handover, or content.",
+      },
+      language: {
+        title: "Interface language",
+        body: "Switches chrome, journey labels, and my voice between English and Spanish. Your project content stays as you wrote it.",
+      },
+      nextStep: {
+        title: "Save and advance",
+        body: "Locks this answer in the interview and unlocks the next question. You can always step back — nothing here is irreversible.",
+      },
+      finishDraft: {
+        title: "Draft strategy from answers",
+        body: "Sends your six answers into strategy AI. You land on Express to review concept, manifesto, and design plan — approve only when it sounds like you.",
+      },
+      nameField: {
+        title: "Working brand name",
+        body: "The label for this project file and first drafts. After strategy you’ll confirm the name logos will use — provisional titles are fine here.",
+      },
+      nameConfirm: {
+        title: "Lock the name for logos",
+        body: "The mark and Design Studio treat this as the real name. Confirm when you’re ready to stop treating it as a placeholder.",
+      },
+      approveStrategy: {
+        title: "Gate to brand name",
+        body: "Marks strategy essentials as owner-approved and unlocks naming. It does not freeze a client package yet — that comes after Design Studio finals.",
+      },
+      applyEdits: {
+        title: "Cascade your wording",
+        body: "Saves this card and regenerates dependent strategy cards so manifesto and plan follow your edit — not the old draft. Cancel leaves others untouched.",
+      },
+      rewriteAi: {
+        title: "Polish, don’t replace you",
+        body: "Improves clarity of your current draft only. It won’t cascade until you hit Apply my edits — you’re still the author.",
+      },
+      editCard: {
+        title: "Take the pen",
+        body: "Opens this strategy card for your words. Edit freely; Apply my edits is what updates the rest of the system.",
+      },
+      logoGate: {
+        title: "Logo Workshop",
+        body: "Logo concepts use OpenAI/Gemini — not the Design Studio engine. Approve one mark; identity systems and mockups build from that choice later.",
+      },
+      designBuild: {
+        title: "Identity → applications",
+        body: "Pick one Brand Identity System, then build landing page and deck on that system only. Strategy claims stay locked — no invented product promises.",
+      },
+      handover: {
+        title: "Package & client link",
+        body: "Final delivery surface: three design finals, product-team files, and share. Design Studio creates; Handover packages and publishes.",
+      },
+      productPack: {
+        title: "Tokens for builders",
+        body: "ZIP with design tokens, logos, icons, brand copy, and a short how-to. For engineers/product — separate from the client share link.",
+      },
+      sharePackage: {
+        title: "Private client link",
+        body: "Publishes a read-only snapshot. Later edits in Faro don’t change what the client sees until you share again — honest freeze by design.",
+      },
+      contentMonth: {
+        title: "Month of owned media",
+        body: "Plans 2–3 posts/week from your photos, then designs each piece with locked brand. Approve what ships — I won’t post for you.",
+      },
+      reviewPhotos: {
+        title: "Media fitness check",
+        body: "Tags and fit scores so weak personal shots don’t enter the plan. Exclude what you never want published before you generate.",
+      },
+      contentStudio: {
+        title: "Put the brand to work",
+        body: "Stage six: social calendar after the package exists. Needs strategy, logo, and design finals so posts inherit the real system.",
+      },
+      settings: {
+        title: "AI keys stay local",
+        body: "Claude for strategy/design, OpenAI or Gemini for logos, design helper via start.bat. Keys never leave this machine.",
+      },
+      apiKeys: {
+        title: "Three separate lanes",
+        body: "Strategy text ≠ logo images ≠ Design Studio mockups. Wrong key on a lane fails honestly — we don’t cross engines.",
+      },
+      continueJourney: {
+        title: "Next unfinished stage",
+        body: "Uses the six-stage map (strategy → name → logo → design → handover → content). Skips locked steps until prerequisites are done.",
+      },
+      journeyCurrent: {
+        title: "Where attention belongs",
+        body: "The journey’s current stage. Finish this before the next gate unlocks — keeps the brand coherent instead of skipping ahead.",
+      },
+      viability: {
+        title: "Brand foundation check",
+        body: "Soft gate on business basics once key answers exist. You can proceed with a noted reason — it logs honesty, not a hard wall.",
+      },
+      fullMap: {
+        title: "Optional deep map",
+        body: "Every strategy pillar for deep edit. Day-to-day progress still follows Continue and Express essentials — use this when you need the full chart.",
+      },
+      pathHome: {
+        title: "Home harbour",
+        body: "Projects, setup health, and the promise: strategy first, then assets. Start a brand or resume Continue on a card.",
+      },
+      pathStart: {
+        title: "Intake interview",
+        body: "Six plain questions about offer, story, difference, operations, edge, and taste. Fuel for strategy — not a brand quiz to ace.",
+      },
+      pathSettings: {
+        title: "Setup room",
+        body: "Configure the three AI lanes and confirm the design helper. Without keys, long stages can’t run.",
+      },
+      pathExpress: {
+        title: "Strategy essentials",
+        body: "Review concept, tensions, manifesto, design plan. Edit → Apply → Approve. Full pillar map is optional noise until essentials feel true.",
+      },
+      pathName: {
+        title: "Name workshop",
+        body: "Confirm the name that logos and the package will wear. Strategy can use a working title; this step makes it official.",
+      },
+      pathLogo: {
+        title: "Logo directions",
+        body: "Compare proposals, discard noise, approve one. Design Studio will not invent a new mark later — this approval is the hinge.",
+      },
+      pathDesign: {
+        title: "System and mockups",
+        body: "Identity system, landing, deck — Open Design + Claude only. Choose finals, then leave package/publish to Brand Handover.",
+      },
+      pathHandover: {
+        title: "Safe harbour delivery",
+        body: "Checklist of finals, product files, client link. If something’s missing, go back to Design Studio — don’t half-share.",
+      },
+      pathContent: {
+        title: "Content after package",
+        body: "Locked brand profile → media → brief → generate → review. Social is step six so the brand is already explainable.",
+      },
+      pathReview: {
+        title: "Pillar-by-pillar review",
+        body: "Deep strategy map for one group at a time. Optional if Express essentials already hold; useful when a pillar needs surgery.",
+      },
+      newProject: {
+        title: "New engagement",
+        body: "Creates an empty project shell. Prefer Start your brand for the guided interview unless you want to fill sections by hand.",
+      },
+      delete: {
+        title: "Destructive action",
+        body: "Removes project data from this machine. Can’t be undone — only click if you mean it.",
+      },
+      back: {
+        title: "Step back",
+        body: "Returns to the previous screen without discarding the project. Progress stays saved.",
+      },
+      preview: {
+        title: "Look before you lock",
+        body: "Opens a read-only preview of a proposal. Selecting a final is separate — preview doesn’t approve.",
+      },
     },
     generic: {
-      control: "This control: “{label}”. Use it when it matches what you want to do next — ask me if you’re unsure.",
-      link: "This link goes somewhere new: “{label}”. I’ll meet you there.",
-      button: "This button: “{label}”. Click when you’re ready — I’ll stay with you.",
-      field: "A field for “{label}”. Type what only you know; honesty beats polish.",
-      heading: "Section: “{label}”. Read it as a map pin for this screen.",
-      checkbox: "Option: “{label}”. Tick it only if it’s true for this project.",
+      control:
+        "“{label}” — a control on this step of the Faro journey. If it advances work, use it when the previous gate is honestly done; ask me before skipping stages.",
+      link: "“{label}” navigates in the brand journey. Follow it when you’re ready for that stage — I’ll reappear with the right context.",
+      button:
+        "“{label}” triggers an action in Faro. Prefer it when it matches your real next decision; don’t rush gates that need your approval.",
+      field:
+        "Field “{label}”. This becomes source material for strategy or content — write truthfully; AI drafts from what you put here.",
+      heading:
+        "“{label}” frames this part of the voyage. Use it as orientation: what this screen must achieve before you leave.",
+      checkbox:
+        "“{label}” is a project flag. Tick only if true — it can change gates (e.g. greenfield skips audit assumptions).",
     },
   },
 };
@@ -753,70 +861,176 @@ export const es: Catalog = {
       "Podemos planear posts con fotos aquí. Si quieres el paquete Faro completo — de estrategia a entrega — empieza un proyecto en inicio. Estaré en ambos casos.",
   },
   explain: {
-    startBrand: {
-      title: "Empieza tu marca",
-      body: "Aquí arranca la entrevista — unas preguntas claras y luego un borrador de estrategia que revisas. Nada es final hasta que apruebes.",
-    },
-    homeProjects: {
-      title: "Tus proyectos",
-      body: "Ve a la lista de proyectos. Continuar abre el siguiente paso de cada recorrido de marca.",
-    },
-    lang: {
-      title: "Idioma",
-      body: "Cambia toda la interfaz entre inglés y español. La voz de Faro también sigue esta elección.",
-    },
-    startNext: {
-      title: "Siguiente paso",
-      body: "Guarda esta respuesta y avanza. Puedes volver atrás cuando quieras.",
-    },
-    startFinish: {
-      title: "Crear mi borrador",
-      body: "Convertiré tus respuestas en un primer borrador de estrategia. Luego revisamos lo esencial juntos.",
-    },
-    startName: {
-      title: "Nombre de marca",
-      body: "Un título provisional vale. Confirmarás un nombre más fuerte antes de los logos.",
-    },
-    expressApprove: {
-      title: "Aprobar estrategia",
-      body: "Fija lo esencial que revisaste y abre el paso del nombre. Puedes reaprobar si editas después.",
-    },
-    expressApply: {
-      title: "Aplicar mis ediciones",
-      body: "Guarda tu redacción y actualiza tarjetas relacionadas para que la historia sea coherente.",
-    },
-    designHandover: {
-      title: "Entrega de marca",
-      body: "Aquí viven las descargas y el enlace de cliente. Termina de elegir finales en Design Studio si aún falta algo.",
-    },
-    hubContinue: {
-      title: "Continuar",
-      body: "Abre el siguiente paso incompleto del recorrido de este proyecto.",
-    },
-    journeyCurrent: {
-      title: "Etapa actual",
-      body: "Aquí quiere tu atención el recorrido. Ábrela para seguir avanzando.",
-    },
-    handoverPack: {
-      title: "Archivos para producto",
-      body: "Descarga tokens, logos, iconos y copy para que ingeniería construya UI alineada a la marca.",
-    },
-    handoverShare: {
-      title: "Compartir paquete",
-      body: "Crea un enlace privado de cliente. Lo que ven queda fijo hasta que vuelvas a compartir.",
-    },
-    contentGenerate: {
-      title: "Crear posts del mes",
-      body: "Planifica el mes con tus fotos y diseña cada post. Tarda unos minutos — deja la pestaña abierta.",
+    k: {
+      startBrand: {
+        title: "Empieza el viaje",
+        body: "Abre la entrevista de seis preguntas. Respuestas claras superan el brillo — redacto esenciales de estrategia que editas antes de que nada sea final.",
+      },
+      projectsList: {
+        title: "Tus proyectos de marca",
+        body: "Cada tarjeta es un engagement. Continuar salta a la etapa incompleta — estrategia, nombre, logo, diseño, entrega o contenido.",
+      },
+      language: {
+        title: "Idioma de la interfaz",
+        body: "Cambia chrome, etiquetas del recorrido y mi voz entre inglés y español. El contenido del proyecto queda como lo escribiste.",
+      },
+      nextStep: {
+        title: "Guardar y avanzar",
+        body: "Fija esta respuesta de la entrevista y desbloquea la siguiente. Siempre puedes volver — nada aquí es irreversible.",
+      },
+      finishDraft: {
+        title: "Borrador de estrategia",
+        body: "Envía tus seis respuestas a la IA de estrategia. Llegas a Express para revisar concepto, manifiesto y plan — aprueba solo cuando suene a ti.",
+      },
+      nameField: {
+        title: "Nombre de trabajo",
+        body: "Etiqueta del proyecto y primeros borradores. Tras la estrategia confirmarás el nombre que usarán los logos — aquí vale un título provisional.",
+      },
+      nameConfirm: {
+        title: "Nombre para los logos",
+        body: "El mark y Design Studio tratan esto como el nombre real. Confirma cuando deje de ser un placeholder.",
+      },
+      approveStrategy: {
+        title: "Puerta al nombre",
+        body: "Marca los esenciales como aprobados por ti y desbloquea el nombre. Aún no congela el paquete de cliente — eso viene tras los finales de diseño.",
+      },
+      applyEdits: {
+        title: "Cascada de tu voz",
+        body: "Guarda esta tarjeta y regenera las dependientes para que manifiesto y plan sigan tu edición — no el borrador viejo.",
+      },
+      rewriteAi: {
+        title: "Pulir, no reemplazarte",
+        body: "Mejora la claridad de tu borrador actual. No hace cascada hasta Aplicar mis ediciones — sigues siendo el autor.",
+      },
+      editCard: {
+        title: "Toma el bolígrafo",
+        body: "Abre esta tarjeta de estrategia para tus palabras. Edita libre; Aplicar mis ediciones es lo que actualiza el resto.",
+      },
+      logoGate: {
+        title: "Taller de logo",
+        body: "Los conceptos usan OpenAI/Gemini — no el motor de Design Studio. Aprueba un mark; el sistema de identidad se construye después desde esa elección.",
+      },
+      designBuild: {
+        title: "Identidad → aplicaciones",
+        body: "Elige un sistema de identidad y construye landing y deck solo sobre ese sistema. Las promesas de estrategia quedan fijas — sin inventar claims.",
+      },
+      handover: {
+        title: "Paquete y enlace",
+        body: "Superficie de entrega: tres finales de diseño, archivos de producto y share. Design Studio crea; Entrega empaqueta y publica.",
+      },
+      productPack: {
+        title: "Tokens para construir",
+        body: "ZIP con tokens, logos, iconos, copy y guía breve. Para ingeniería/producto — distinto del enlace de cliente.",
+      },
+      sharePackage: {
+        title: "Enlace privado",
+        body: "Publica un snapshot de solo lectura. Edits posteriores en Faro no cambian lo que ve el cliente hasta que vuelvas a compartir.",
+      },
+      contentMonth: {
+        title: "Mes de medios propios",
+        body: "Planifica 2–3 posts/semana con tus fotos y diseña cada pieza con la marca bloqueada. Tú apruebas lo que se publica.",
+      },
+      reviewPhotos: {
+        title: "Encaje de medios",
+        body: "Etiquetas y scores para que fotos personales flojas no entren al plan. Excluye lo que nunca quieras publicar antes de generar.",
+      },
+      contentStudio: {
+        title: "La marca a trabajar",
+        body: "Etapa seis: calendario social cuando el paquete ya existe. Necesita estrategia, logo y finales de diseño.",
+      },
+      settings: {
+        title: "Claves locales",
+        body: "Claude para estrategia/diseño, OpenAI o Gemini para logos, ayudante con start.bat. Las claves no salen de este ordenador.",
+      },
+      apiKeys: {
+        title: "Tres carriles",
+        body: "Texto de estrategia ≠ imágenes de logo ≠ mockups de Design Studio. La clave equivocada falla con honestidad — no cruzamos motores.",
+      },
+      continueJourney: {
+        title: "Siguiente etapa abierta",
+        body: "Mapa de seis etapas. Omite lo bloqueado hasta cumplir prerequisitos — mantiene la marca coherente.",
+      },
+      journeyCurrent: {
+        title: "Dónde poner atención",
+        body: "La etapa actual del recorrido. Ciérrala antes de que se abra la siguiente puerta.",
+      },
+      viability: {
+        title: "Chequeo de base",
+        body: "Puerta suave sobre lo básico del negocio. Puedes seguir con un motivo anotado — registra honestidad, no un muro duro.",
+      },
+      fullMap: {
+        title: "Mapa profundo opcional",
+        body: "Cada pilar de estrategia. El día a día sigue Continuar y Express — usa esto cuando un pilar necesita cirugía.",
+      },
+      pathHome: {
+        title: "Puerto de inicio",
+        body: "Proyectos, salud de setup y la promesa: primero estrategia, luego activos.",
+      },
+      pathStart: {
+        title: "Entrevista de intake",
+        body: "Seis preguntas sobre oferta, historia, diferencia, operaciones, edge y gusto. Combustible para estrategia — no un examen.",
+      },
+      pathSettings: {
+        title: "Sala de setup",
+        body: "Configura los tres carriles de IA y el ayudante de diseño. Sin claves no corren las etapas largas.",
+      },
+      pathExpress: {
+        title: "Esenciales de estrategia",
+        body: "Revisa concepto, tensiones, manifiesto, plan. Edita → Aplica → Aprueba. El mapa de pilares es opcional hasta que lo esencial suene verdad.",
+      },
+      pathName: {
+        title: "Taller de nombre",
+        body: "Confirma el nombre que llevarán logos y paquete. La estrategia puede usar un título provisional; aquí se hace oficial.",
+      },
+      pathLogo: {
+        title: "Direcciones de logo",
+        body: "Compara, descarta ruido, aprueba uno. Design Studio no inventará otro mark después — esta aprobación es la bisagra.",
+      },
+      pathDesign: {
+        title: "Sistema y mockups",
+        body: "Identidad, landing, deck — solo Open Design + Claude. Elige finales; empaquetar/publicar es de Entrega de marca.",
+      },
+      pathHandover: {
+        title: "Entrega en puerto seguro",
+        body: "Checklist de finales, archivos de producto, enlace. Si falta algo, vuelve a Design Studio — no compartas a medias.",
+      },
+      pathContent: {
+        title: "Contenido tras el paquete",
+        body: "Perfil bloqueado → medios → brief → generar → revisar. Lo social es la etapa seis para que la marca ya sea explicable.",
+      },
+      pathReview: {
+        title: "Revisión pilar a pilar",
+        body: "Mapa profundo de un grupo. Opcional si Express ya sostiene; útil cuando un pilar necesita trabajo fino.",
+      },
+      newProject: {
+        title: "Nuevo engagement",
+        body: "Crea un proyecto vacío. Prefiere Empieza tu marca para la entrevista guiada salvo que quieras rellenar a mano.",
+      },
+      delete: {
+        title: "Acción destructiva",
+        body: "Borra datos del proyecto en esta máquina. No se puede deshacer.",
+      },
+      back: {
+        title: "Un paso atrás",
+        body: "Vuelve a la pantalla anterior sin borrar el proyecto. El progreso sigue guardado.",
+      },
+      preview: {
+        title: "Mirar antes de fijar",
+        body: "Vista de solo lectura de una propuesta. Seleccionar final es otro paso — previsualizar no aprueba.",
+      },
     },
     generic: {
       control:
-        "Este control: «{label}». Úsalo cuando encaje con lo que quieres hacer — pregúntame si no estás seguro.",
-      link: "Este enlace va a otro sitio: «{label}». Te espero allí.",
-      button: "Este botón: «{label}». Haz clic cuando estés listo — me quedo contigo.",
-      field: "Un campo para «{label}». Escribe lo que solo tú sabes; la honestidad gana al brillo.",
-      heading: "Sección: «{label}». Léelo como un pin en el mapa de esta pantalla.",
-      checkbox: "Opción: «{label}». Márcala solo si es cierta para este proyecto.",
+        "«{label}» — un control de esta etapa del viaje Faro. Si avanza trabajo, úsalo cuando la puerta anterior esté hecha con honestidad.",
+      link: "«{label}» navega en el recorrido de marca. Síguelo cuando estés listo para esa etapa — reaparezco con el contexto correcto.",
+      button:
+        "«{label}» dispara una acción en Faro. Prefiérelo cuando coincida con tu decisión real; no apresures puertas que piden tu aprobación.",
+      field:
+        "Campo «{label}». Esto alimenta estrategia o contenido — escribe con verdad; la IA redacta desde lo que pongas aquí.",
+      heading:
+        "«{label}» orienta esta parte del viaje. Úsalo como pin: qué debe lograr esta pantalla antes de irte.",
+      checkbox:
+        "«{label}» es un flag del proyecto. Márcalo solo si es cierto — puede cambiar puertas (p. ej. marca nueva).",
     },
   },
 };
