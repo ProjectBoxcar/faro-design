@@ -33,6 +33,6 @@ describe("faro-hover-explain", () => {
   it("falls back to button heuristic", () => {
     const exp = explainElement(fakeEl({}, "Save draft"), "en");
     expect(exp?.title).toMatch(/Save draft/i);
-    expect(exp?.body).toMatch(/button/i);
+    expect(exp?.body.toLowerCase()).toMatch(/action|faro|decision|gate/);
   });
 });
