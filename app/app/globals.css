@@ -144,6 +144,51 @@ body {
   animation: faro-generation-focus 0.35s ease-out;
 }
 
+/* Living Faro assistant — travels to touchpoints */
+@keyframes faro-assistant-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes faro-assistant-travel-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--brand-accent, #f25c2a) 55%, transparent));
+  }
+}
+
+.faro-assistant-bob {
+  animation: faro-assistant-bob 2.8s ease-in-out infinite;
+}
+
+.faro-assistant-traveling .faro-assistant-bob,
+.faro-assistant-traveling [role="img"] {
+  animation: faro-assistant-bob 0.9s ease-in-out infinite, faro-assistant-travel-glow 0.7s ease-in-out;
+}
+
+@keyframes faro-assistant-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.faro-assistant-speech {
+  animation: faro-assistant-pop 0.35s ease-out;
+}
+
 /* Journey coach lighthouse character */
 @keyframes faro-coach-beam {
   0%,
@@ -336,7 +381,9 @@ body {
   .faro-robot-lids .faro-robot-lid,
   .faro-robot-lamp,
   .faro-robot-lamp-on,
-  .faro-robot-beams {
+  .faro-robot-beams,
+  .faro-assistant-bob,
+  .faro-assistant-traveling .faro-assistant-bob {
     animation: none;
     transform: none;
   }

@@ -653,6 +653,7 @@ export function DesignStudio({
         </div>
         <Link
           href={`/projects/${projectId}/handover`}
+          data-faro-anchor="faro-design-handover"
           className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)]"
         >
           <PackageCheck size={16} />

@@ -385,6 +385,7 @@ function CardShell({
                 type="button"
                 onClick={onReady}
                 disabled={editLocked}
+                data-faro-anchor="faro-express-apply"
                 className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
               >
                 {readyBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
@@ -1390,6 +1391,7 @@ export function ExpressJourney({
         <button
           onClick={approve}
           disabled={approving || refining || Boolean(editingId) || rewriteBusy}
+          data-faro-anchor="faro-express-approve"
           className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {approving ? <Loader2 size={15} className="animate-spin" /> : approved ? <Check size={15} /> : null}

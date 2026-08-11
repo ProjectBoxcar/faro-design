@@ -693,6 +693,7 @@ export function ContentStudioWorkspace({
                 assets.filter((a) => a.storagePath && !a.ownerMeta?.excluded).length === 0
               }
               onClick={() => void runGenerate()}
+              data-faro-anchor="faro-content-generate"
               className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
             >
               {busy === "generate" || busy === "design" ? (
