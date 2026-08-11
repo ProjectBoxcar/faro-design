@@ -34,11 +34,17 @@ import {
   resolveAssistantAnchor,
   type DockRect,
 } from "@/lib/faro-assistant-anchors";
+import {
+  explainElement,
+  findExplainTarget,
+  type HoverExplain,
+} from "@/lib/faro-hover-explain";
 import { useLocale } from "@/components/LocaleProvider";
 
 const MIN_KEY = "faro-journey-coach-minimized";
 const HIDE_KEY = "faro-journey-coach-hidden-session";
 const INTERACT_MS = 4500;
+const HOVER_DWELL_MS = 140;
 
 type LiveGuidance = {
   title: string;
@@ -80,6 +86,7 @@ export function JourneyCoach() {
   const [dock, setDock] = useState<DockRect | null>(null);
   const [traveling, setTraveling] = useState(false);
   const [bubbleOpen, setBubbleOpen] = useState(true);
+  const [hover, setHover] = useState<HoverExplain | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const pathKeyRef = useRef("");
@@ -88,6 +95,9 @@ export function JourneyCoach() {
   const interactionRef = useRef<HTMLElement | null>(null);
   const interactionUntilRef = useRef(0);
   const prevDockRef = useRef<DockRect | null>(null);
+  const hoverKeyRef = useRef("");
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastPointerRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     try {
@@ -125,36 +135,80 @@ export function JourneyCoach() {
   const projectId = projectIdFromPath(pathname);
   const scene = sceneFromTip(seedTip);
 
-  /** Track user interactions so Faro walks to what they touch */
+  /** Cursor / focus: walk to the control and explain it */
   useEffect(() => {
-    if (scene === "hidden") return;
+    if (scene === "hidden" || !ready || hidden) return;
 
-    function mark(el: Element | null) {
-      if (!el || !(el instanceof HTMLElement)) return;
-      // Don't dock onto the assistant itself
-      if (el.closest("[data-faro-assistant]")) return;
-      const target =
-        el.closest<HTMLElement>(
-          "[data-faro-anchor], button, a, input, textarea, select, [role='button']"
-        ) ?? el;
-      if (target.closest("[data-faro-assistant]")) return;
-      interactionRef.current = target;
+    function applyTarget(el: HTMLElement | null) {
+      if (!el) {
+        hoverKeyRef.current = "";
+        setHover(null);
+        return;
+      }
+      const exp = explainElement(el, locale);
+      if (!exp) {
+        hoverKeyRef.current = "";
+        setHover(null);
+        interactionRef.current = el;
+        interactionUntilRef.current = Date.now() + INTERACT_MS;
+        return;
+      }
+      if (hoverKeyRef.current !== exp.key) {
+        hoverKeyRef.current = exp.key;
+        setHover(exp);
+        setBubbleOpen(true);
+      } else {
+        setHover(exp); // refresh element rect owner
+      }
+      interactionRef.current = exp.el;
       interactionUntilRef.current = Date.now() + INTERACT_MS;
     }
 
-    function onPointer(e: Event) {
-      mark(e.target as Element);
+    function onMove(e: MouseEvent) {
+      lastPointerRef.current = { x: e.clientX, y: e.clientY };
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = setTimeout(() => {
+        const { x, y } = lastPointerRef.current;
+        // Temporarily ignore Faro so elementFromPoint hits the page under the cursor
+        const assistant = document.querySelectorAll("[data-faro-assistant]");
+        const prev: string[] = [];
+        assistant.forEach((n, i) => {
+          if (n instanceof HTMLElement) {
+            prev[i] = n.style.pointerEvents;
+            n.style.pointerEvents = "none";
+          }
+        });
+        const under = document.elementFromPoint(x, y);
+        assistant.forEach((n, i) => {
+          if (n instanceof HTMLElement) n.style.pointerEvents = prev[i] ?? "";
+        });
+        const target = findExplainTarget(under);
+        applyTarget(target);
+      }, HOVER_DWELL_MS);
     }
 
-    document.addEventListener("click", onPointer, true);
-    document.addEventListener("focusin", onPointer, true);
-    return () => {
-      document.removeEventListener("click", onPointer, true);
-      document.removeEventListener("focusin", onPointer, true);
-    };
-  }, [scene]);
+    function onFocusIn(e: FocusEvent) {
+      const target = findExplainTarget(e.target as Element);
+      applyTarget(target);
+    }
 
-  /** Reposition next to current touchpoint / scene anchor */
+    function onClick(e: MouseEvent) {
+      const target = findExplainTarget(e.target as Element);
+      applyTarget(target);
+    }
+
+    window.addEventListener("mousemove", onMove, { passive: true });
+    document.addEventListener("focusin", onFocusIn, true);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      document.removeEventListener("focusin", onFocusIn, true);
+      document.removeEventListener("click", onClick, true);
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    };
+  }, [scene, ready, hidden, locale]);
+
+  /** Reposition next to hovered control / scene anchor */
   const recomputeDock = useCallback(() => {
     if (scene === "hidden" || typeof window === "undefined") return;
 
@@ -163,8 +217,8 @@ export function JourneyCoach() {
     const anchor = resolveAssistantAnchor(scene, live);
 
     const faceOnly = minimized || !openChat;
-    const pw = faceOnly ? 72 : Math.min(360, window.innerWidth - 24);
-    const ph = faceOnly ? 88 : Math.min(420, window.innerHeight - 24);
+    const pw = faceOnly ? (bubbleOpen && !minimized ? 280 : 72) : Math.min(360, window.innerWidth - 24);
+    const ph = faceOnly ? (bubbleOpen && !minimized ? 200 : 88) : Math.min(420, window.innerHeight - 24);
 
     let next: DockRect;
     if (anchor) {
@@ -181,10 +235,9 @@ export function JourneyCoach() {
         pw,
         ph,
         faceOnly ? 10 : 14,
-        faceOnly ? ["right", "left", "above", "below"] : ["right", "left", "above", "below"]
+        ["right", "left", "above", "below"]
       );
     } else {
-      // Default: lower-right, above mobile chrome if any
       const onProject = Boolean(projectIdFromPath(pathname));
       next = {
         left: window.innerWidth - pw - 16,
@@ -203,7 +256,12 @@ export function JourneyCoach() {
     }
     prevDockRef.current = next;
     setDock(next);
-  }, [scene, minimized, openChat, pathname]);
+  }, [scene, minimized, openChat, pathname, bubbleOpen]);
+
+  useLayoutEffect(() => {
+    if (!ready || hidden || scene === "hidden") return;
+    recomputeDock();
+  }, [hover?.key, ready, hidden, scene, recomputeDock]);
 
   useLayoutEffect(() => {
     if (!ready || hidden || scene === "hidden") return;
@@ -372,11 +430,15 @@ export function JourneyCoach() {
 
   const activeTip: CoachTip = seedTip;
   const tip = (guidance ?? activeTip) as LiveGuidance | CoachTip;
-  const title = "title" in tip ? tip.title : activeTip.title;
-  const body = "body" in tip ? tip.body : activeTip.body;
-  const ctaLabel = "ctaLabel" in tip ? tip.ctaLabel : activeTip.ctaLabel;
-  const ctaTemplate =
-    "ctaHrefTemplate" in tip ? tip.ctaHrefTemplate : activeTip.ctaHrefTemplate;
+  // Cursor-over control wins: Faro explains where you're pointing
+  const title = hover?.title ?? ("title" in tip ? tip.title : activeTip.title);
+  const body = hover?.body ?? ("body" in tip ? tip.body : activeTip.body);
+  const ctaLabel = hover ? undefined : "ctaLabel" in tip ? tip.ctaLabel : activeTip.ctaLabel;
+  const ctaTemplate = hover
+    ? undefined
+    : "ctaHrefTemplate" in tip
+      ? tip.ctaHrefTemplate
+      : activeTip.ctaHrefTemplate;
   const ctaHref = resolveCoachCtaHref(
     {
       scene: activeTip.scene,
@@ -387,7 +449,7 @@ export function JourneyCoach() {
     },
     projectId
   );
-  const displayMood: FaroMood = loading || asking ? "thinking" : mood;
+  const displayMood: FaroMood = loading || asking ? "thinking" : hover ? "encouraging" : mood;
 
   const style: CSSProperties = dock
     ? {
@@ -444,12 +506,23 @@ export function JourneyCoach() {
           </button>
 
           {bubbleOpen && !minimized ? (
-            <div className="faro-assistant-speech mt-3 max-w-[16rem] rounded-2xl rounded-tl-md border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2.5 shadow-[var(--shadow-card)]">
+            <div
+              className={`faro-assistant-speech mt-3 max-w-[16.5rem] rounded-2xl rounded-tl-md border bg-[var(--surface)] px-3 py-2.5 shadow-[var(--shadow-card)] ${
+                hover
+                  ? "border-[var(--accent)]/40 ring-1 ring-[var(--accent)]/15"
+                  : "border-[var(--border-strong)]"
+              }`}
+            >
+              {hover ? (
+                <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
+                  {t("coach.pointing")}
+                </p>
+              ) : null}
               <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)]">
                 {title}
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-[var(--foreground)] line-clamp-4">
-                {loading && !guidance ? t("coach.thinking") : body}
+              <p className="mt-1 text-xs leading-relaxed text-[var(--foreground)] line-clamp-5">
+                {loading && !guidance && !hover ? t("coach.thinking") : body}
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 {ctaHref && ctaLabel ? (

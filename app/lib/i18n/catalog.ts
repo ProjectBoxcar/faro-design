@@ -304,6 +304,7 @@ export const en: Catalog = {
     moodEncouraging: "With you",
     moodCareful: "Mind the rocks",
     moodProud: "Well charted",
+    pointing: "Pointing here",
   },
   coachTip: {
     homeTitle: "Glad you're here",
@@ -342,6 +343,72 @@ export const en: Catalog = {
     contentSoloTitle: "Content without the full voyage",
     contentSoloBody:
       "We can plan posts from photos here. If you want the full Faro package — strategy through handover — start a project from home. I'll be there either way.",
+  },
+  explain: {
+    startBrand: {
+      title: "Start your brand",
+      body: "This begins the interview — a few plain questions, then a strategy draft you review. Nothing is final until you approve.",
+    },
+    homeProjects: {
+      title: "Your projects",
+      body: "Jump to the project list. Continue opens the next step on each brand journey.",
+    },
+    lang: {
+      title: "Language",
+      body: "Switch the whole UI between English and Spanish. Faro’s voice follows this choice too.",
+    },
+    startNext: {
+      title: "Next step",
+      body: "Save this answer and move forward. You can go back anytime.",
+    },
+    startFinish: {
+      title: "Create my draft",
+      body: "I’ll turn your answers into a first strategy draft. Then we review essentials together.",
+    },
+    startName: {
+      title: "Brand name",
+      body: "A working title is fine. You’ll confirm a stronger name later before logos.",
+    },
+    expressApprove: {
+      title: "Approve strategy",
+      body: "Locks the essentials you just reviewed and opens the brand name step. You can re-approve later if you edit.",
+    },
+    expressApply: {
+      title: "Apply my edits",
+      body: "Saves your wording and updates related strategy cards so the story stays consistent.",
+    },
+    designHandover: {
+      title: "Brand Handover",
+      body: "Where downloads and the client link live. Finish choosing finals here in Design Studio first if anything is still open.",
+    },
+    hubContinue: {
+      title: "Continue",
+      body: "Opens the next unfinished step on this project’s journey.",
+    },
+    journeyCurrent: {
+      title: "Current stage",
+      body: "This is where the journey wants your attention next. Open it to keep moving.",
+    },
+    handoverPack: {
+      title: "Files for product teams",
+      body: "Downloads tokens, logos, icons, and copy so engineers can build UI that matches the brand.",
+    },
+    handoverShare: {
+      title: "Share brand package",
+      body: "Creates a private client link. What they see is frozen until you share again.",
+    },
+    contentGenerate: {
+      title: "Build this month’s posts",
+      body: "Plans a full month from your photos, then designs each post. Takes a few minutes — keep the tab open.",
+    },
+    generic: {
+      control: "This control: “{label}”. Use it when it matches what you want to do next — ask me if you’re unsure.",
+      link: "This link goes somewhere new: “{label}”. I’ll meet you there.",
+      button: "This button: “{label}”. Click when you’re ready — I’ll stay with you.",
+      field: "A field for “{label}”. Type what only you know; honesty beats polish.",
+      heading: "Section: “{label}”. Read it as a map pin for this screen.",
+      checkbox: "Option: “{label}”. Tick it only if it’s true for this project.",
+    },
   },
 };
 
@@ -645,6 +712,7 @@ export const es: Catalog = {
     moodEncouraging: "Contigo",
     moodCareful: "Ojo con las rocas",
     moodProud: "Bien trazado",
+    pointing: "Señalas aquí",
   },
   coachTip: {
     homeTitle: "Me alegra que estés aquí",
@@ -683,5 +751,72 @@ export const es: Catalog = {
     contentSoloTitle: "Contenido sin el viaje completo",
     contentSoloBody:
       "Podemos planear posts con fotos aquí. Si quieres el paquete Faro completo — de estrategia a entrega — empieza un proyecto en inicio. Estaré en ambos casos.",
+  },
+  explain: {
+    startBrand: {
+      title: "Empieza tu marca",
+      body: "Aquí arranca la entrevista — unas preguntas claras y luego un borrador de estrategia que revisas. Nada es final hasta que apruebes.",
+    },
+    homeProjects: {
+      title: "Tus proyectos",
+      body: "Ve a la lista de proyectos. Continuar abre el siguiente paso de cada recorrido de marca.",
+    },
+    lang: {
+      title: "Idioma",
+      body: "Cambia toda la interfaz entre inglés y español. La voz de Faro también sigue esta elección.",
+    },
+    startNext: {
+      title: "Siguiente paso",
+      body: "Guarda esta respuesta y avanza. Puedes volver atrás cuando quieras.",
+    },
+    startFinish: {
+      title: "Crear mi borrador",
+      body: "Convertiré tus respuestas en un primer borrador de estrategia. Luego revisamos lo esencial juntos.",
+    },
+    startName: {
+      title: "Nombre de marca",
+      body: "Un título provisional vale. Confirmarás un nombre más fuerte antes de los logos.",
+    },
+    expressApprove: {
+      title: "Aprobar estrategia",
+      body: "Fija lo esencial que revisaste y abre el paso del nombre. Puedes reaprobar si editas después.",
+    },
+    expressApply: {
+      title: "Aplicar mis ediciones",
+      body: "Guarda tu redacción y actualiza tarjetas relacionadas para que la historia sea coherente.",
+    },
+    designHandover: {
+      title: "Entrega de marca",
+      body: "Aquí viven las descargas y el enlace de cliente. Termina de elegir finales en Design Studio si aún falta algo.",
+    },
+    hubContinue: {
+      title: "Continuar",
+      body: "Abre el siguiente paso incompleto del recorrido de este proyecto.",
+    },
+    journeyCurrent: {
+      title: "Etapa actual",
+      body: "Aquí quiere tu atención el recorrido. Ábrela para seguir avanzando.",
+    },
+    handoverPack: {
+      title: "Archivos para producto",
+      body: "Descarga tokens, logos, iconos y copy para que ingeniería construya UI alineada a la marca.",
+    },
+    handoverShare: {
+      title: "Compartir paquete",
+      body: "Crea un enlace privado de cliente. Lo que ven queda fijo hasta que vuelvas a compartir.",
+    },
+    contentGenerate: {
+      title: "Crear posts del mes",
+      body: "Planifica el mes con tus fotos y diseña cada post. Tarda unos minutos — deja la pestaña abierta.",
+    },
+    generic: {
+      control:
+        "Este control: «{label}». Úsalo cuando encaje con lo que quieres hacer — pregúntame si no estás seguro.",
+      link: "Este enlace va a otro sitio: «{label}». Te espero allí.",
+      button: "Este botón: «{label}». Haz clic cuando estés listo — me quedo contigo.",
+      field: "Un campo para «{label}». Escribe lo que solo tú sabes; la honestidad gana al brillo.",
+      heading: "Sección: «{label}». Léelo como un pin en el mapa de esta pantalla.",
+      checkbox: "Opción: «{label}». Márcala solo si es cierta para este proyecto.",
+    },
   },
 };
