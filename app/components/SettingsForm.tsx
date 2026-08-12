@@ -231,7 +231,10 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
       </section>
 
       {/* Main keys — plain language */}
-      <section className="card-shadow rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+      <section
+        data-faro-anchor="faro-settings-keys"
+        className="card-shadow rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6"
+      >
         <h2 className="font-serif text-xl font-medium tracking-tight">Your keys</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
           Think of these like passwords that unlock AI features. Get them from your Claude and

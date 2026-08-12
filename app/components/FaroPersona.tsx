@@ -5,7 +5,8 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { FARO_MOOD_LABEL, type FaroMood } from "@/lib/faro-persona";
+import { FARO_MOOD_LABEL, moodLabelKey, type FaroMood } from "@/lib/faro-persona";
+import { useLocale } from "@/components/LocaleProvider";
 
 type Props = {
   size?: number;
@@ -27,6 +28,8 @@ export function FaroPersona({
   showMoodRing = true,
   trackCursor = true,
 }: Props) {
+  const { t } = useLocale();
+  const moodLabel = t(moodLabelKey(mood)) || FARO_MOOD_LABEL[mood];
   const rootRef = useRef<HTMLSpanElement>(null);
   const [look, setLook] = useState({ x: 0, y: 0 });
 
@@ -95,9 +98,9 @@ export function FaroPersona({
         speaking ? "faro-persona-speaking" : ""
       }`}
       style={{ width: size, height: size }}
-      title={`Faro — ${FARO_MOOD_LABEL[mood]}`}
+      title={`Faro — ${moodLabel}`}
       role="img"
-      aria-label={`Faro, ${FARO_MOOD_LABEL[mood]}`}
+      aria-label={`Faro, ${moodLabel}`}
     >
       <span
         className={`relative flex h-full w-full items-center justify-center overflow-hidden rounded-full ${

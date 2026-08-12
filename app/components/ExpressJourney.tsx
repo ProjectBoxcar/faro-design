@@ -1080,7 +1080,7 @@ export function ExpressJourney({
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-10 lg:py-14">
-      <header className="mb-8">
+      <header className="mb-8" data-faro-anchor="faro-express-header">
         <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
           {t("express.kicker")}
         </div>
@@ -1377,6 +1377,7 @@ export function ExpressJourney({
         <div className="flex flex-col gap-1 text-sm">
           <Link
             href={`/projects/${projectId}/review/brief`}
+            data-faro-anchor="faro-full-map"
             className="text-[var(--muted)] transition hover:text-[var(--foreground)]"
           >
             {t("express.fullMap")}

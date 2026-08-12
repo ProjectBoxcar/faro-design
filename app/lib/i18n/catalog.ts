@@ -305,6 +305,9 @@ export const en: Catalog = {
     moodCareful: "Mind the rocks",
     moodProud: "Well charted",
     pointing: "Pointing here",
+    noKeyHint:
+      " When you add a Claude key in Settings, I can talk with you live — until then, I’ll keep the map steady.",
+    openChatAria: "Faro, your guide",
   },
   coachTip: {
     homeTitle: "Glad you're here",
@@ -377,7 +380,7 @@ export const en: Catalog = {
       },
       approveStrategy: {
         title: "Gate to brand name",
-        body: "Marks strategy essentials as owner-approved and unlocks naming. It does not freeze a client package yet — that comes after Design Studio finals.",
+        body: "Marks strategy essentials as owner-approved and unlocks naming. It does not lock a client package yet — that comes after Design Studio finals.",
       },
       applyEdits: {
         title: "Cascade your wording",
@@ -409,7 +412,7 @@ export const en: Catalog = {
       },
       sharePackage: {
         title: "Private client link",
-        body: "Publishes a read-only snapshot. Later edits in Faro don’t change what the client sees until you share again — honest freeze by design.",
+        body: "Publishes a read-only snapshot. Later edits in Faro don’t change what the client sees until you share again — the shared link stays fixed until you update it.",
       },
       contentMonth: {
         title: "Month of owned media",
@@ -473,7 +476,7 @@ export const en: Catalog = {
       },
       pathDesign: {
         title: "System and mockups",
-        body: "Identity system, landing, deck — Open Design + Claude only. Choose finals, then leave package/publish to Brand Handover.",
+        body: "Identity system, landing, deck — design helper + Claude only. Choose finals, then leave package/publish to Brand Handover.",
       },
       pathHandover: {
         title: "Safe harbour delivery",
@@ -821,6 +824,9 @@ export const es: Catalog = {
     moodCareful: "Ojo con las rocas",
     moodProud: "Bien trazado",
     pointing: "Señalas aquí",
+    noKeyHint:
+      " Cuando añadas una clave de Claude en Ajustes, podré hablar contigo en vivo — hasta entonces, mantengo el mapa firme.",
+    openChatAria: "Faro, tu guía",
   },
   coachTip: {
     homeTitle: "Me alegra que estés aquí",
@@ -892,7 +898,7 @@ export const es: Catalog = {
       },
       approveStrategy: {
         title: "Puerta al nombre",
-        body: "Marca los esenciales como aprobados por ti y desbloquea el nombre. Aún no congela el paquete de cliente — eso viene tras los finales de diseño.",
+        body: "Marca los esenciales como aprobados por ti y desbloquea el nombre. Aún no fija el paquete de cliente — eso viene tras los finales de diseño.",
       },
       applyEdits: {
         title: "Cascada de tu voz",
@@ -988,7 +994,7 @@ export const es: Catalog = {
       },
       pathDesign: {
         title: "Sistema y mockups",
-        body: "Identidad, landing, deck — solo Open Design + Claude. Elige finales; empaquetar/publicar es de Entrega de marca.",
+        body: "Identidad, landing, deck — solo el ayudante de diseño + Claude. Elige finales; empaquetar/publicar es de Entrega de marca.",
       },
       pathHandover: {
         title: "Entrega en puerto seguro",

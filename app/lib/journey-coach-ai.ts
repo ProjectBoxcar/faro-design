@@ -13,6 +13,7 @@ import {
   moodForScene,
   type FaroMood,
 } from "@/lib/faro-persona";
+import { translate } from "@/lib/i18n/messages";
 
 export type CoachAiRequest = {
   pathname: string;
@@ -183,9 +184,7 @@ export async function generateCoachGuidance(
   if (!aiAvailable) {
     return {
       ...fallbackResponse(tip, false),
-      body:
-        tip.body +
-        " When you add a Claude key in Settings, I can talk with you live — until then, I’ll keep the map steady.",
+      body: tip.body + translate(localeEarly, "coach.noKeyHint"),
     };
   }
 

@@ -131,6 +131,7 @@ export function NameWorkshop({
               type="button"
               onClick={() => void propose()}
               disabled={locked}
+              data-faro-anchor="faro-name-primary"
               className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
               {busy === "propose" ? (
@@ -222,6 +223,7 @@ export function NameWorkshop({
           type="button"
           disabled={locked || (!selected && custom.trim().length < 2)}
           onClick={() => void pick(selected ?? custom)}
+          data-faro-anchor="faro-name-confirm"
           className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy === "pick" ? (

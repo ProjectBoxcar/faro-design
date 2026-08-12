@@ -572,7 +572,7 @@ export function DesignStudio({
 
   return (
     <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-12 lg:py-12 2xl:max-w-[104rem]">
-      <div className="mb-8">
+      <div className="mb-8" data-faro-anchor="faro-design-primary">
         <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">
           {t("design.title")}
         </h1>
@@ -632,6 +632,7 @@ export function DesignStudio({
               type="button"
               onClick={() => identitySelected && void generateMockups(identitySelected.id)}
               disabled={actionsBusy || !identitySelected}
+              data-faro-anchor="faro-design-generate"
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
               <Sparkles size={16} />

@@ -174,6 +174,11 @@ body {
   animation: faro-assistant-bob 0.9s ease-in-out infinite, faro-assistant-travel-glow 0.7s ease-in-out;
 }
 
+/* Dock slide — disabled under prefers-reduced-motion below */
+.faro-assistant {
+  transition: left 0.7s cubic-bezier(0.22, 1, 0.36, 1), top 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @keyframes faro-assistant-pop {
   from {
     opacity: 0;
@@ -379,12 +384,20 @@ body {
   .faro-persona-dot,
   .faro-robot-pupils,
   .faro-robot-lids .faro-robot-lid,
+  .faro-robot-lids-simple .faro-robot-lid,
   .faro-robot-lamp,
   .faro-robot-lamp-on,
   .faro-robot-beams,
   .faro-assistant-bob,
-  .faro-assistant-traveling .faro-assistant-bob {
-    animation: none;
-    transform: none;
+  .faro-assistant-traveling .faro-assistant-bob,
+  .faro-assistant-traveling [role="img"],
+  .faro-assistant-speech {
+    animation: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  .faro-assistant {
+    transition: none !important;
   }
 }

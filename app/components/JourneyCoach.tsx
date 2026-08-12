@@ -25,8 +25,8 @@ import {
 } from "@/lib/journey-coach-pure";
 import {
   FARO_BRAND_PERSONALITY,
-  FARO_MOOD_LABEL,
   moodForScene,
+  moodLabelKey,
   type FaroMood,
 } from "@/lib/faro-persona";
 import {
@@ -262,54 +262,66 @@ export function JourneyCoach() {
     };
   }, [scene, ready, hidden, locale, pathname]);
 
-  /** Reposition next to hovered control / scene anchor */
+  const dockRafRef = useRef(0);
+
+  /** Reposition next to hovered control / scene anchor (rAF-throttled) */
   const recomputeDock = useCallback(() => {
     if (scene === "hidden" || typeof window === "undefined") return;
+    if (dockRafRef.current) cancelAnimationFrame(dockRafRef.current);
+    dockRafRef.current = requestAnimationFrame(() => {
+      const live =
+        Date.now() < interactionUntilRef.current ? interactionRef.current : null;
+      const anchor = resolveAssistantAnchor(scene, live);
 
-    const live =
-      Date.now() < interactionUntilRef.current ? interactionRef.current : null;
-    const anchor = resolveAssistantAnchor(scene, live);
+      const faceOnly = minimized || !openChat;
+      const pw = faceOnly
+        ? bubbleOpen && !minimized
+          ? 280
+          : 72
+        : Math.min(360, window.innerWidth - 24);
+      const ph = faceOnly
+        ? bubbleOpen && !minimized
+          ? 200
+          : 88
+        : Math.min(420, window.innerHeight - 24);
 
-    const faceOnly = minimized || !openChat;
-    const pw = faceOnly ? (bubbleOpen && !minimized ? 280 : 72) : Math.min(360, window.innerWidth - 24);
-    const ph = faceOnly ? (bubbleOpen && !minimized ? 200 : 88) : Math.min(420, window.innerHeight - 24);
+      let next: DockRect;
+      if (anchor) {
+        const r = anchor.getBoundingClientRect();
+        next = dockNearRect(
+          {
+            left: r.left,
+            top: r.top,
+            width: r.width,
+            height: r.height,
+            right: r.right,
+            bottom: r.bottom,
+          },
+          pw,
+          ph,
+          faceOnly ? 10 : 14,
+          ["right", "left", "above", "below"]
+        );
+      } else {
+        const onProject = Boolean(projectIdFromPath(pathname));
+        next = {
+          left: window.innerWidth - pw - 16,
+          top: window.innerHeight - ph - (onProject ? 72 : 20),
+          placement: "left",
+        };
+      }
 
-    let next: DockRect;
-    if (anchor) {
-      const r = anchor.getBoundingClientRect();
-      next = dockNearRect(
-        {
-          left: r.left,
-          top: r.top,
-          width: r.width,
-          height: r.height,
-          right: r.right,
-          bottom: r.bottom,
-        },
-        pw,
-        ph,
-        faceOnly ? 10 : 14,
-        ["right", "left", "above", "below"]
-      );
-    } else {
-      const onProject = Boolean(projectIdFromPath(pathname));
-      next = {
-        left: window.innerWidth - pw - 16,
-        top: window.innerHeight - ph - (onProject ? 72 : 20),
-        placement: "left",
-      };
-    }
-
-    const prev = prevDockRef.current;
-    if (
-      prev &&
-      (Math.abs(prev.left - next.left) > 24 || Math.abs(prev.top - next.top) > 24)
-    ) {
-      setTraveling(true);
-      window.setTimeout(() => setTraveling(false), 700);
-    }
-    prevDockRef.current = next;
-    setDock(next);
+      const prev = prevDockRef.current;
+      if (
+        prev &&
+        (Math.abs(prev.left - next.left) > 24 || Math.abs(prev.top - next.top) > 24)
+      ) {
+        setTraveling(true);
+        window.setTimeout(() => setTraveling(false), 700);
+      }
+      prevDockRef.current = next;
+      setDock(next);
+    });
   }, [scene, minimized, openChat, pathname, bubbleOpen]);
 
   useLayoutEffect(() => {
@@ -326,21 +338,25 @@ export function JourneyCoach() {
     window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", onResize);
 
+    // Light poll only while a live interaction is active (not forever every 400ms)
     const interval = window.setInterval(() => {
-      // expire interaction + keep dock fresh after layout shifts
-      recomputeDock();
-    }, 400);
+      if (Date.now() < interactionUntilRef.current) recomputeDock();
+    }, 500);
 
-    const mo = new MutationObserver(() => {
-      recomputeDock();
+    const mo = new MutationObserver((mutations) => {
+      // Ignore pure attribute noise (class toggles); react to structure changes
+      if (mutations.some((m) => m.type === "childList" && m.addedNodes.length > 0)) {
+        recomputeDock();
+      }
     });
-    mo.observe(document.body, { childList: true, subtree: true, attributes: true });
+    mo.observe(document.body, { childList: true, subtree: true });
 
     return () => {
       window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", onResize);
       window.clearInterval(interval);
       mo.disconnect();
+      if (dockRafRef.current) cancelAnimationFrame(dockRafRef.current);
     };
   }, [ready, hidden, scene, recomputeDock]);
 
@@ -530,7 +546,7 @@ export function JourneyCoach() {
       <div
         ref={panelRef}
         data-faro-assistant
-        className={`faro-assistant fixed z-[60] transition-[left,top] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        className={`faro-assistant fixed z-[60] ${
           traveling ? "faro-assistant-traveling" : ""
         }`}
         style={style}
@@ -643,11 +659,11 @@ export function JourneyCoach() {
     <aside
       ref={panelRef}
       data-faro-assistant
-      className={`faro-assistant fixed z-[60] w-[min(100vw-1.25rem,22.5rem)] transition-[left,top] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+      className={`faro-assistant fixed z-[60] w-[min(100vw-1.25rem,22.5rem)] ${
         traveling ? "faro-assistant-traveling" : ""
       }`}
       style={style}
-      aria-label="Faro, your guide"
+      aria-label={t("coach.openChatAria")}
     >
       <div className="card-shadow overflow-hidden rounded-[1.35rem] border border-[var(--border-strong)] bg-[var(--surface)]">
         <div className="relative border-b border-[var(--border)] bg-[var(--brand-paper,#F5F1E8)] px-3.5 py-3">
@@ -674,7 +690,7 @@ export function JourneyCoach() {
               <p className="mt-1 text-[11px] text-[var(--muted)]">{t("coach.role")}</p>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
                 <span className="rounded-full bg-[var(--accent)]/12 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--accent)]">
-                  {FARO_MOOD_LABEL[displayMood]}
+                  {t(moodLabelKey(displayMood))}
                 </span>
                 <span className="truncate text-[10px] font-medium text-[var(--subtle)]">
                   {title}
