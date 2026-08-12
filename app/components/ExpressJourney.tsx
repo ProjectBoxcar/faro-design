@@ -431,8 +431,10 @@ function ExpressDraftingScreen({
   stopping: boolean;
   stopGeneration: () => void | Promise<void>;
 }) {
+  const { t } = useLocale();
   const [peakPct, setPeakPct] = useState(0);
   const [secondsInCurrent, setSecondsInCurrent] = useState(0);
+  const [resuming, setResuming] = useState(false);
   const lastDoneRef = useRef(state.done);
   const unitStartedAtRef = useRef(Date.now());
 
@@ -473,31 +475,61 @@ function ExpressDraftingScreen({
   const activeFromCurrent = stageIndexOf(state.current);
 
   const stopped = state.status === "cancelled";
+  const interrupted =
+    state.status === "failed" &&
+    (state.errorCode === "interrupted" ||
+      /interrupt|server restart/i.test(state.error ?? ""));
+  const canResume = state.status === "failed" || state.status === "cancelled";
+
+  const panelTitle = stopped
+    ? t("express.stoppedTitle")
+    : interrupted
+      ? t("express.interruptedTitle")
+      : state.status === "failed"
+        ? t("express.pausedTitle")
+        : t("express.draftingTitle", { name: projectName });
+  const panelDesc = stopped
+    ? t("express.stoppedDesc")
+    : interrupted
+      ? t("express.interruptedDesc")
+      : state.status === "failed"
+        ? t("express.pausedDesc")
+        : t("express.draftingDesc");
+
+  async function resumeDrafting() {
+    if (resuming) return;
+    setResuming(true);
+    setState({
+      ...state,
+      status: "running",
+      error: null,
+      errorCode: null,
+      errorHint: null,
+    });
+    try {
+      await fetch(`/api/projects/${projectId}/express`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "start" }),
+      });
+    } finally {
+      setResuming(false);
+    }
+  }
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center px-6 py-16">
       <FaroLoaderPanel
         beaconSize="hero"
-        title={
-          stopped
-            ? "Strategy drafting stopped"
-            : state.status === "failed"
-              ? "Strategy drafting paused"
-              : `Drafting the ${projectName} strategy`
-        }
-        description={
-          stopped
-            ? "You stopped generation. Sections already drafted are kept — resume when you are ready."
-            : state.status === "failed"
-              ? "Something went wrong mid-run. Progress so far is kept — you can resume from here."
-              : "Your answers are becoming a complete brand strategy and design plan. This takes a few minutes — you'll review everything on one page when it's ready."
-        }
+        title={panelTitle}
+        description={panelDesc}
         progressPercent={pct}
         progressLabel={
           state.total > 0
-            ? `${state.done} of ${state.total} sections${
-                state.currentName && running ? ` · ${state.currentName}` : ""
-              }`
+            ? `${t("express.sectionsProgress", {
+                done: state.done,
+                total: state.total,
+              })}${state.currentName && running ? ` · ${state.currentName}` : ""}`
             : undefined
         }
       >
@@ -561,20 +593,18 @@ function ExpressDraftingScreen({
             >
               {stopping ? (
                 <>
-                  <Loader2 size={14} className="animate-spin" /> Stopping…
+                  <Loader2 size={14} className="animate-spin" /> {t("express.stopping")}
                 </>
               ) : (
                 <>
-                  <Square size={12} fill="currentColor" /> Stop generation
+                  <Square size={12} fill="currentColor" /> {t("express.stopGeneration")}
                 </>
               )}
             </button>
-            <p className="text-xs text-[var(--subtle)]">
-              Stops after the current section finishes. Progress so far is kept.
-            </p>
+            <p className="text-xs text-[var(--subtle)]">{t("express.stopHint")}</p>
           </div>
         )}
-        {(state.status === "failed" || state.status === "cancelled") && (
+        {canResume && (
           <div
             className={`mt-8 w-full max-w-md rounded-2xl border px-5 py-4 text-left text-sm ${
               state.status === "failed"
@@ -584,30 +614,26 @@ function ExpressDraftingScreen({
           >
             <p>
               {state.status === "failed"
-                ? state.error ?? "Strategy drafting failed."
-                : "Generation stopped. You can resume from where it left off."}
+                ? state.error ?? t("express.failedDefault")
+                : t("express.stoppedDefault")}
             </p>
             {state.errorHint && state.status === "failed" ? (
               <p className="mt-2 text-xs text-[var(--muted)]">{state.errorHint}</p>
             ) : null}
             <button
-              onClick={async () => {
-                setState({
-                  ...state,
-                  status: "running",
-                  error: null,
-                  errorCode: null,
-                  errorHint: null,
-                });
-                await fetch(`/api/projects/${projectId}/express`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ action: "start" }),
-                });
-              }}
-              className="mt-3 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)]"
+              type="button"
+              data-faro-anchor="faro-express-resume"
+              disabled={resuming}
+              onClick={() => void resumeDrafting()}
+              className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-60"
             >
-              Resume drafting
+              {resuming ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" /> {t("express.continueDrafting")}
+                </>
+              ) : (
+                t("express.continueDrafting")
+              )}
             </button>
           </div>
         )}

@@ -164,11 +164,11 @@ export function reconcileOrphanExpressRuns(): number {
       status: "failed",
       error:
         rec.error ||
-        "Interrupted by server restart — open Express and continue drafting.",
+        "Drafting was interrupted (server restart). Your progress is saved.",
       errorCode: rec.errorCode || "interrupted",
       errorHint:
         rec.errorHint ||
-        "Your filled steps are still saved. Start Express again to finish remaining drafts.",
+        "Click Continue drafting to finish the remaining strategy sections. Nothing you already have will be wiped.",
     });
     n++;
   }

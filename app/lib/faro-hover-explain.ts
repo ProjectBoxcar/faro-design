@@ -29,6 +29,7 @@ const ANCHOR_TO_KNOWLEDGE: Record<string, string> = {
   "faro-express-approve": "approveStrategy",
   "faro-express-apply": "applyEdits",
   "faro-express-header": "pathExpress",
+  "faro-express-resume": "continueDrafting",
   "faro-full-map": "fullMap",
   "faro-logo-continue": "logoGate",
   "faro-logo-approve": "logoGate",

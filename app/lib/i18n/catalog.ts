@@ -174,6 +174,26 @@ export const en: Catalog = {
     updating: "Updating the strategy from your edit",
     rewriting: "Rewriting {name}…",
     applying: "Applying your change…",
+    draftingTitle: "Drafting the {name} strategy",
+    draftingDesc:
+      "Your answers are becoming a complete brand strategy and design plan. This takes a few minutes — you'll review everything on one page when it's ready.",
+    stoppedTitle: "Strategy drafting stopped",
+    stoppedDesc:
+      "You stopped generation. Sections already drafted are kept — resume when you are ready.",
+    pausedTitle: "Strategy drafting paused",
+    pausedDesc:
+      "Something went wrong mid-run. Progress so far is kept — you can continue from here.",
+    interruptedTitle: "Drafting was interrupted",
+    interruptedDesc:
+      "The server restarted while strategy was still drafting. Everything already written is saved.",
+    failedDefault: "Strategy drafting failed.",
+    stoppedDefault: "Generation stopped. You can resume from where it left off.",
+    continueDrafting: "Continue drafting",
+    resumeDrafting: "Resume drafting",
+    stopGeneration: "Stop generation",
+    stopping: "Stopping…",
+    stopHint: "Stops after the current section finishes. Progress so far is kept.",
+    sectionsProgress: "{done} of {total} sections",
   },
   fullPlan: {
     show: "Show full strategy map (optional)",
@@ -385,6 +405,10 @@ export const en: Catalog = {
       applyEdits: {
         title: "Cascade your wording",
         body: "Saves this card and regenerates dependent strategy cards so manifesto and plan follow your edit — not the old draft. Cancel leaves others untouched.",
+      },
+      continueDrafting: {
+        title: "Pick up where drafting stopped",
+        body: "Continues the strategy pipeline from the next unfilled section. Already-written cards stay — nothing is wiped. Use after stop, error, or a server restart mid-run.",
       },
       rewriteAi: {
         title: "Polish, don’t replace you",
@@ -692,6 +716,26 @@ export const es: Catalog = {
     updating: "Actualizando la estrategia con tu edición",
     rewriting: "Reescribiendo {name}…",
     applying: "Aplicando tu cambio…",
+    draftingTitle: "Redactando la estrategia de {name}",
+    draftingDesc:
+      "Tus respuestas se convierten en una estrategia y plan de diseño completos. Tarda unos minutos — revisarás todo en una página.",
+    stoppedTitle: "Redacción de estrategia detenida",
+    stoppedDesc:
+      "Detuviste la generación. Las secciones ya redactadas se conservan — continúa cuando quieras.",
+    pausedTitle: "Redacción de estrategia en pausa",
+    pausedDesc:
+      "Algo falló a mitad de camino. El progreso se conserva — puedes continuar desde aquí.",
+    interruptedTitle: "La redacción se interrumpió",
+    interruptedDesc:
+      "El servidor se reinició mientras se redactaba la estrategia. Todo lo ya escrito está guardado.",
+    failedDefault: "Falló la redacción de estrategia.",
+    stoppedDefault: "Generación detenida. Puedes continuar desde donde quedó.",
+    continueDrafting: "Continuar redacción",
+    resumeDrafting: "Reanudar redacción",
+    stopGeneration: "Detener generación",
+    stopping: "Deteniendo…",
+    stopHint: "Se detiene al terminar la sección actual. El progreso se conserva.",
+    sectionsProgress: "{done} de {total} secciones",
   },
   fullPlan: {
     show: "Mostrar mapa completo de estrategia (opcional)",
@@ -903,6 +947,10 @@ export const es: Catalog = {
       applyEdits: {
         title: "Cascada de tu voz",
         body: "Guarda esta tarjeta y regenera las dependientes para que manifiesto y plan sigan tu edición — no el borrador viejo.",
+      },
+      continueDrafting: {
+        title: "Retoma donde se detuvo la redacción",
+        body: "Continúa la estrategia desde la siguiente sección vacía. Lo ya escrito se conserva — no se borra nada. Úsalo tras parar, un error, o un reinicio del servidor a mitad de camino.",
       },
       rewriteAi: {
         title: "Pulir, no reemplazarte",

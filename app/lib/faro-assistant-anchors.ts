@@ -13,7 +13,12 @@ export const SCENE_ANCHORS: Record<Exclude<CoachScene, "hidden">, string[]> = {
   start: ["faro-start-next", "faro-start-finish", "faro-start-name"],
   settings: ["faro-settings-keys", "faro-lang"],
   hub: ["faro-hub-continue", "faro-journey-current", "faro-lang"],
-  strategy: ["faro-express-approve", "faro-express-apply", "faro-express-header"],
+  strategy: [
+    "faro-express-resume",
+    "faro-express-approve",
+    "faro-express-apply",
+    "faro-express-header",
+  ],
   strategy_map: ["faro-full-map", "faro-journey-current"],
   name: ["faro-name-confirm", "faro-name-primary"],
   logo: ["faro-logo-continue", "faro-logo-approve", "faro-logo-primary"],
