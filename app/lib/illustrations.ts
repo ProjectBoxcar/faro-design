@@ -16,7 +16,8 @@ export type IllustrationId =
   | "stageLogo"
   | "stageDesign"
   | "stageHandover"
-  | "stageContent";
+  | "stageContent"
+  | "faroFull";
 
 const BASE = "/brand/illustrations";
 
@@ -101,6 +102,12 @@ export const ILLUSTRATIONS: Record<
     altKey: "illustrations.stageContent",
     width: 800,
     height: 800,
+  },
+  faroFull: {
+    src: `${BASE}/faro-full.jpg`,
+    altKey: "illustrations.faroFull",
+    width: 900,
+    height: 1200,
   },
 };
 

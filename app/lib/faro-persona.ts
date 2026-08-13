@@ -18,17 +18,23 @@ export const FARO_MOODS: FaroMood[] = [
   "proud",
 ];
 
-/** Portrait paths under /public/brand */
+/**
+ * Illustrated mood portraits — same cream/teal/coral editorial style as site art.
+ * Paths under /public/brand/illustrations/
+ */
 export const FARO_FACE: Record<FaroMood, string> = {
-  calm: "/brand/faro-persona-calm.jpg",
-  thinking: "/brand/faro-persona-thinking.jpg",
-  encouraging: "/brand/faro-persona-encouraging.jpg",
-  careful: "/brand/faro-persona-careful.jpg",
-  proud: "/brand/faro-persona-proud.jpg",
+  calm: "/brand/illustrations/faro-calm.jpg",
+  thinking: "/brand/illustrations/faro-thinking.jpg",
+  encouraging: "/brand/illustrations/faro-encouraging.jpg",
+  careful: "/brand/illustrations/faro-careful.jpg",
+  proud: "/brand/illustrations/faro-proud.jpg",
 };
 
 /** Fallback if a variant is missing */
-export const FARO_FACE_DEFAULT = "/brand/faro-persona.jpg";
+export const FARO_FACE_DEFAULT = "/brand/illustrations/faro-default.jpg";
+
+/** Full-body character (UI banners / empty coach moments) */
+export const FARO_CHARACTER_FULL = "/brand/illustrations/faro-full.jpg";
 
 export const FARO_MOOD_LABEL: Record<FaroMood, string> = {
   calm: "Steady light",

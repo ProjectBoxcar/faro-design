@@ -296,7 +296,7 @@ export function JourneyCoach() {
           />
           <div className="relative flex items-center gap-3">
             <FaroPersona
-              size={56}
+              size={64}
               mood={displayMood}
               speaking={loading || asking}
               className="shadow-md"
