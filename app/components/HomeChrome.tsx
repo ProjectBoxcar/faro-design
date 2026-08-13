@@ -8,7 +8,6 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLocale } from "@/components/LocaleProvider";
 import { ProjectList } from "@/components/ProjectList";
 import { IllustrativeFigure, StageIllustration } from "@/components/IllustrativeFigure";
-import { FaroCharacterFigure, FaroPersona } from "@/components/FaroPersona";
 import type { ComponentProps } from "react";
 import type { IllustrationId } from "@/lib/illustrations";
 
@@ -162,38 +161,6 @@ export function HomeBodySections({
                 <div className="text-sm font-semibold leading-snug">{stage.name}</div>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="border-b border-[var(--border)] bg-[var(--surface-2)]">
-        <div className="mx-auto grid max-w-7xl items-center gap-8 px-5 py-12 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-12 lg:px-12 lg:py-16 2xl:max-w-[110rem]">
-          <FaroCharacterFigure className="mx-auto aspect-[3/4] w-full max-w-[14rem] border border-[var(--border)] sm:max-w-[16rem]" />
-          <div>
-            <div className="mb-3 flex items-center gap-3">
-              <FaroPersona size={48} mood="encouraging" showMoodRing />
-              <p className="faro-kicker mb-0">{t("home.guideKicker")}</p>
-            </div>
-            <h2 className="font-serif max-w-[16ch] text-3xl font-normal leading-none tracking-tight sm:text-4xl">
-              {t("home.guideTitle")}
-            </h2>
-            <p className="mt-4 max-w-xl text-base leading-relaxed text-[var(--muted)]">
-              {t("home.guideBlurb")}
-            </p>
-            <ul className="mt-5 space-y-2 text-sm text-[var(--foreground)]">
-              <li className="flex gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
-                {t("home.guideTrait1")}
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
-                {t("home.guideTrait2")}
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
-                {t("home.guideTrait3")}
-              </li>
-            </ul>
           </div>
         </div>
       </section>

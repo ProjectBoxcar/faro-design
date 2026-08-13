@@ -69,13 +69,6 @@ export const en: Catalog = {
     step2Text: "Review essentials, lock a name, approve a logo direction.",
     step3Title: "Hand off cleanly",
     step3Text: "System, mockups, and files your designer or product team can use.",
-    guideKicker: "Your guide",
-    guideTitle: "Meet Faro — the light on the journey.",
-    guideBlurb:
-      "Faro is the lighthouse keeper who stays with you: plain words, one next step, and nothing final until you approve. He docks beside what you’re looking at and explains the real product — not fluff.",
-    guideTrait1: "Steady and clear — never hype, never jargon walls",
-    guideTrait2: "Strategy first, then the assets you can actually use",
-    guideTrait3: "You’re the captain; he keeps the light",
   },
   illustrations: {
     heroHarbour: "Lighthouse beam guiding a calm harbour at dusk",
@@ -91,7 +84,6 @@ export const en: Catalog = {
     stageDesign: "UI mockups and color chips — design studio",
     stageHandover: "Sealed envelope and package folder — brand handover",
     stageContent: "Content calendar and camera — content studio",
-    faroFull: "Faro the lighthouse keeper standing by the light",
   },
   start: {
     title: "Let's build your brand",
@@ -432,13 +424,6 @@ export const es: Catalog = {
     step2Text: "Revisa lo esencial, fija un nombre, aprueba una dirección de logo.",
     step3Title: "Entrega limpia",
     step3Text: "Sistema, mockups y archivos que tu diseñador o equipo de producto pueden usar.",
-    guideKicker: "Tu guía",
-    guideTitle: "Conoce a Faro — la luz del viaje.",
-    guideBlurb:
-      "Faro es el farero que te acompaña: palabras claras, un siguiente paso, y nada es final hasta que apruebas. Se acerca a lo que miras y explica el producto de verdad — sin relleno.",
-    guideTrait1: "Firme y claro — sin hype ni muros de jerga",
-    guideTrait2: "Primero la estrategia, luego los activos que sí puedes usar",
-    guideTrait3: "Tú eres el capitán; él mantiene la luz",
   },
   illustrations: {
     heroHarbour: "Faro guiando un puerto en calma al atardecer",
@@ -454,7 +439,6 @@ export const es: Catalog = {
     stageDesign: "Mockups y chips de color — design studio",
     stageHandover: "Sobre sellado y carpeta — entrega de marca",
     stageContent: "Calendario de contenido y cámara — content studio",
-    faroFull: "Faro el farero junto a la luz",
   },
   start: {
     title: "Construyamos tu marca",
