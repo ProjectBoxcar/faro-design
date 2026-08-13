@@ -1,6 +1,7 @@
-﻿/**
- * Faro persona ΓÇö face, mood, and brand-grounded personality.
+/**
+ * Faro persona — face, mood, and brand-grounded personality.
  * Colors & voice align with public/brand tokens (paper, teal, orange accent).
+ * Living agent UI uses the robot SVG (FaroPersona), not portrait photos.
  */
 
 export type FaroMood =
