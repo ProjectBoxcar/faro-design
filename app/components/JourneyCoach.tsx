@@ -44,6 +44,8 @@ import { useLocale } from "@/components/LocaleProvider";
 
 const MIN_KEY = "faro-journey-coach-minimized";
 const HIDE_KEY = "faro-journey-coach-hidden-session";
+/** One-time clear after portrait regression left people with hide stuck on */
+const RECOVERY_KEY = "faro-journey-coach-restored-v3";
 const INTERACT_MS = 4500;
 const HOVER_DWELL_MS = 120;
 const HOVER_AI_MS = 550;
@@ -105,12 +107,30 @@ export function JourneyCoach() {
 
   useEffect(() => {
     try {
+      // Recover users who hid Faro during the broken portrait episode
+      if (sessionStorage.getItem(RECOVERY_KEY) !== "1") {
+        sessionStorage.removeItem(HIDE_KEY);
+        sessionStorage.setItem(RECOVERY_KEY, "1");
+      }
       setMinimized(localStorage.getItem(MIN_KEY) === "1");
       setHidden(sessionStorage.getItem(HIDE_KEY) === "1");
     } catch {
       /* private mode */
     }
     setReady(true);
+  }, []);
+
+  const unhide = useCallback(() => {
+    setHidden(false);
+    setMinimized(false);
+    setOpenChat(false);
+    setBubbleOpen(true);
+    try {
+      sessionStorage.removeItem(HIDE_KEY);
+      localStorage.setItem(MIN_KEY, "0");
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   useEffect(() => {
@@ -496,7 +516,31 @@ export function JourneyCoach() {
     await fetchGuidance(pathname, q);
   }
 
-  if (!ready || seedTip.scene === "hidden" || hidden) return null;
+  // Public share / unlock: no owner coach
+  if (!ready || seedTip.scene === "hidden") return null;
+
+  // Hidden for session — always leave a corner control so Faro can come back
+  if (hidden) {
+    return (
+      <div
+        data-faro-assistant
+        className="faro-assistant fixed bottom-5 right-4 z-[9999]"
+        style={{ right: 16, bottom: 20 }}
+      >
+        <button
+          type="button"
+          onClick={unhide}
+          className="faro-assistant-bob group relative"
+          aria-label={t("coach.open")}
+        >
+          <FaroPersona size={52} mood="encouraging" speaking={false} className="shadow-[var(--shadow-pop)]" />
+          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--accent)] px-2 py-0.5 text-[9px] font-semibold text-white shadow">
+            Faro
+          </span>
+        </button>
+      </div>
+    );
+  }
 
   const activeTip: CoachTip = seedTip;
   const tip = (guidance ?? activeTip) as LiveGuidance | CoachTip;
@@ -546,7 +590,7 @@ export function JourneyCoach() {
       <div
         ref={panelRef}
         data-faro-assistant
-        className={`faro-assistant fixed z-[60] ${
+        className={`faro-assistant fixed z-[9999] ${
           traveling ? "faro-assistant-traveling" : ""
         }`}
         style={style}
@@ -659,7 +703,7 @@ export function JourneyCoach() {
     <aside
       ref={panelRef}
       data-faro-assistant
-      className={`faro-assistant fixed z-[60] w-[min(100vw-1.25rem,22.5rem)] ${
+      className={`faro-assistant fixed z-[9999] w-[min(100vw-1.25rem,22.5rem)] ${
         traveling ? "faro-assistant-traveling" : ""
       }`}
       style={style}
