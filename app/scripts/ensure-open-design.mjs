@@ -19,12 +19,14 @@ const odCli = path.join(odRoot, "apps", "daemon", "dist", "cli.js");
 const port = Number(process.env.OPEN_DESIGN_PORT || 7456);
 const odUrl = (process.env.OPEN_DESIGN_URL || `http://127.0.0.1:${port}`).replace(/\/$/, "");
 const waitForReady = process.argv.includes("--wait");
+/** Cold start on Windows can exceed 60s — allow override */
+const waitMs = Number(process.env.OPEN_DESIGN_WAIT_MS || 120_000);
 
 async function isUp() {
   try {
     const res = await fetch(`${odUrl}/api/brands`, {
       method: "GET",
-      signal: AbortSignal.timeout(2000),
+      signal: AbortSignal.timeout(3000),
     });
     return res.ok;
   } catch {
@@ -34,6 +36,54 @@ async function isUp() {
 
 function log(msg) {
   console.log(`[open-design] ${msg}`);
+}
+
+function spawnDaemon() {
+  const logPath = path.join(odRoot, "daemon-ensure.log");
+  let outFd;
+  try {
+    outFd = fs.openSync(logPath, "a");
+    fs.writeSync(
+      outFd,
+      `\n---- ensure ${new Date().toISOString()} port=${port} ----\n`
+    );
+  } catch {
+    outFd = "ignore";
+  }
+
+  log(`starting daemon on ${odUrl} …`);
+  if (outFd !== "ignore") log(`daemon log: ${logPath}`);
+
+  const child = spawn(
+    process.execPath,
+    [odCli, "--port", String(port), "--host", "127.0.0.1", "--no-open"],
+    {
+      cwd: odRoot,
+      detached: true,
+      stdio: outFd === "ignore" ? "ignore" : ["ignore", outFd, outFd],
+      windowsHide: true,
+      env: {
+        ...process.env,
+        OPEN_DESIGN_PORT: String(port),
+      },
+    }
+  );
+  child.unref();
+  return { pid: child.pid, logPath };
+}
+
+async function waitUntilReady(label) {
+  const deadline = Date.now() + waitMs;
+  let attempt = 0;
+  while (Date.now() < deadline) {
+    attempt++;
+    if (await isUp()) {
+      log(`ready at ${odUrl} (${label}, ~${attempt * 0.5}s)`);
+      return true;
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return false;
 }
 
 async function main() {
@@ -58,38 +108,27 @@ async function main() {
     process.exit(1);
   }
 
-  log(`starting daemon on ${odUrl} …`);
-  const child = spawn(
-    process.execPath,
-    [odCli, "--port", String(port), "--host", "127.0.0.1", "--no-open"],
-    {
-      cwd: odRoot,
-      detached: true,
-      stdio: "ignore",
-      windowsHide: true,
-      env: {
-        ...process.env,
-        OPEN_DESIGN_PORT: String(port),
-      },
-    }
-  );
-  child.unref();
+  // First spawn
+  const first = spawnDaemon();
+  log(`spawned (pid ${first.pid ?? "?"})`);
 
   if (!waitForReady) {
-    log(`spawned (pid ${child.pid}). Waiting optional — use --wait to block until ready.`);
+    log(`not waiting — use --wait to block until ready.`);
     return;
   }
 
-  const deadline = Date.now() + 60_000;
-  while (Date.now() < deadline) {
-    if (await isUp()) {
-      log(`ready at ${odUrl}`);
-      return;
-    }
-    await new Promise((r) => setTimeout(r, 500));
-  }
+  if (await waitUntilReady("first spawn")) return;
 
-  console.error(`[open-design] ERROR: daemon did not become ready within 60s at ${odUrl}`);
+  // Retry once — Windows cold start / port race
+  log(`not ready after ${Math.round(waitMs / 1000)}s — retrying spawn…`);
+  spawnDaemon();
+  if (await waitUntilReady("retry")) return;
+
+  console.error(
+    `[open-design] ERROR: daemon did not become ready within ${Math.round((waitMs * 2) / 1000)}s at ${odUrl}.\n` +
+      `  Check log: ${path.join(odRoot, "daemon-ensure.log")}\n` +
+      `  Or run: start-open-design.ps1 / npm run od:ensure`
+  );
   process.exit(1);
 }
 

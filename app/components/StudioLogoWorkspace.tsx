@@ -284,6 +284,7 @@ export function StudioLogoWorkspace({
         <button
           onClick={() => act({ action: "generate" }, "generate")}
           disabled={busy !== null}
+          data-faro-anchor="faro-logo-primary"
           className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {isFreshGenerate ? (
@@ -390,6 +391,7 @@ export function StudioLogoWorkspace({
             </div>
             <Link
               href={`/projects/${projectId}/design`}
+              data-faro-anchor="faro-logo-continue"
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
             >
               Continue to Design Studio <ArrowRight size={16} />
@@ -533,6 +535,7 @@ export function StudioLogoWorkspace({
             </div>
             <Link
               href={`/projects/${projectId}/design`}
+              data-faro-anchor="faro-logo-continue"
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--accent-hover)]"
             >
               Continue to Design Studio <ArrowRight size={16} />
@@ -1023,6 +1026,7 @@ function CandidateCard({
             <button
               onClick={onApprove}
               disabled={isBusy || generating}
+              data-faro-anchor="faro-logo-approve"
               className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
               <BadgeCheck size={16} /> Approve — make it official

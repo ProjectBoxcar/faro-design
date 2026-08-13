@@ -324,7 +324,10 @@ export function ContentStudioWorkspace({
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
           Content Studio
         </p>
-        <h1 className="mt-1 font-serif text-3xl font-medium tracking-tight lg:text-4xl">
+        <h1
+          className="mt-1 font-serif text-3xl font-medium tracking-tight lg:text-4xl"
+          data-faro-anchor="faro-content-primary"
+        >
           {t("content.title")}
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
@@ -613,6 +616,7 @@ export function ContentStudioWorkspace({
                 type="button"
                 disabled={busy !== null || !profileId || assets.filter((a) => a.storagePath).length === 0}
                 onClick={() => void runAnalyzeMedia()}
+                data-faro-anchor="faro-content-review"
                 className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2 text-xs font-medium text-[var(--muted)] hover:bg-[var(--surface-2)] disabled:opacity-50"
               >
                 {busy === "analyze" ? <Loader2 size={14} className="animate-spin" /> : null}
@@ -694,6 +698,7 @@ export function ContentStudioWorkspace({
                 assets.filter((a) => a.storagePath && !a.ownerMeta?.excluded).length === 0
               }
               onClick={() => void runGenerate()}
+              data-faro-anchor="faro-content-generate"
               className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
             >
               {busy === "generate" || busy === "design" ? (

@@ -60,6 +60,7 @@ export function HomeHeroActions({ showProjects }: { showProjects: boolean }) {
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
               href="/start"
+              data-faro-anchor="faro-start-brand"
               className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition hover:bg-[var(--accent-hover)] hover:shadow-[var(--shadow-pop)]"
             >
               {t("home.startBrand")} <ArrowRight size={16} />
@@ -67,6 +68,7 @@ export function HomeHeroActions({ showProjects }: { showProjects: boolean }) {
             {showProjects ? (
               <a
                 href="#projects"
+                data-faro-anchor="faro-home-projects"
                 className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border-2 border-[var(--foreground)] px-6 py-3 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--foreground)] hover:text-[var(--background)]"
               >
                 {t("home.yourProjects")}

@@ -202,7 +202,14 @@ function StageRow({
     <li>
       <div className="flex items-center gap-0.5">
         {href ? (
-          <Link href={href} className={`min-w-0 flex-1 ${rowClass}`} aria-current={active ? "page" : undefined}>
+          <Link
+            href={href}
+            data-faro-anchor={
+              stage.status === "current" || active ? "faro-journey-current" : undefined
+            }
+            className={`min-w-0 flex-1 ${rowClass}`}
+            aria-current={active ? "page" : undefined}
+          >
             {main}
           </Link>
         ) : (

@@ -11,14 +11,17 @@ export function StagePageBanner({
   stageId,
   children,
   className = "",
+  "data-faro-anchor": faroAnchor,
 }: {
   stageId: string;
   children: ReactNode;
   className?: string;
+  "data-faro-anchor"?: string;
 }) {
   return (
     <header
       className={`mb-8 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between ${className}`}
+      data-faro-anchor={faroAnchor}
     >
       <div className="min-w-0 flex-1">{children}</div>
       <StageIllustration

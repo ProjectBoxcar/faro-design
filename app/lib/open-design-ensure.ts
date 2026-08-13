@@ -13,7 +13,8 @@ export async function ensureOpenDesignDaemon(opts: { timeoutMs?: number } = {}):
   if (await isOpenDesignDaemonUp()) return true;
   if (ensureInFlight) return ensureInFlight;
 
-  const timeoutMs = opts.timeoutMs ?? 45_000;
+  // Match ensure-open-design.mjs default wait (cold start can exceed 45s on Windows)
+  const timeoutMs = opts.timeoutMs ?? Number(process.env.OPEN_DESIGN_WAIT_MS || 120_000);
   ensureInFlight = (async () => {
     try {
       if (await isOpenDesignDaemonUp()) return true;

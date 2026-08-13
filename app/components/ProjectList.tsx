@@ -249,6 +249,7 @@ export function ProjectList({ projects }: { projects: ProjectCardData[] }) {
                 <DeleteProjectButton projectId={p.id} projectName={p.name} variant="icon" />
                 <Link
                   href={continueHref}
+                  data-faro-anchor="faro-hub-continue"
                   className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)]"
                 >
                   {ctaLabel}

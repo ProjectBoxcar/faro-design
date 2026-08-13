@@ -211,6 +211,7 @@ export default function StartPage() {
             <label className="mt-8 block text-sm font-medium">{t("start.brandName")}</label>
             <input
               autoFocus
+              data-faro-anchor="faro-start-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && next()}
@@ -296,6 +297,7 @@ export default function StartPage() {
           <button
             onClick={build}
             disabled={!canAdvance || building}
+            data-faro-anchor="faro-start-finish"
             className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {t("start.finish")} <Check size={16} />
@@ -304,6 +306,7 @@ export default function StartPage() {
           <button
             onClick={next}
             disabled={!canAdvance}
+            data-faro-anchor="faro-start-next"
             className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isDetails ? t("start.startBtn") : t("common.next")} <ArrowRight size={15} />
