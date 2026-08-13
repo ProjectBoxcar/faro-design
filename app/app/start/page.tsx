@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { FaroLoaderPanel } from "@/components/FaroLoader";
+import { IllustrativeFigure } from "@/components/IllustrativeFigure";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLocale } from "@/components/LocaleProvider";
 
@@ -197,6 +198,11 @@ export default function StartPage() {
       <div className="flex-1">
         {isDetails && (
           <div>
+            <IllustrativeFigure
+              id="startInterview"
+              size="full"
+              className="mb-8 aspect-[16/10] w-full max-w-lg border border-[var(--border)]"
+            />
             <h1 className="font-serif text-4xl font-medium leading-tight tracking-tight">
               {t("start.title")}
             </h1>

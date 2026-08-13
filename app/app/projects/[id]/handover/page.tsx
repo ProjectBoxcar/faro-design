@@ -64,18 +64,28 @@ export default async function BrandHandoverPage({
         <ArrowLeft size={15} /> Design Studio
       </Link>
 
-      <header className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
-          Finish
-        </p>
-        <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight lg:text-4xl">
-          Brand Handover
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-          Everything you approved in one place—identity, landing page, and deck. Download files for{" "}
-          <strong className="font-medium text-[var(--foreground)]">product teams</strong>, present
-          full screen, or share a private client link.
-        </p>
+      <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
+            Finish
+          </p>
+          <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight lg:text-4xl">
+            Brand Handover
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
+            Everything you approved in one place—identity, landing page, and deck. Download files for{" "}
+            <strong className="font-medium text-[var(--foreground)]">product teams</strong>, present
+            full screen, or share a private client link.
+          </p>
+        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/illustrations/stage-handover.jpg"
+          alt=""
+          width={128}
+          height={128}
+          className="h-28 w-28 shrink-0 rounded-[var(--radius-lg)] border border-[var(--border)] object-cover shadow-[var(--shadow-card)] sm:h-32 sm:w-32"
+        />
       </header>
 
       {studioBlocked ? (

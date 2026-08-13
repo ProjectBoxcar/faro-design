@@ -56,6 +56,7 @@ export default async function ProjectHub({
         label: primary.label,
         whatItIs: primary.detail,
         overall: primary.overall,
+        stageId: primary.stageId ?? null,
       }
     : null;
 

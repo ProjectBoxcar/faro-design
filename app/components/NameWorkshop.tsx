@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Check, Loader2, Sparkles } from "lucide-react";
 import { FaroBeacon } from "@/components/FaroLoader";
+import { StagePageBanner } from "@/components/StagePageBanner";
 
 export type NameCandidateDto = {
   name: string;
@@ -98,25 +99,27 @@ export function NameWorkshop({
 
   return (
     <div className="mx-auto w-full max-w-2xl px-5 py-10 lg:px-8 lg:py-14">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
-        After strategy · before logos
-      </p>
-      <h1 className="mt-2 font-serif text-4xl font-medium tracking-tight">Brand name</h1>
-      <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-        {isGenericWorkingTitle ? (
-          <>
-            You started with <strong className="text-[var(--foreground)]">“{workingName}”</strong>,
-            which still looks like a temporary label. Logos will lock the spelling — pick a stronger
-            name now, or keep this one for now.
-          </>
-        ) : (
-          <>
-            You started with <strong className="text-[var(--foreground)]">“{workingName}”</strong>.
-            Confirm it for logos, type a different name, or ask for strategy-based suggestions. One
-            click is enough — logos use whatever you lock here.
-          </>
-        )}
-      </p>
+      <StagePageBanner stageId="name">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
+          After strategy · before logos
+        </p>
+        <h1 className="mt-2 font-serif text-4xl font-medium tracking-tight">Brand name</h1>
+        <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+          {isGenericWorkingTitle ? (
+            <>
+              You started with <strong className="text-[var(--foreground)]">“{workingName}”</strong>,
+              which still looks like a temporary label. Logos will lock the spelling — pick a stronger
+              name now, or keep this one for now.
+            </>
+          ) : (
+            <>
+              You started with <strong className="text-[var(--foreground)]">“{workingName}”</strong>.
+              Confirm it for logos, type a different name, or ask for strategy-based suggestions. One
+              click is enough — logos use whatever you lock here.
+            </>
+          )}
+        </p>
+      </StagePageBanner>
 
       <div className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
         <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left sm:gap-5">

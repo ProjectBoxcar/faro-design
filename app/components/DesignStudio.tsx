@@ -26,6 +26,7 @@ import {
   type IdentityPreviewSection,
 } from "@/lib/design-preview";
 import { FaroBeacon } from "@/components/FaroLoader";
+import { StagePageBanner } from "@/components/StagePageBanner";
 import { useLocale } from "@/components/LocaleProvider";
 import {
   DesignGenerationWindow,
@@ -572,12 +573,12 @@ export function DesignStudio({
 
   return (
     <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-12 lg:py-12 2xl:max-w-[104rem]">
-      <div className="mb-8">
+      <StagePageBanner stageId="design">
         <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">
           {t("design.title")}
         </h1>
         <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">{t("design.lede")}</p>
-      </div>
+      </StagePageBanner>
 
       {!apiKeyConfigured && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-6 py-4 text-sm text-[var(--foreground)]">

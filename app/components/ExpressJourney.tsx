@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Loader2, Pencil, Sparkles, Square, X } from "lucide-react";
 import { FaroLoaderPanel } from "@/components/FaroLoader";
+import { StagePageBanner } from "@/components/StagePageBanner";
 import { useLocale } from "@/components/LocaleProvider";
 import { countBasedPercent } from "@/lib/generation-progress";
 
@@ -1079,7 +1080,7 @@ export function ExpressJourney({
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-10 lg:py-14">
-      <header className="mb-8">
+      <StagePageBanner stageId="strategy">
         <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
           {t("express.kicker")}
         </div>
@@ -1088,7 +1089,7 @@ export function ExpressJourney({
         </h1>
         <p className="mt-3 max-w-2xl text-[var(--muted)]">{t("express.lede")}</p>
         <p className="mt-2 text-xs text-[var(--subtle)]">{t("express.helper")}</p>
-      </header>
+      </StagePageBanner>
 
       {refining && refine && (
         <div className="mb-5 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-4 py-3 text-sm">

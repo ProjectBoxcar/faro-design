@@ -1,5 +1,6 @@
 // Designer unlock for non-localhost devices (e.g. phone over Tailscale).
 // Clients never see this — the share link is public and never redirects here.
+
 export default async function UnlockPage({
   searchParams,
 }: {
@@ -8,6 +9,14 @@ export default async function UnlockPage({
   const { to, error } = await searchParams;
   return (
     <main className="mx-auto flex min-h-[70vh] w-full max-w-sm flex-col justify-center px-5">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/brand/illustrations/hero-harbour.jpg"
+        alt=""
+        width={800}
+        height={450}
+        className="mb-6 w-full rounded-[var(--radius-lg)] border border-[var(--border)] object-cover aspect-[16/10]"
+      />
       <h1 className="font-serif text-3xl font-medium tracking-tight">Faro Design</h1>
       <p className="mt-2 text-sm text-[var(--muted)]">
         This device isn&apos;t unlocked yet. Enter the app password once and you&apos;re set.

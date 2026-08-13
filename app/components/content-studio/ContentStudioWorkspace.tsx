@@ -13,6 +13,7 @@ import type {
 } from "@/lib/content-studio/types";
 import { BrandProfileStrip } from "@/components/content-studio/BrandProfileStrip";
 import { ContentCalendarView } from "@/components/content-studio/ContentCalendarView";
+import { StagePageBanner } from "@/components/StagePageBanner";
 import { useLocale } from "@/components/LocaleProvider";
 
 const ASSET_TAG_OPTIONS: { id: ContentAssetTag; label: string }[] = [
@@ -319,7 +320,7 @@ export function ContentStudioWorkspace({
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8 px-5 py-8 lg:px-12 lg:py-10">
-      <header>
+      <StagePageBanner stageId="content" className="mb-0">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
           Content Studio
         </p>
@@ -358,7 +359,7 @@ export function ContentStudioWorkspace({
             })}
           </nav>
         ) : null}
-      </header>
+      </StagePageBanner>
 
       {error ? (
         <p role="alert" className="rounded-xl border border-[var(--danger)]/30 bg-[var(--danger)]/5 px-4 py-3 text-sm text-[var(--danger)]">

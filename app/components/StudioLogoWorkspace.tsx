@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, Check, Loader2, MessageSquarePlus, Sparkles, Square, Trash2, Undo2, X } from "lucide-react";
 import { FaroBeacon, FaroLoaderInline } from "@/components/FaroLoader";
+import { StagePageBanner } from "@/components/StagePageBanner";
 import { LOGO_STAGES, stageStatus, timeBasedPercent } from "@/lib/generation-progress";
 import type { AssetPayload, EvalScore } from "@/lib/db/types";
 
@@ -270,7 +271,7 @@ export function StudioLogoWorkspace({
       ))}
 
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
+        <StagePageBanner stageId="logo" className="mb-0 min-w-0 flex-1">
           <h1 className="font-serif text-3xl font-medium tracking-tight">Logo — “{name}”</h1>
           <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">
             You get three proposals, each scored by a skeptical AI critic (scores are advice, not a
@@ -279,7 +280,7 @@ export function StudioLogoWorkspace({
             on that card. When it feels right, choose and{" "}
             <strong className="text-[var(--foreground)]">approve</strong> — only you make it official.
           </p>
-        </div>
+        </StagePageBanner>
         <button
           onClick={() => act({ action: "generate" }, "generate")}
           disabled={busy !== null}
