@@ -255,44 +255,7 @@ body {
   animation: faro-persona-ring 1.6s ease-out infinite;
 }
 
-/* Illustrated Faro face — soft lamp wash over portrait */
-@keyframes faro-persona-lamp-glow {
-  0%,
-  100% {
-    opacity: 0.15;
-  }
-  50% {
-    opacity: 0.35;
-  }
-}
-
-.faro-persona-lamp-glow {
-  background: radial-gradient(
-    circle at 72% 62%,
-    color-mix(in srgb, var(--brand-accent, #f25c2a) 45%, transparent) 0%,
-    transparent 42%
-  );
-  animation: faro-persona-lamp-glow 2.4s ease-in-out infinite;
-}
-
-.faro-persona-lamp-glow.is-speaking {
-  animation-duration: 0.9s;
-  background: radial-gradient(
-    circle at 72% 62%,
-    color-mix(in srgb, var(--brand-accent, #f25c2a) 65%, transparent) 0%,
-    transparent 48%
-  );
-}
-
-.faro-persona-face {
-  transition: transform 0.35s ease;
-}
-
-.faro-persona-face.is-speaking {
-  transform: scale(1.03);
-}
-
-/* Legacy robot face keyframes (unused by illustrated persona; kept for loaders) */
+/* Robot lamp-eyes agent face */
 @keyframes faro-robot-blink {
   0%,
   42%,
@@ -419,8 +382,6 @@ body {
   .faro-coach-glow,
   .faro-persona-speaking,
   .faro-persona-dot,
-  .faro-persona-lamp-glow,
-  .faro-persona-face,
   .faro-robot-pupils,
   .faro-robot-lids .faro-robot-lid,
   .faro-robot-lids-simple .faro-robot-lid,
