@@ -52,21 +52,22 @@ export const en: Catalog = {
     kicker: "Strategy first · then the assets",
     headline: "A brand you can actually explain.",
     lede:
-      "Answer a few plain questions. Get a strategy you can stand behind—then logo, system, and a clean handoff. You approve every step.",
+      "Most tools invent a logo first. Faro starts with a strategy you can say out loud—then name, mark, system, and a clean handoff. You approve every step.",
     howItWorks: "How it works",
     howTitle: "From unsure to a direction you can see.",
     packageKicker: "The whole package",
     packageTitle: "A brand, not a file.",
     packageBlurb:
-      "You'll work through what a real brand is built on. The app drafts each piece from your answers — you review, edit, and approve.",
+      "You'll leave with a strategy you can explain, a locked name and logo, identity + landing + deck, and files builders can use—from your answers, not a random style pack.",
     emptyTitle: "No projects yet.",
     emptyBlurb: "Start your first brand project—strategy first, then the assets.",
     workspace: "Workspace",
     footerTag: "Strategy first. Then the assets.",
     step1Title: "Answer plainly",
     step1Text: "A few honest questions about what you do and who it's for.",
-    step2Title: "Shape the strategy",
-    step2Text: "Review essentials, lock a name, approve a logo direction.",
+    step2Title: "Approve the strategy",
+    step2Text:
+      "Edit until it sounds like you. Approve when it’s true—then we name it and build the mark on that foundation.",
     step3Title: "Hand off cleanly",
     step3Text: "System, mockups, and files your designer or product team can use.",
   },
@@ -230,11 +231,15 @@ export const en: Catalog = {
     title: "Design Studio",
     lede:
       "Your approved logo leads. Compare three identity directions, choose one final, then build the landing page and deck from that system—tied to your strategy, not guesswork.",
-    setupTitle: "Design Studio needs a Claude key in Settings → AI setup and Faro's design helper running (start Faro with start.bat).",
+    setupTitle: "Design Studio needs a strategy AI key in Settings.",
     setupHint:
-      "If generation fails saying the helper isn't running, restart Faro with start.bat and confirm your Claude key in Settings. Logo Workshop uses a different key — not this path.",
+      "Paste your strategy key once in Settings. Logo Workshop uses a different key — not this path.",
     notSetup:
-      "Design Studio isn't set up yet. Add your Claude key in Settings and start Faro with start.bat so the design helper can run. Logo Workshop uses a different key.",
+      "Design Studio isn't set up yet. Add your strategy AI key in Settings so the design helper can run.",
+    daemonDownTitle: "Design helper isn't running",
+    daemonDownHint:
+      "Restart Faro with start.bat (or start.ps1), wait until the app is ready, then tap Retry. Progress already saved won't be wiped.",
+    retryHelper: "Retry — check helper",
     identityNext: "Identity chosen — next: application mockups",
     buildMockups: "Build landing page & deck",
     visualsReady: "Visuals ready — finish the package on Brand Handover",
@@ -341,7 +346,7 @@ export const en: Catalog = {
     moodProud: "Well charted",
     pointing: "Pointing here",
     noKeyHint:
-      " When you add a Claude key in Settings, I can talk with you live — until then, I’ll keep the map steady.",
+      " When you add your strategy AI key in Settings, I can talk with you live — until then, I’ll keep the map steady.",
     openChatAria: "Faro, your guide",
   },
   coachTip: {
@@ -353,7 +358,7 @@ export const en: Catalog = {
       "Don't polish these for me. A few true lines beat a perfect essay. I'll turn them into a strategy draft you can read and fix — you're still the author.",
     settingsTitle: "Keeping the light on",
     settingsBody:
-      "I need a Claude key for strategy and design, and OpenAI or Gemini for logos. Start Faro with start.bat so the design helper is awake. Then we can go far.",
+      "I need a strategy AI key for writing and design, and a logo AI key for marks. Restart Faro from start.bat if the design helper is asleep — then we can go far.",
     hubTitle: "Your map",
     hubBody:
       "This is home base. Hit Continue for the next real step. The rail is our path: strategy, name, logo, design, handover, then content. One light at a time.",
@@ -609,21 +614,22 @@ export const es: Catalog = {
     kicker: "Primero la estrategia · luego los activos",
     headline: "Una marca que puedes explicar.",
     lede:
-      "Unas preguntas claras. Una estrategia de la que puedas responder. Logo, sistema y una entrega limpia. Tú apruebas cada paso.",
+      "La mayoría de herramientas inventan un logo primero. Faro empieza con una estrategia que puedes decir en voz alta — luego nombre, mark, sistema y una entrega limpia. Tú apruebas cada paso.",
     howItWorks: "Cómo funciona",
     howTitle: "De la duda a una dirección que se ve.",
     packageKicker: "El paquete completo",
     packageTitle: "Una marca, no un archivo.",
     packageBlurb:
-      "Trabajarás lo que una marca real necesita. La app redacta cada pieza a partir de tus respuestas — tú revisas, editas y apruebas.",
+      "Te llevas una estrategia que puedes explicar, nombre y logo fijados, identidad + landing + deck, y archivos para construir — desde tus respuestas, no un pack de estilo al azar.",
     emptyTitle: "Aún no hay proyectos.",
     emptyBlurb: "Empieza tu primer proyecto de marca—primero la estrategia, luego los activos.",
     workspace: "Espacio de trabajo",
     footerTag: "Primero la estrategia. Luego los activos.",
     step1Title: "Responde con claridad",
     step1Text: "Unas pocas preguntas honestas sobre lo que haces y para quién.",
-    step2Title: "Da forma a la estrategia",
-    step2Text: "Revisa lo esencial, fija un nombre, aprueba una dirección de logo.",
+    step2Title: "Aprueba la estrategia",
+    step2Text:
+      "Edita hasta que suene a ti. Aprueba cuando sea verdad — luego nombramos y construimos el mark sobre esa base.",
     step3Title: "Entrega limpia",
     step3Text: "Sistema, mockups y archivos que tu diseñador o equipo de producto pueden usar.",
   },
@@ -787,12 +793,15 @@ export const es: Catalog = {
     title: "Design Studio",
     lede:
       "Tu logo aprobado lidera. Compara tres direcciones de identidad, elige una final y construye la landing y el deck desde ese sistema—atados a tu estrategia, no a la improvisación.",
-    setupTitle:
-      "Design Studio necesita una clave de Claude en Ajustes → IA y el ayudante de diseño de Faro en marcha (inicia Faro con start.bat).",
+    setupTitle: "Design Studio necesita una clave de estrategia en Ajustes.",
     setupHint:
-      "Si falla diciendo que el ayudante no corre, reinicia Faro con start.bat y confirma tu clave de Claude en Ajustes. El Taller de logo usa otra clave.",
+      "Pega tu clave de estrategia una vez en Ajustes. El Taller de logo usa otra clave — no este camino.",
     notSetup:
-      "Design Studio aún no está configurado. Añade tu clave de Claude en Ajustes e inicia Faro con start.bat. El Taller de logo usa otra clave.",
+      "Design Studio aún no está configurado. Añade tu clave de estrategia en Ajustes para que el ayudante de diseño pueda correr.",
+    daemonDownTitle: "El ayudante de diseño no está en marcha",
+    daemonDownHint:
+      "Reinicia Faro con start.bat (o start.ps1), espera a que la app esté lista y pulsa Reintentar. Lo ya guardado no se borra.",
+    retryHelper: "Reintentar — comprobar ayudante",
     identityNext: "Identidad elegida — siguiente: mockups de aplicación",
     buildMockups: "Construir landing y deck",
     visualsReady: "Visuales listos — termina el paquete en Entrega de marca",
@@ -899,7 +908,7 @@ export const es: Catalog = {
     moodProud: "Bien trazado",
     pointing: "Señalas aquí",
     noKeyHint:
-      " Cuando añadas una clave de Claude en Ajustes, podré hablar contigo en vivo — hasta entonces, mantengo el mapa firme.",
+      " Cuando añadas tu clave de estrategia en Ajustes, podré hablar contigo en vivo — hasta entonces, mantengo el mapa firme.",
     openChatAria: "Faro, tu guía",
   },
   coachTip: {
@@ -911,7 +920,7 @@ export const es: Catalog = {
       "No las pules para mí. Unas líneas verdaderas valen más que un ensayo perfecto. Las convertiré en un borrador de estrategia que lees y corriges — sigues siendo el autor.",
     settingsTitle: "Mantener la luz",
     settingsBody:
-      "Necesito una clave de Claude para estrategia y diseño, y OpenAI o Gemini para logos. Inicia Faro con start.bat para que el ayudante de diseño despierte. Luego vamos lejos.",
+      "Necesito una clave de estrategia para escribir y diseñar, y una clave de logo para los marks. Reinicia Faro con start.bat si el ayudante de diseño duerme — luego vamos lejos.",
     hubTitle: "Tu mapa",
     hubBody:
       "Esta es la base. Pulsa Continuar para el siguiente paso real. El raíl es el camino: estrategia, nombre, logo, diseño, entrega y contenido. Una luz a la vez.",

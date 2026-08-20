@@ -1,27 +1,66 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { AUTH_COOKIE, sha256Hex } from "@/lib/auth";
+import {
+  AUTH_COOKIE,
+  authCookieValue,
+  isLocalHost,
+  timingSafeEqualHex,
+} from "@/lib/auth";
 
 // Everything except the public share link is designer-only. Clients open
 // /share/<token> and nothing else; every other page and every API route needs
-// the auth cookie. Requests from localhost (the designer's own PC) get the
-// cookie automatically; other devices (e.g. phone over Tailscale) unlock once
-// with APP_PASSWORD from .env.local.
+// the auth cookie. Requests from localhost get the cookie automatically when
+// APP_PASSWORD is set; other devices unlock once via /unlock.
+//
+// Non-localhost without APP_PASSWORD is blocked (Tailscale/Funnel must not
+// fail open).
 
 export default async function proxy(req: NextRequest) {
-  const password = process.env.APP_PASSWORD;
-  // No password configured → open, preserving plain local use.
+  const password = process.env.APP_PASSWORD?.trim();
+  const host = req.headers.get("host");
+  const local = isLocalHost(host);
+
+  // Off-machine access with no password configured → refuse (do not fail open).
+  if (!password && !local) {
+    if (req.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        {
+          error:
+            "Set APP_PASSWORD in .env.local before exposing Faro on the network (Tailscale / Funnel).",
+        },
+        { status: 503 }
+      );
+    }
+    return new NextResponse(
+      `<!doctype html><html><head><meta charset="utf-8"/><title>Faro — set a password</title>
+<style>body{font-family:system-ui;max-width:32rem;margin:4rem auto;padding:0 1.25rem;line-height:1.5;color:#111;background:#F5F1E8}
+code{background:#fff;padding:0.15rem 0.4rem;border-radius:4px;border:1px solid #D8D1C0}</style></head>
+<body><h1>Set an app password</h1>
+<p>Faro is reachable off this computer, but <code>APP_PASSWORD</code> is not set. That would leave your projects and AI keys open.</p>
+<p>Add to <code>app/.env.local</code>:</p>
+<pre>APP_PASSWORD=choose-a-long-secret
+AUTH_SECRET=another-long-secret</pre>
+<p>Restart Faro, then open <code>/unlock</code> on this device.</p>
+</body></html>`,
+      { status: 503, headers: { "content-type": "text/html; charset=utf-8" } }
+    );
+  }
+
+  // Local dev with no password → open (single-user machine).
   if (!password) return NextResponse.next();
 
-  const expected = await sha256Hex(password);
-  if (req.cookies.get(AUTH_COOKIE)?.value === expected) return NextResponse.next();
+  const expected = await authCookieValue(password);
+  const got = req.cookies.get(AUTH_COOKIE)?.value ?? "";
+  if (got && timingSafeEqualHex(got, expected)) return NextResponse.next();
 
-  const host = req.headers.get("host") ?? "";
-  if (host.startsWith("localhost") || host.startsWith("127.0.0.1")) {
+  // Localhost: mint cookie automatically.
+  if (local) {
     const res = NextResponse.next();
     res.cookies.set(AUTH_COOKIE, expected, {
       httpOnly: true,
       sameSite: "lax",
+      path: "/",
       maxAge: 60 * 60 * 24 * 365,
+      secure: req.nextUrl.protocol === "https:",
     });
     return res;
   }
@@ -32,11 +71,10 @@ export default async function proxy(req: NextRequest) {
 
   const url = req.nextUrl.clone();
   url.pathname = "/unlock";
-  url.search = `?to=${encodeURIComponent(req.nextUrl.pathname)}`;
+  url.search = `?to=${encodeURIComponent(req.nextUrl.pathname + req.nextUrl.search)}`;
   return NextResponse.redirect(url);
 }
 
 export const config = {
-  // Public: the share link, the unlock flow, and Next's own assets.
   matcher: ["/((?!share/|unlock|api/unlock|_next/|favicon\\.ico).*)"],
 };

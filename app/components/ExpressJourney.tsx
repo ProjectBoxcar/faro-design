@@ -8,6 +8,13 @@ import { FaroLoaderPanel } from "@/components/FaroLoader";
 import { StagePageBanner } from "@/components/StagePageBanner";
 import { useLocale } from "@/components/LocaleProvider";
 import { countBasedPercent } from "@/lib/generation-progress";
+import { sectionGuide } from "@/lib/guide";
+
+function cardGuide(sectionId: string): string | null {
+  const g = sectionGuide(sectionId);
+  const line = (g.takeaway || g.whatItIs || "").trim();
+  return line || null;
+}
 
 // One value block of a strategy section, already reduced to plain JSON.
 export type ExpressSection = {
@@ -306,6 +313,7 @@ function RewriteHint({ saving }: { saving?: boolean }) {
 
 function CardShell({
   title,
+  guide,
   accent,
   editing,
   updating,
@@ -321,6 +329,8 @@ function CardShell({
   children,
 }: {
   title: string;
+  /** One-line owner prompt from guide.json */
+  guide?: string | null;
   accent?: boolean;
   editing: boolean;
   updating: boolean;
@@ -345,19 +355,24 @@ function CardShell({
           : "border-[var(--border)] bg-[var(--surface)]"
       }`}
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h3
-          className={`font-serif text-lg font-medium tracking-tight ${
-            accent ? "text-[var(--accent)]" : ""
-          }`}
-        >
-          {title}
-          {updating && (
-            <span className="ml-2 inline-flex items-center gap-1 align-middle text-[11px] font-sans font-medium text-[var(--accent)]">
-              <Loader2 size={12} className="animate-spin" /> Updating…
-            </span>
-          )}
-        </h3>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3
+            className={`font-serif text-lg font-medium tracking-tight ${
+              accent ? "text-[var(--accent)]" : ""
+            }`}
+          >
+            {title}
+            {updating && (
+              <span className="ml-2 inline-flex items-center gap-1 align-middle text-[11px] font-sans font-medium text-[var(--accent)]">
+                <Loader2 size={12} className="animate-spin" /> Updating…
+              </span>
+            )}
+          </h3>
+          {guide ? (
+            <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">{guide}</p>
+          ) : null}
+        </div>
         {editing ? (
           <div className="flex shrink-0 flex-col items-end gap-1">
             <div className="flex flex-wrap items-center justify-end gap-2">
@@ -1154,6 +1169,7 @@ export function ExpressJourney({
         {concept?.value && (
           <CardShell
             title="Brand concept"
+            guide={cardGuide("concept")}
             accent
             editing={editingId === "concept"}
             updating={cardUpdating("concept") || conceptBusy}
@@ -1239,6 +1255,7 @@ export function ExpressJourney({
               <CardShell
                 key={id}
                 title={s.name}
+                guide={cardGuide(id)}
                 editing={editingId === id}
                 updating={cardUpdating(id)}
                 onEdit={() => beginEdit(s)}
@@ -1262,6 +1279,7 @@ export function ExpressJourney({
         {manifesto?.value && (
           <CardShell
             title="Manifesto"
+            guide={cardGuide("manifesto")}
             editing={editingId === "manifesto"}
             updating={cardUpdating("manifesto")}
             onEdit={() => beginEdit(manifesto)}
@@ -1288,6 +1306,7 @@ export function ExpressJourney({
         {designPlan?.value && (
           <CardShell
             title="Design plan — what the Studio will create"
+            guide={cardGuide("design-plan")}
             editing={editingId === "design-plan"}
             updating={cardUpdating("design-plan")}
             onEdit={() => beginEdit(designPlan)}

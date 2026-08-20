@@ -6,6 +6,7 @@ import { designApiKeyStatus } from "@/lib/settings";
 import { DesignStudio } from "@/components/DesignStudio";
 import { getActiveDesignJob, serializeDesignJob, startDesignJob } from "@/lib/design-jobs";
 import { ensureOpenDesignDaemon } from "@/lib/open-design-ensure";
+import { isOpenDesignDaemonUp } from "@/lib/open-design-engine";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +19,16 @@ export default async function DesignPage({
   const project = getProject(id);
   if (!project) notFound();
 
-  // Best-effort: wake OD when the owner opens Design Studio.
-  void ensureOpenDesignDaemon().catch(() => undefined);
+  // Wake OD when the owner opens Design Studio; surface status to the UI.
+  let daemonUp = false;
+  try {
+    daemonUp = await ensureOpenDesignDaemon();
+  } catch {
+    daemonUp = await isOpenDesignDaemonUp().catch(() => false);
+  }
+  if (!daemonUp) {
+    daemonUp = await isOpenDesignDaemonUp().catch(() => false);
+  }
 
   const assets = listAssets(id);
   const openDesign = designApiKeyStatus();
@@ -38,6 +47,7 @@ export default async function DesignPage({
       initialShareToken={project.share_token}
       generationBlockedReason={enter.reason}
       apiKeyConfigured={openDesign.configured}
+      daemonUp={daemonUp}
     />
   );
 }

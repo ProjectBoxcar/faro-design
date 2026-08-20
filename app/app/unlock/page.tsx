@@ -30,7 +30,20 @@ export default async function UnlockPage({
           placeholder="App password"
           className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3.5 py-2.5 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
         />
-        {error && <p className="text-sm text-[var(--danger)]">Wrong password — try again.</p>}
+        {error === "1" && (
+          <p className="text-sm text-[var(--danger)]">Wrong password — try again.</p>
+        )}
+        {error === "rate" && (
+          <p className="text-sm text-[var(--danger)]">Too many attempts — wait a few minutes.</p>
+        )}
+        {error === "config" && (
+          <p className="text-sm text-[var(--danger)]">
+            Set APP_PASSWORD in app/.env.local, then restart Faro.
+          </p>
+        )}
+        {error && error !== "1" && error !== "rate" && error !== "config" && (
+          <p className="text-sm text-[var(--danger)]">Wrong password — try again.</p>
+        )}
         <button
           type="submit"
           className="w-full rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"

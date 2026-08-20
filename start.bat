@@ -36,15 +36,13 @@ if not exist "node_modules\" (
     )
 )
 
-if not exist "data\brand.db" (
-    echo Database not found. Running migrations...
-    call npm run db:migrate
-    if errorlevel 1 (
-        echo Error: Database migration failed.
-        pause
-        popd
-        exit /b 1
-    )
+echo Applying database migrations...
+call npm run db:migrate
+if errorlevel 1 (
+    echo Error: Database migration failed.
+    pause
+    popd
+    exit /b 1
 )
 
 set "APP_URL=http://localhost:3100"

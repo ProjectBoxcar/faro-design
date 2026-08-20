@@ -90,6 +90,7 @@ export function DesignStudio({
   initialShareToken: _initialShareToken,
   generationBlockedReason,
   apiKeyConfigured,
+  daemonUp = true,
 }: {
   projectId: string;
   projectName: string;
@@ -99,6 +100,8 @@ export function DesignStudio({
   initialShareToken: string | null;
   generationBlockedReason: string | null;
   apiKeyConfigured: boolean;
+  /** Open Design daemon reachable (pre-flight) */
+  daemonUp?: boolean;
 }) {
   void _initialShareToken;
   const router = useRouter();
@@ -315,9 +318,11 @@ export function DesignStudio({
     opts?: { feedback?: string; refineFromAssetId?: string }
   ) {
     if (!apiKeyConfigured) {
-      setError(
-        "Design Studio isn’t set up yet. Add your Claude key in Settings and start Faro with start.bat so the design helper can run. Logo Workshop uses a different key."
-      );
+      setError(t("design.notSetup"));
+      return;
+    }
+    if (!daemonUp) {
+      setError(t("design.daemonDownHint"));
       return;
     }
     if (generationBlockedReason) {
@@ -584,19 +589,31 @@ export function DesignStudio({
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
           <AlertCircle size={18} className="mt-0.5 shrink-0" />
           <div>
-            <p>
-              Design Studio needs a{" "}
-              <strong className="font-medium">Claude key in Settings → AI setup</strong> and
-              Faro&apos;s <strong className="font-medium">design helper</strong> running
-              (start Faro with <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">start.bat</code>
-              ).
-            </p>
-            <p className="mt-1.5 text-[var(--muted)]">
-              If generation fails saying the helper isn&apos;t running, restart Faro with{" "}
-              <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">start.bat</code>
-              {" "}and confirm your Claude key in Settings. Logo Workshop uses a different key —
-              not this path.
-            </p>
+            <p className="font-medium">{t("design.setupTitle")}</p>
+            <p className="mt-1.5 text-[var(--muted)]">{t("design.setupHint")}</p>
+            <Link
+              href="/settings"
+              className="mt-3 inline-flex text-sm font-medium text-[var(--accent)] hover:underline"
+            >
+              {t("nav.settings")}
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {apiKeyConfigured && !daemonUp && (
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
+          <AlertCircle size={18} className="mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">{t("design.daemonDownTitle")}</p>
+            <p className="mt-1.5 text-[var(--muted)]">{t("design.daemonDownHint")}</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-3 inline-flex rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2 text-xs font-medium hover:bg-[var(--surface-2)]"
+            >
+              {t("design.retryHelper")}
+            </button>
           </div>
         </div>
       )}

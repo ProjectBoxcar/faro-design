@@ -4,7 +4,6 @@ import { hasApiKey } from "@/lib/ai";
 import {
   getProject,
   completeSectionsWithContent,
-  publishProject,
   getSectionRow,
   saveSection,
 } from "@/lib/queries";
@@ -154,8 +153,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   // Approve: the owner accepted the reviewed brief + design plan. Commit every
-  // drafted step, publish the read-only brief, and make sure the viability
-  // verdict is settled before the Studio opens.
+  // drafted step and settle viability — then continue to name. Publishing a
+  // share link is a separate owner action (Brand Handover / Publish).
   const state = expressStatus(id);
   if (state.status !== "done") {
     return NextResponse.json({ error: "The strategy draft isn't finished yet." }, { status: 409 });
@@ -170,21 +169,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // Complete every methodology step that has content — including Reality inputs
   // filled at Quick Start so the journey shows Strategy → Handover complete.
   completeSectionsWithContent(id, flowSteps().map((s) => s.sectionId));
-  // Strategy brief share: freezes strategy for a designer. This is NOT the full
-  // brand package (identity + mockups) — that freezes later via lifecycle sync.
-  const token = publishProject(id);
+  // Approve unlocks the journey (name → logo…). It does NOT auto-publish a
+  // share link — that surprised owners ("continue to name" ≠ "share with client").
+  // Share from Brand Handover / Publish when ready.
+  const project = getProject(id);
+  const token = project?.share_token ?? null;
   let snapshotVersion: number | null = null;
-  try {
-    const { createPublishSnapshot } = await import("@/lib/publish-snapshot");
-    const snap = createPublishSnapshot(id, token);
-    snapshotVersion = snap.version;
-  } catch (e) {
-    console.error("[publish] express approve snapshot failed:", e);
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Could not freeze the handover snapshot" },
-      { status: 500 }
-    );
-  }
   await maybeRunViabilityGate(id).catch((e) => console.error("[viability] failed:", e));
   try {
     const { recordStrategyLearning } = await import("@/lib/brand-memory");
@@ -217,6 +207,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     phase,
     version: snapshotVersion,
     packageReady,
-    shareKind: packageReady ? "brand_package" : "strategy_brief",
+    published: Boolean(token),
+    shareKind: packageReady ? "brand_package" : token ? "strategy_brief" : null,
   });
 }

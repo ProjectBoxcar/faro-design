@@ -23,11 +23,10 @@ if (-not (Test-Path "node_modules")) {
     if ($LASTEXITCODE -ne 0) { throw "npm install failed" }
 }
 
-if (-not (Test-Path "data\brand.db")) {
-    Write-Host "Database not found. Running migrations..." -ForegroundColor Yellow
-    npm run db:migrate
-    if ($LASTEXITCODE -ne 0) { throw "Database migration failed" }
-}
+# Always migrate (idempotent) so git pulls with new drizzle SQL apply.
+Write-Host "Applying database migrations..." -ForegroundColor Yellow
+npm run db:migrate
+if ($LASTEXITCODE -ne 0) { throw "Database migration failed" }
 
 $appUrl = "http://localhost:3100"
 

@@ -74,7 +74,7 @@ export default async function ShareBriefPage({
           <p className="mt-3 text-lg text-[var(--muted)]">{displayClient}</p>
         )}
         <p className="mt-2 text-sm text-[var(--subtle)]">
-          Prepared for the design team.
+          Shared from Faro — for you, collaborators, or a designer. Read-only until they update the link.
           {fromSnapshot && snapshot?.payload.publishedAt
             ? ` Published ${new Date(snapshot.payload.publishedAt).toLocaleDateString(undefined, {
                 year: "numeric",
