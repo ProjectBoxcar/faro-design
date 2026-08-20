@@ -178,6 +178,8 @@ export const en: Catalog = {
     helper:
       "Edit what doesn't sound like you. Apply my edits to update related cards. Full map stays optional.",
     applyEdits: "Apply my edits",
+    edit: "Edit",
+    rewriteAi: "Rewrite with AI",
     approve: "Approve strategy · continue to brand name",
     reapprove: "Re-approve · continue",
     fullMap: "Optional: open the full strategy map",
@@ -240,6 +242,11 @@ export const en: Catalog = {
     daemonDownHint:
       "Restart Faro with start.bat (or start.ps1), wait until the app is ready, then tap Retry. Progress already saved won't be wiped.",
     retryHelper: "Retry — check helper",
+    pausedTitle: "Design generation paused",
+    failedDefault: "Design generation failed.",
+    resumeHint: "Progress so far is kept — continue when the helper is ready.",
+    continueGenerating: "Continue generating",
+    needIdentity: "Choose a Brand Identity System proposal first.",
     identityNext: "Identity chosen — next: application mockups",
     buildMockups: "Build landing page & deck",
     visualsReady: "Visuals ready — finish the package on Brand Handover",
@@ -318,7 +325,7 @@ export const en: Catalog = {
     nextGenerate: "Next: Generate",
     uploadOne: "Upload at least one photo or video to continue.",
     blocked:
-      "Finish Logo Workshop and Design Studio finals first — Content Studio uses your locked brand package.",
+      "Approve a logo and choose an identity system in Design Studio first — then you can plan the month (landing and deck help, but they don’t block).",
   },
   projects: {
     continue: "Continue",
@@ -740,6 +747,8 @@ export const es: Catalog = {
     helper:
       "Edita lo que no suene a ti. Aplica mis ediciones para actualizar tarjetas relacionadas. El mapa completo es opcional.",
     applyEdits: "Aplicar mis ediciones",
+    edit: "Editar",
+    rewriteAi: "Reescribir con IA",
     approve: "Aprobar estrategia · continuar al nombre",
     reapprove: "Reaprobar · continuar",
     fullMap: "Opcional: abrir el mapa completo de estrategia",
@@ -802,6 +811,11 @@ export const es: Catalog = {
     daemonDownHint:
       "Reinicia Faro con start.bat (o start.ps1), espera a que la app esté lista y pulsa Reintentar. Lo ya guardado no se borra.",
     retryHelper: "Reintentar — comprobar ayudante",
+    pausedTitle: "Generación de diseño en pausa",
+    failedDefault: "Falló la generación de diseño.",
+    resumeHint: "El progreso se conserva — continúa cuando el ayudante esté listo.",
+    continueGenerating: "Continuar generación",
+    needIdentity: "Elige primero un sistema de identidad de marca.",
     identityNext: "Identidad elegida — siguiente: mockups de aplicación",
     buildMockups: "Construir landing y deck",
     visualsReady: "Visuales listos — termina el paquete en Entrega de marca",
@@ -880,7 +894,7 @@ export const es: Catalog = {
     nextGenerate: "Siguiente: Generar",
     uploadOne: "Sube al menos una foto o vídeo para continuar.",
     blocked:
-      "Termina el Taller de logo y los finales de Design Studio primero — Content Studio usa tu paquete de marca bloqueado.",
+      "Aprueba un logo y elige un sistema de identidad en Design Studio primero — luego puedes planear el mes (landing y deck ayudan, pero no bloquean).",
   },
   projects: {
     continue: "Continuar",

@@ -84,9 +84,9 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
   );
   const deckOk = designAssets.some((a) => a.kind === "deck" && a.selected && a.design_system_id);
   const designDone = identityOk && landingOk && deckOk;
-  // Handover is reachable once design unlocks, but the rail treats "done" as
-  // package-ready. Detail copy clarifies finals are still required to export.
-  const handoverUnlocked = designUnlocked;
+  // Handover opens only when identity + landing + deck finals exist — so the
+  // rail doesn't imply "finish" before export is actually possible.
+  const handoverUnlocked = designDone;
   const handoverDone = designDone;
   const contentBlocked = contentStudioBlockedReason(projectId);
   const contentUnlocked = !contentBlocked;
@@ -297,17 +297,13 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       href: `/projects/${projectId}/handover`,
       locked: !handoverUnlocked,
       done: handoverDone,
-      lockHint: "Approve a logo first, then open Design Studio",
+      lockHint: "Finish identity, landing, and deck in Design Studio first",
       doneDetail: project.share_token
         ? "Package ready · brand package published"
         : "Package ready · download or publish",
-      todoDetail: designUnlocked
-        ? designDone
-          ? project.share_token
-            ? "Update shared package or download"
-            : "Share brand package or download"
-          : "Finish identity + landing + deck, then export here"
-        : "Complete design first",
+      todoDetail: project.share_token
+        ? "Update shared package or download"
+        : "Share brand package or download",
     },
     {
       id: "content",
@@ -315,7 +311,7 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       href: `/projects/${projectId}/content`,
       locked: !contentUnlocked && !contentHasWork,
       done: contentDone,
-      lockHint: contentBlocked ?? "Finish brand package first",
+      lockHint: contentBlocked ?? "Approve a logo and choose an identity system first",
       doneDetail: "Month of posts ready",
       todoDetail: contentHasWork
         ? "Review posts and approve what ships"

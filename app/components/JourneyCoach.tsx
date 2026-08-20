@@ -47,8 +47,10 @@ const HIDE_KEY = "faro-journey-coach-hidden-session";
 /** One-time clear after portrait regression left people with hide stuck on */
 const RECOVERY_KEY = "faro-journey-coach-restored-v3";
 const INTERACT_MS = 4500;
-const HOVER_DWELL_MS = 120;
+const HOVER_DWELL_MS = 350;
 const HOVER_AI_MS = 550;
+/** Dense work stages — keep Faro present but quiet (no speech bubble by default). */
+const QUIET_SCENES = new Set(["strategy", "strategy_map", "design", "handover"]);
 
 type LiveGuidance = {
   title: string;
@@ -380,11 +382,11 @@ export function JourneyCoach() {
     };
   }, [ready, hidden, scene, recomputeDock]);
 
-  // Soft re-open bubble when scene changes
+  // Re-open bubble on light scenes; stay quiet on Express / Design / Handover
   useEffect(() => {
-    setBubbleOpen(true);
     setOpenChat(false);
-  }, [pathname, locale]);
+    setBubbleOpen(!QUIET_SCENES.has(scene));
+  }, [pathname, locale, scene]);
 
   const fetchGuidance = useCallback(
     async (path: string, q?: string) => {

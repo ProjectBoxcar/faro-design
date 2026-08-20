@@ -117,6 +117,9 @@ export function DesignStudio({
   const [discardingKind, setDiscardingKind] = useState<AssetRow["kind"] | null>(null);
   const [previewSection, setPreviewSection] = useState<IdentityPreviewSection>("overview");
   const [error, setError] = useState<string | null>(null);
+  const [failedJob, setFailedJob] = useState<DesignJobState | null>(
+    initialJob && initialJob.status === "failed" ? initialJob : null
+  );
   const [stopping, setStopping] = useState(false);
   const [jobProgress, setJobProgress] = useState<{ done: number; total: number }>(() =>
     initialJob && (initialJob.status === "queued" || initialJob.status === "running")
@@ -235,12 +238,14 @@ export function DesignStudio({
           const stopped = /stopped/i.test(job.error ?? "");
           if (stopped) {
             setError(null);
+            setFailedJob(null);
           } else {
             const hint =
               typeof job.errorHint === "string" && job.errorHint.trim()
-                ? ` ${job.errorHint}`
-                : " Check Settings if this keeps failing, then try again.";
-            setError((job.error ?? "Design generation failed.") + hint);
+                ? job.errorHint
+                : t("design.resumeHint");
+            setError(job.error ?? t("design.failedDefault"));
+            setFailedJob({ ...job, errorHint: hint });
           }
           setLoading(null);
           setJobProgress({ done: 0, total: 0 });
@@ -626,8 +631,38 @@ export function DesignStudio({
       )}
 
       {error && (
-        <div role="alert" className="mb-6 rounded-2xl border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
-          {error}
+        <div
+          role="alert"
+          className="mb-6 rounded-2xl border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-6 py-4 text-sm text-[var(--foreground)]"
+        >
+          <p className="font-medium">{t("design.pausedTitle")}</p>
+          <p className="mt-1">{error}</p>
+          {failedJob?.errorHint ? (
+            <p className="mt-2 text-xs text-[var(--muted)]">{failedJob.errorHint}</p>
+          ) : null}
+          {(failedJob?.resumable !== false || failedJob) && (
+            <button
+              type="button"
+              className="mt-3 inline-flex rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
+              disabled={actionsBusy || !daemonUp || !apiKeyConfigured}
+              onClick={() => {
+                const kind = failedJob?.kind;
+                setError(null);
+                setFailedJob(null);
+                if (kind === "mockups") {
+                  const ds = selectedAsset("design_system");
+                  if (ds) void generateMockups(ds.id);
+                  else setError(t("design.needIdentity"));
+                } else if (kind === "design_system" || kind === "landing_page" || kind === "deck") {
+                  void generateProposals(kind);
+                } else {
+                  void generateProposals("design_system");
+                }
+              }}
+            >
+              {t("design.continueGenerating")}
+            </button>
+          )}
         </div>
       )}
 

@@ -344,6 +344,7 @@ function CardShell({
   viewActions?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { t } = useLocale();
   const editLocked = readyBusy || rewriteBusy;
   return (
     <section
@@ -365,7 +366,7 @@ function CardShell({
             {title}
             {updating && (
               <span className="ml-2 inline-flex items-center gap-1 align-middle text-[11px] font-sans font-medium text-[var(--accent)]">
-                <Loader2 size={12} className="animate-spin" /> Updating…
+                <Loader2 size={12} className="animate-spin" /> {t("express.updating")}
               </span>
             )}
           </h3>
@@ -382,7 +383,7 @@ function CardShell({
                 disabled={editLocked}
                 className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs text-[var(--muted)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
               >
-                <X size={12} /> Cancel
+                <X size={12} /> {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -395,7 +396,7 @@ function CardShell({
                 ) : (
                   <Sparkles size={12} />
                 )}
-                {rewriteBusy ? "Rewriting…" : "Rewrite with AI"}
+                {rewriteBusy ? t("express.rewriting", { name: "…" }) : t("express.rewriteAi")}
               </button>
               <button
                 type="button"
@@ -419,7 +420,7 @@ function CardShell({
               disabled={updating}
               className="inline-flex items-center gap-1 text-xs text-[var(--subtle)] transition hover:text-[var(--foreground)] disabled:opacity-40"
             >
-              <Pencil size={12} /> Edit
+              <Pencil size={12} /> {t("express.edit")}
             </button>
           </div>
         )}
