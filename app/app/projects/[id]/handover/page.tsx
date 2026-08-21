@@ -12,6 +12,7 @@ import { listAssets } from "@/lib/design";
 import { getProject } from "@/lib/queries";
 import { designStudioBlockedReason } from "@/lib/studio";
 import { getCurrentSnapshotForProject } from "@/lib/publish-snapshot";
+import { CHANNEL_ASSET_KINDS } from "@/lib/db/types";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,13 @@ const LABELS: Record<FinalDesignKind, string> = {
   design_system: "Brand Identity System",
   landing_page: "Landing Page",
   deck: "Brand Deck",
+};
+
+const CHANNEL_LABELS: Record<(typeof CHANNEL_ASSET_KINDS)[number], string> = {
+  sms: "SMS template",
+  email: "Email template",
+  ad: "Ad mockups",
+  print: "Print collateral",
 };
 
 export default async function BrandHandoverPage({
@@ -43,6 +51,16 @@ export default async function BrandHandoverPage({
       variant: selected?.variant ?? null,
     };
   });
+
+  const channelChecklist = CHANNEL_ASSET_KINDS.map((kind) => {
+    const selected = assets.find((a) => a.kind === kind && a.selected && a.html?.trim());
+    return {
+      kind,
+      label: CHANNEL_LABELS[kind],
+      ready: Boolean(selected),
+    };
+  });
+  const channelsReadyCount = channelChecklist.filter((c) => c.ready).length;
 
   const outputs = checklist
     .filter((item) => item.ready)
@@ -127,6 +145,30 @@ export default async function BrandHandoverPage({
                       {item.ready && item.variant ? ` · ${item.variant}` : " · needed"}
                     </li>
                   ))}
+                  {channelChecklist.map((item) => (
+                    <li
+                      key={item.kind}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
+                        item.ready
+                          ? "bg-[var(--ok)]/15 text-[var(--ok)]"
+                          : "bg-[var(--surface-2)] text-[var(--muted)]"
+                      }`}
+                      title="Optional channel template from Design Studio"
+                    >
+                      {item.ready ? (
+                        <Check size={13} />
+                      ) : (
+                        <span className="h-2 w-2 rounded-full bg-[var(--border-strong)]" />
+                      )}
+                      {item.label}
+                      {item.ready ? "" : " · optional"}
+                    </li>
+                  ))}
+                  {channelsReadyCount > 0 && channelsReadyCount < CHANNEL_ASSET_KINDS.length ? (
+                    <li className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium bg-[var(--accent-soft)] text-[var(--accent)]">
+                      Channels {channelsReadyCount}/{CHANNEL_ASSET_KINDS.length}
+                    </li>
+                  ) : null}
                   <li
                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
                       packageReady

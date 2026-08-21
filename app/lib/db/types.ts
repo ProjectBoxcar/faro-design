@@ -21,7 +21,21 @@ export type EvalScore = {
 export type AiReads = string[];
 
 // Kinds of generated design artifact stored in the assets table.
-export type AssetKind = "design_system" | "landing_page" | "deck" | "brand_guidelines" | "logo_concept";
+export type AssetKind =
+  | "design_system"
+  | "landing_page"
+  | "deck"
+  | "brand_guidelines"
+  | "logo_concept"
+  /** Channel application templates (after identity) */
+  | "sms"
+  | "email"
+  | "ad"
+  | "print";
+
+/** Optional channel mockups — not required for core brand package handover */
+export const CHANNEL_ASSET_KINDS = ["sms", "email", "ad", "print"] as const;
+export type ChannelAssetKind = (typeof CHANNEL_ASSET_KINDS)[number];
 
 // AI provider backend used for synthesis and asset generation.
 export type AiProvider = "anthropic" | "openai-compatible";

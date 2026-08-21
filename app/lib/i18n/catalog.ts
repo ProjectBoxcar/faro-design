@@ -261,6 +261,14 @@ export const en: Catalog = {
     previewing: "Previewing",
     building: "Building…",
     notBuilt: "Not built yet",
+    channelsTitle: "Channel templates",
+    channelsBlurb:
+      "Optional SMS, email, ad, and print mockups — same identity and strategy as your core package. Not required for Brand Handover.",
+    channelsNeedIdentity: "Choose a Brand Identity System final first.",
+    channelsBuild: "Build SMS · email · ads · print",
+    channelsBuilding: "Building channel templates…",
+    channelsRebuild: "Rebuild channel templates",
+    channelsFailed: "Channel template generation failed",
   },
   handover: {
     finish: "Finish",
@@ -830,6 +838,14 @@ export const es: Catalog = {
     previewing: "Viendo",
     building: "Construyendo…",
     notBuilt: "Aún no construido",
+    channelsTitle: "Plantillas de canal",
+    channelsBlurb:
+      "Opcional: SMS, email, anuncio e impresión — misma identidad y estrategia. No son obligatorias para Entrega de marca.",
+    channelsNeedIdentity: "Elige primero un sistema de identidad final.",
+    channelsBuild: "Crear SMS · email · ads · impresión",
+    channelsBuilding: "Creando plantillas de canal…",
+    channelsRebuild: "Reconstruir plantillas de canal",
+    channelsFailed: "Falló la generación de plantillas de canal",
   },
   handover: {
     finish: "Cierre",

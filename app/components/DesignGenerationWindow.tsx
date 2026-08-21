@@ -5,7 +5,12 @@ import { Clock3, Loader2, Square } from "lucide-react";
 import { FaroBeacon } from "@/components/FaroLoader";
 import { countBasedPercent, timeBasedPercent } from "@/lib/generation-progress";
 
-export type DesignGenerationKind = "design_system" | "landing_page" | "deck" | "mockups";
+export type DesignGenerationKind =
+  | "design_system"
+  | "landing_page"
+  | "deck"
+  | "mockups"
+  | "channels";
 
 const GENERATION_COPY: Record<
   DesignGenerationKind,
@@ -67,6 +72,20 @@ const GENERATION_COPY: Record<
       "Making each direction genuinely distinct",
     ],
   },
+  channels: {
+    title: "Building channel templates",
+    output: "SMS, email, ad, and print mockups",
+    focuses: [
+      "Carrying the approved identity into SMS",
+      "Drafting an email layout from the strategy brief",
+      "Shaping feed and story ad canvases",
+      "Laying out print card and flyer applications",
+      "Keeping every channel true to the chosen system",
+      "Using only brief-backed claims and copy",
+      "Embedding the approved logo consistently",
+      "Keeping every file fully offline",
+    ],
+  },
 };
 
 const DIRECTIONS = [
@@ -81,6 +100,7 @@ const ESTIMATE_SECONDS: Record<DesignGenerationKind, number> = {
   landing_page: 150,
   deck: 150,
   mockups: 200,
+  channels: 280,
 };
 
 export function formatGenerationElapsed(seconds: number): string {

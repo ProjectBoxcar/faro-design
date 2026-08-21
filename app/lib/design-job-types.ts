@@ -1,8 +1,10 @@
 import type { AssetKind } from "@/lib/db/types";
 
-// "mockups" is a composite job: one landing page + one brand deck generated in
-// the design plan's execution order as applications of the approved identity.
-export type DesignJobKind = Extract<AssetKind, "design_system" | "landing_page" | "deck"> | "mockups";
+// "mockups" = landing + deck. "channels" = SMS + email + ad + print templates.
+export type DesignJobKind =
+  | Extract<AssetKind, "design_system" | "landing_page" | "deck" | "sms" | "email" | "ad" | "print">
+  | "mockups"
+  | "channels";
 
 export type DesignJobState = {
   id: string;

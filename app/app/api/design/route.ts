@@ -25,7 +25,17 @@ import {
 
 const GenerateSchema = z.object({
   projectId: z.string().min(1),
-  kind: z.enum(["design_system", "landing_page", "deck", "mockups"]),
+  kind: z.enum([
+    "design_system",
+    "landing_page",
+    "deck",
+    "mockups",
+    "channels",
+    "sms",
+    "email",
+    "ad",
+    "print",
+  ]),
   count: z.number().int().min(1).max(6).optional(),
   designSystemId: z.string().min(1).optional(),
   variant: z.string().min(1).max(5).optional(),
@@ -100,6 +110,18 @@ export async function POST(req: Request) {
       );
     }
     const job = createDesignJob({ projectId, kind, count: 2, designSystemId });
+    return NextResponse.json({ job: serializeDesignJob(job) }, { status: 202 });
+  }
+
+  // Channel templates: SMS, email, ad, print — one each from the identity.
+  if (kind === "channels") {
+    if (!designSystemId) {
+      return NextResponse.json(
+        { error: "designSystemId is required to create channel templates" },
+        { status: 400 }
+      );
+    }
+    const job = createDesignJob({ projectId, kind, count: 4, designSystemId });
     return NextResponse.json({ job: serializeDesignJob(job) }, { status: 202 });
   }
 
@@ -178,7 +200,19 @@ export async function POST(req: Request) {
 
 const ListSchema = z.object({
   projectId: z.string().min(1),
-  kind: z.enum(["design_system", "landing_page", "deck", "brand_guidelines", "logo_concept"]).optional(),
+  kind: z
+    .enum([
+      "design_system",
+      "landing_page",
+      "deck",
+      "brand_guidelines",
+      "logo_concept",
+      "sms",
+      "email",
+      "ad",
+      "print",
+    ])
+    .optional(),
   format: z.enum(["json", "deliverable"]).optional(),
   jobId: z.string().min(1).optional(),
 });

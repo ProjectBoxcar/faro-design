@@ -18,7 +18,12 @@ import {
   MessageSquarePlus,
   X,
   ExternalLink,
+  MessageSquare,
+  Mail,
+  Megaphone,
+  Printer,
 } from "lucide-react";
+import { CHANNEL_ASSET_KINDS } from "@/lib/db/types";
 import type { AssetRow } from "@/lib/design";
 import {
   buildArtifactPreviewHtml,
@@ -74,10 +79,38 @@ const KIND_META: Record<
     description: "Logo exploration.",
     cta: "Generate logos",
   },
+  sms: {
+    label: "SMS template",
+    shortLabel: "SMS",
+    icon: <MessageSquare size={18} />,
+    description: "Text-message mockup from your strategy and identity.",
+    cta: "Build SMS template",
+  },
+  email: {
+    label: "Email template",
+    shortLabel: "Email",
+    icon: <Mail size={18} />,
+    description: "Marketing email layout using your brand system.",
+    cta: "Build email template",
+  },
+  ad: {
+    label: "Ad mockups",
+    shortLabel: "Ads",
+    icon: <Megaphone size={18} />,
+    description: "Feed and story ad canvases bound to the brief.",
+    cta: "Build ad mockups",
+  },
+  print: {
+    label: "Print collateral",
+    shortLabel: "Print",
+    icon: <Printer size={18} />,
+    description: "Business card and flyer mockups for print.",
+    cta: "Build print set",
+  },
 };
 
 type GenerationState = {
-  kind: AssetRow["kind"] | "mockups";
+  kind: AssetRow["kind"] | "mockups" | "channels";
   stage: "generating" | "selecting";
   jobId?: string;
 } | null;
@@ -140,6 +173,10 @@ export function DesignStudio({
       deck: [],
       brand_guidelines: [],
       logo_concept: [],
+      sms: [],
+      email: [],
+      ad: [],
+      print: [],
     };
     for (const asset of assets) {
       map[asset.kind].push(asset);
@@ -222,6 +259,16 @@ export function DesignStudio({
                   ...previous.filter((asset) => asset.kind !== "landing_page" && asset.kind !== "deck"),
                   ...generated,
                 ]
+              : job.kind === "channels"
+                ? [
+                    ...previous.filter(
+                      (asset) =>
+                        !CHANNEL_ASSET_KINDS.includes(
+                          asset.kind as (typeof CHANNEL_ASSET_KINDS)[number]
+                        )
+                    ),
+                    ...generated,
+                  ]
               : [
                   ...previous.filter((asset) => asset.kind !== job.kind || asset.selected),
                   ...generated,
@@ -272,6 +319,7 @@ export function DesignStudio({
     setLoading({ kind: "mockups", stage: "generating" });
     setJobProgress({ done: 0, total: 0 });
     setError(null);
+    setFailedJob(null);
     try {
       const res = await fetch("/api/design", {
         method: "POST",
@@ -286,6 +334,38 @@ export function DesignStudio({
       setLoading({ kind: "mockups", stage: "generating", jobId: job.id });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Mockup generation failed");
+      setLoading(null);
+      setJobProgress({ done: 0, total: 0 });
+    }
+  }
+
+  async function generateChannels(designSystemId: string) {
+    if (!apiKeyConfigured) {
+      setError(t("design.notSetup"));
+      return;
+    }
+    if (!daemonUp) {
+      setError(t("design.daemonDownHint"));
+      return;
+    }
+    setLoading({ kind: "channels", stage: "generating" });
+    setJobProgress({ done: 0, total: 4 });
+    setError(null);
+    setFailedJob(null);
+    try {
+      const res = await fetch("/api/design", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, kind: "channels", count: 4, designSystemId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? t("design.channelsFailed"));
+      const job: DesignJobState | undefined = data.job;
+      if (!job) throw new Error(t("design.channelsFailed"));
+      setJobProgress({ done: job.asset_ids?.length ?? 0, total: job.count ?? 4 });
+      setLoading({ kind: "channels", stage: "generating", jobId: job.id });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("design.channelsFailed"));
       setLoading(null);
       setJobProgress({ done: 0, total: 0 });
     }
@@ -569,16 +649,30 @@ export function DesignStudio({
   ];
   const finalCount = finalOutputs.filter((output) => output.ready).length;
   const deliverableReady = finalCount === finalOutputs.length;
-  const generationKind: DesignGenerationKind | null = loading?.stage === "generating"
-    && (loading.kind === "design_system" || loading.kind === "landing_page" || loading.kind === "deck" || loading.kind === "mockups")
-    ? loading.kind
-    : null;
+  const generationKind: DesignGenerationKind | null =
+    loading?.stage === "generating" &&
+    (loading.kind === "design_system" ||
+      loading.kind === "landing_page" ||
+      loading.kind === "deck" ||
+      loading.kind === "mockups" ||
+      loading.kind === "channels")
+      ? loading.kind
+      : null;
   const mockupsAligned =
     Boolean(identitySelected) &&
     Boolean(landingSelected?.design_system_id === identitySelected?.id) &&
     Boolean(deckSelected?.design_system_id === identitySelected?.id);
   const mockupsIncomplete = Boolean(identitySelected) && !mockupsAligned;
   const isBuildingMockups = loading?.kind === "mockups" && loading.stage === "generating";
+  const isBuildingChannels = loading?.kind === "channels" && loading.stage === "generating";
+  const channelsAligned = Boolean(
+    identitySelected &&
+      CHANNEL_ASSET_KINDS.every((k) => {
+        const a = selectedAsset(k) ?? byKind[k]?.[0];
+        return a && a.design_system_id === identitySelected.id;
+      })
+  );
+  const channelsIncomplete = Boolean(identitySelected) && !channelsAligned;
   const actionsBusy = Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind);
 
   return (
@@ -653,8 +747,28 @@ export function DesignStudio({
                   const ds = selectedAsset("design_system");
                   if (ds) void generateMockups(ds.id);
                   else setError(t("design.needIdentity"));
-                } else if (kind === "design_system" || kind === "landing_page" || kind === "deck") {
-                  void generateProposals(kind);
+                } else if (kind === "channels") {
+                  const ds = selectedAsset("design_system");
+                  if (ds) void generateChannels(ds.id);
+                  else setError(t("design.needIdentity"));
+                } else if (
+                  kind === "design_system" ||
+                  kind === "landing_page" ||
+                  kind === "deck" ||
+                  kind === "sms" ||
+                  kind === "email" ||
+                  kind === "ad" ||
+                  kind === "print"
+                ) {
+                  if (kind === "design_system") void generateProposals(kind);
+                  else {
+                    const ds = selectedAsset("design_system");
+                    if (ds && kind !== "landing_page" && kind !== "deck") {
+                      void generateChannels(ds.id);
+                    } else if (kind === "landing_page" || kind === "deck") {
+                      void generateProposals(kind);
+                    } else void generateProposals("design_system");
+                  }
                 } else {
                   void generateProposals("design_system");
                 }
@@ -847,6 +961,98 @@ export function DesignStudio({
                     : mockupsAligned
                       ? "Rebuild the mockups"
                       : "Build / continue mockups"}
+                </button>
+              </>
+            )}
+          </section>
+
+          {/* Channel templates: SMS, email, ads, print — optional applications */}
+          <section
+            id="channel-templates"
+            aria-labelledby="channel-templates-title"
+            className={`mt-4 scroll-mt-24 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow ${!identitySelected ? "opacity-60" : ""}`}
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent)]">
+                3
+              </span>
+              <span className="text-[var(--accent)]">
+                <Megaphone size={18} />
+              </span>
+              <h2
+                id="channel-templates-title"
+                className="text-sm font-semibold uppercase tracking-wider text-[var(--subtle)]"
+              >
+                {t("design.channelsTitle")}
+              </h2>
+            </div>
+            <p className="mb-4 text-xs text-[var(--muted)]">{t("design.channelsBlurb")}</p>
+            {!identitySelected ? (
+              <p className="rounded-xl bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--muted)]">
+                {t("design.channelsNeedIdentity")}
+              </p>
+            ) : (
+              <>
+                <ul className="space-y-2">
+                  {CHANNEL_ASSET_KINDS.map((chKind) => {
+                    const asset = selectedAsset(chKind) ?? byKind[chKind]?.[0] ?? null;
+                    const aligned = Boolean(asset && asset.design_system_id === identitySelected.id);
+                    const isPreviewed = Boolean(asset && asset.id === previewAssetId);
+                    return (
+                      <li
+                        key={chKind}
+                        className={`flex items-center gap-1 rounded-xl border px-1 py-1 transition ${
+                          isPreviewed
+                            ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                            : "border-[var(--border)] bg-[var(--surface)]"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => asset && previewProposal(asset.id)}
+                          disabled={!asset}
+                          aria-pressed={isPreviewed}
+                          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left disabled:cursor-default"
+                        >
+                          <span className="text-[var(--accent)]">{KIND_META[chKind].icon}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm">{KIND_META[chKind].label}</span>
+                            <span className="block truncate text-xs text-[var(--subtle)]">
+                              {asset && aligned
+                                ? isPreviewed
+                                  ? t("design.previewing")
+                                  : t("design.builtPreview")
+                                : isBuildingChannels
+                                  ? t("design.building")
+                                  : t("design.notBuilt")}
+                            </span>
+                          </span>
+                          {asset && aligned && <Check size={14} className="text-[var(--ok)]" />}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => void generateChannels(identitySelected.id)}
+                  disabled={actionsBusy}
+                  className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                    channelsIncomplete
+                      ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
+                      : "border border-[var(--border-strong)] text-[var(--foreground)] hover:bg-[var(--surface-2)]"
+                  }`}
+                >
+                  {isBuildingChannels ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={15} />
+                  )}
+                  {isBuildingChannels
+                    ? t("design.channelsBuilding")
+                    : channelsAligned
+                      ? t("design.channelsRebuild")
+                      : t("design.channelsBuild")}
                 </button>
               </>
             )}

@@ -204,7 +204,9 @@ export const design_jobs = sqliteTable(
     project_id: text("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
-    kind: text("kind", { enum: ["design_system", "landing_page", "deck", "mockups"] }).notNull(),
+    kind: text("kind", {
+      enum: ["design_system", "landing_page", "deck", "mockups", "channels"],
+    }).notNull(),
     count: integer("count").notNull().default(3),
     design_system_id: text("design_system_id"),
     status: text("status", { enum: ["queued", "running", "complete", "failed"] })
@@ -236,13 +238,23 @@ export const assets = sqliteTable(
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
     kind: text("kind", {
-      enum: ["design_system", "landing_page", "deck", "brand_guidelines", "logo_concept"],
+      enum: [
+        "design_system",
+        "landing_page",
+        "deck",
+        "brand_guidelines",
+        "logo_concept",
+        "sms",
+        "email",
+        "ad",
+        "print",
+      ],
     }).notNull(),
     // Proposal variant label: A, B, C. Null for legacy single assets.
     variant: text("variant"),
     // Whether this proposal is the chosen one for its kind.
     selected: integer("selected", { mode: "boolean" }).notNull().default(false),
-    // For landing_page/deck: the design_system asset they follow.
+    // For applications (landing/deck/channels): the design_system they follow.
     design_system_id: text("design_system_id"),
     name: text("name").notNull(),
     // The generated artifact (HTML, markdown, or raw design file content).
