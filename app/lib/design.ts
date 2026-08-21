@@ -617,12 +617,20 @@ export function selectAsset(projectId: string, assetId: string): AssetRow {
     .run();
 
   if (asset.kind === "design_system" && previousSelected?.id !== asset.id) {
+    // Deselect applications tied to the previous identity (core + channel templates).
     db.update(assets)
       .set({ selected: false, updated_at: new Date() })
       .where(
         and(
           eq(assets.project_id, projectId),
-          or(eq(assets.kind, "landing_page"), eq(assets.kind, "deck"))
+          or(
+            eq(assets.kind, "landing_page"),
+            eq(assets.kind, "deck"),
+            eq(assets.kind, "sms"),
+            eq(assets.kind, "email"),
+            eq(assets.kind, "ad"),
+            eq(assets.kind, "print")
+          )
         )
       )
       .run();

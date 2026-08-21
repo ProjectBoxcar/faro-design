@@ -52,8 +52,16 @@ export default async function BrandHandoverPage({
     };
   });
 
+  const identityId =
+    assets.find((a) => a.kind === "design_system" && a.selected)?.id ?? null;
   const channelChecklist = CHANNEL_ASSET_KINDS.map((kind) => {
-    const selected = assets.find((a) => a.kind === kind && a.selected && a.html?.trim());
+    const selected = assets.find(
+      (a) =>
+        a.kind === kind &&
+        a.selected &&
+        a.html?.trim() &&
+        (!identityId || a.design_system_id === identityId)
+    );
     return {
       kind,
       label: CHANNEL_LABELS[kind],

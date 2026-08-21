@@ -36,9 +36,13 @@ export function finalDeliverableIssue(assets: DeliverableAsset[]): string | null
   }
   const identity = assets.find((asset) => asset.kind === "design_system" && asset.selected);
   if (!identity) return "Choose a final proposal for: Brand Identity System.";
-  for (const asset of assets.filter((candidate) => candidate.selected)) {
+  // Only core package kinds gate the deliverable — optional channel templates
+  // (sms/email/ad/print) must not block Brand Handover if they slip a CDN URL.
+  for (const kind of FINAL_DESIGN_KINDS) {
+    const asset = assets.find((candidate) => candidate.kind === kind && candidate.selected);
+    if (!asset) continue;
     if (externalResourceUrls(asset.html ?? "").length > 0) {
-      return `The final ${FINAL_META[asset.kind as FinalDesignKind]?.label ?? "asset"} uses external resources. Regenerate it before creating an offline deliverable.`;
+      return `The final ${FINAL_META[kind].label} uses external resources. Regenerate it before creating an offline deliverable.`;
     }
   }
   for (const kind of ["landing_page", "deck"] as const) {

@@ -59,6 +59,22 @@ describe("final deliverable readiness", () => {
       "Choose a final Landing Page generated from the final Brand Identity System."
     );
   });
+
+  it("does not let optional channel templates poison the core package gate", () => {
+    const withPoisonChannel = [
+      ...assets,
+      {
+        id: "sms-x",
+        kind: "sms" as const,
+        selected: true,
+        variant: null,
+        design_system_id: "identity-a",
+        name: "SMS",
+        html: '<!DOCTYPE html><html><head><link href="https://evil.example/x.css"></head><body>sms</body></html>',
+      },
+    ];
+    expect(finalDeliverableIssue(withPoisonChannel)).toBeNull();
+  });
 });
 
 describe("buildFaroDeliverable", () => {

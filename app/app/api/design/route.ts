@@ -5,12 +5,13 @@ import {
   generateDesignSystem,
   generateLandingPage,
   generateBrandDeck,
+  generateChannelTemplate,
   listAssets,
   deleteAsset,
   deleteProposals,
 } from "@/lib/design";
 import { getProject } from "@/lib/queries";
-import type { AssetKind } from "@/lib/db/types";
+import { CHANNEL_ASSET_KINDS, type AssetKind, type ChannelAssetKind } from "@/lib/db/types";
 import { buildFaroDeliverable, sanitizeDownloadName } from "@/lib/design-deliverable";
 import { viabilityActionBlockedReason } from "@/lib/project-gates";
 import { canEnterDesignStudio } from "@/lib/studio";
@@ -125,6 +126,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ job: serializeDesignJob(job) }, { status: 202 });
   }
 
+  // Single channel kind (sms|email|ad|print) — sync one template (not a 3-variant set).
+  if ((CHANNEL_ASSET_KINDS as readonly string[]).includes(kind)) {
+    if (!designSystemId) {
+      return NextResponse.json(
+        { error: `designSystemId is required to generate ${kind} templates` },
+        { status: 400 }
+      );
+    }
+    try {
+      const asset = await generateChannelTemplate(
+        projectId,
+        designSystemId,
+        kind as ChannelAssetKind
+      );
+      return NextResponse.json({ asset });
+    } catch (e) {
+      console.error(`[design] ${kind} generation failed:`, e);
+      const message = e instanceof Error ? e.message : "Generation failed";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
   if (count > 1) {
     if (kind !== "design_system" && !designSystemId) {
       return NextResponse.json(
@@ -175,6 +198,8 @@ export async function POST(req: Request) {
           }
           result = { asset: await generateBrandDeck(projectId) };
           break;
+        default:
+          return NextResponse.json({ error: `Unsupported kind: ${kind}` }, { status: 400 });
       }
     } else {
       // Backwards-compatible single generation; uses the selected design system.
@@ -188,6 +213,8 @@ export async function POST(req: Request) {
         case "deck":
           result = { asset: await generateBrandDeck(projectId) };
           break;
+        default:
+          return NextResponse.json({ error: `Unsupported kind: ${kind}` }, { status: 400 });
       }
     }
     return NextResponse.json(result);
