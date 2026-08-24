@@ -11,7 +11,7 @@ const SIZE_CLASS: Record<Size, string> = {
   md: "h-28 w-28 sm:h-32 sm:w-32",
   lg: "h-40 w-full max-w-xs sm:h-48",
   xl: "h-48 w-full max-w-md sm:h-56",
-  hero: "h-full w-full min-h-[12rem] sm:min-h-[16rem]",
+  hero: "h-full w-full min-h-[10rem] sm:min-h-[13rem]",
   full: "h-auto w-full",
 };
 

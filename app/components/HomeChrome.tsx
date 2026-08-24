@@ -45,15 +45,15 @@ export function HomeHeroActions({ showProjects }: { showProjects: boolean }) {
   const { t } = useLocale();
   return (
     <header className="border-b-[3px] border-[var(--foreground)]">
-      <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 py-14 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-12 lg:px-12 lg:py-20 2xl:max-w-[110rem]">
+      <div className="mx-auto grid max-w-7xl items-center gap-8 px-5 py-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-10 lg:px-12 lg:py-14 2xl:max-w-[110rem]">
         <div>
           <p className="faro-kicker mb-6 inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--faro-accent)] px-4 py-1.5">
             {t("home.kicker")}
           </p>
-          <h1 className="font-serif max-w-[16ch] text-[clamp(2.75rem,8vw,5.5rem)] font-normal leading-[0.95] tracking-tight text-[var(--foreground)]">
+          <h1 className="font-serif max-w-[16ch] text-[clamp(2.25rem,6vw,4.25rem)] font-normal leading-[0.95] tracking-tight text-[var(--foreground)]">
             {t("home.headline")}
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-snug text-[var(--foreground)] sm:text-xl lg:text-[1.35rem]">
+          <p className="mt-5 max-w-2xl text-base leading-snug text-[var(--foreground)] sm:text-lg">
             {t("home.lede")}
           </p>
 

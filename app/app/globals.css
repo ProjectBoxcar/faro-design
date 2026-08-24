@@ -22,7 +22,8 @@
 }
 
 html {
-  font-size: 17px;
+  /* 16px = browser default; 17px made the whole UI feel oversized */
+  font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
