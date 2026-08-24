@@ -93,6 +93,8 @@ export function JourneyCoach() {
   const [traveling, setTraveling] = useState(false);
   const [bubbleOpen, setBubbleOpen] = useState(true);
   const [hover, setHover] = useState<HoverExplain | null>(null);
+  /** Bump after click-dismiss so Faro re-parks on the scene anchor, not the button. */
+  const [parkTick, setParkTick] = useState(0);
 
   const abortRef = useRef<AbortController | null>(null);
   const pathKeyRef = useRef("");
@@ -106,6 +108,8 @@ export function JourneyCoach() {
   const hoverAiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverAiAbortRef = useRef<AbortController | null>(null);
   const lastPointerRef = useRef({ x: 0, y: 0 });
+  /** After a page click, pause chase-dock so the owner can read/use controls. */
+  const suppressFollowUntilRef = useRef(0);
 
   useEffect(() => {
     try {
@@ -165,7 +169,7 @@ export function JourneyCoach() {
   useEffect(() => {
     if (scene === "hidden" || !ready || hidden) return;
 
-    function applyTarget(el: HTMLElement | null) {
+    function applyTarget(el: HTMLElement | null, opts?: { follow?: boolean }) {
       if (!el) {
         hoverKeyRef.current = "";
         setHover(null);
@@ -177,15 +181,17 @@ export function JourneyCoach() {
       if (!exp) {
         hoverKeyRef.current = "";
         setHover(null);
-        interactionRef.current = el;
-        interactionUntilRef.current = Date.now() + INTERACT_MS;
+        if (opts?.follow !== false) {
+          interactionRef.current = el;
+          interactionUntilRef.current = Date.now() + INTERACT_MS;
+        }
         return;
       }
       if (hoverKeyRef.current !== exp.key) {
         hoverKeyRef.current = exp.key;
         setHover(exp);
-        setBubbleOpen(true);
-        // Deep catalog knowledge is enough; only enrich shallow heuristics with AI
+        // Never auto-open the speech bubble — only the Faro face / Talk control
+        // opens it. Hover still updates tip content for when the owner opens Faro.
         if (hoverAiTimerRef.current) clearTimeout(hoverAiTimerRef.current);
         hoverAiAbortRef.current?.abort();
         if (!exp.deep) {
@@ -196,8 +202,10 @@ export function JourneyCoach() {
       } else {
         setHover(exp);
       }
-      interactionRef.current = exp.el;
-      interactionUntilRef.current = Date.now() + INTERACT_MS;
+      if (opts?.follow !== false) {
+        interactionRef.current = exp.el;
+        interactionUntilRef.current = Date.now() + INTERACT_MS;
+      }
     }
 
     async function enrichHoverWithAi(
@@ -257,18 +265,32 @@ export function JourneyCoach() {
           if (n instanceof HTMLElement) n.style.pointerEvents = prev[i] ?? "";
         });
         const target = findExplainTarget(under);
-        applyTarget(target);
+        const follow = Date.now() >= suppressFollowUntilRef.current;
+        applyTarget(target, { follow });
       }, HOVER_DWELL_MS);
     }
 
     function onFocusIn(e: FocusEvent) {
+      // Focus often follows a click — update tip quietly, do not open bubble or chase.
       const target = findExplainTarget(e.target as Element);
-      applyTarget(target);
+      applyTarget(target, { follow: false });
     }
 
     function onClick(e: MouseEvent) {
-      const target = findExplainTarget(e.target as Element);
-      applyTarget(target);
+      const t = e.target;
+      if (t instanceof Element && t.closest("[data-faro-assistant]")) return;
+      // Click = owner is reading/using the UI. Keep Faro closed and out of the way.
+      setBubbleOpen(false);
+      setOpenChat(false);
+      setHover(null);
+      hoverKeyRef.current = "";
+      interactionRef.current = null;
+      interactionUntilRef.current = 0;
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      if (hoverAiTimerRef.current) clearTimeout(hoverAiTimerRef.current);
+      hoverAiAbortRef.current?.abort();
+      suppressFollowUntilRef.current = Date.now() + 5000;
+      setParkTick((n) => n + 1);
     }
 
     window.addEventListener("mousemove", onMove, { passive: true });
@@ -349,7 +371,7 @@ export function JourneyCoach() {
   useLayoutEffect(() => {
     if (!ready || hidden || scene === "hidden") return;
     recomputeDock();
-  }, [hover?.key, ready, hidden, scene, recomputeDock]);
+  }, [hover?.key, ready, hidden, scene, recomputeDock, parkTick]);
 
   useLayoutEffect(() => {
     if (!ready || hidden || scene === "hidden") return;
