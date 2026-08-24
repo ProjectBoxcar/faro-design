@@ -676,12 +676,12 @@ export function DesignStudio({
   const actionsBusy = Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-12 lg:py-12 2xl:max-w-[104rem]">
+    <div className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-12 lg:py-8 2xl:max-w-[104rem]">
       <StagePageBanner stageId="design" data-faro-anchor="faro-design-primary">
-        <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">
+        <h1 className="font-serif text-2xl font-medium tracking-tight lg:text-3xl">
           {t("design.title")}
         </h1>
-        <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">{t("design.lede")}</p>
+        <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">{t("design.lede")}</p>
       </StagePageBanner>
 
       {!apiKeyConfigured && (

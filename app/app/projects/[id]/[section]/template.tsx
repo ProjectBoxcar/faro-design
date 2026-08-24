@@ -47,7 +47,7 @@ export default function SectionTemplate({ children }: { children: React.ReactNod
                   {pillar ? ` · ${pillar.name}` : ""}
                 </div>
               )}
-              <h1 className="mt-3 font-serif text-5xl font-medium tracking-tight lg:text-6xl">
+              <h1 className="mt-2 font-serif text-4xl font-medium tracking-tight lg:text-5xl">
                 {section.name}
               </h1>
             </motion.div>

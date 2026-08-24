@@ -57,20 +57,20 @@ export default async function ReviewGroupPage({
     .filter((x): x is ReviewStep => x !== null);
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-5 py-8 lg:px-12 lg:py-12">
+    <div className="mx-auto w-full max-w-4xl px-5 py-6 lg:px-12 lg:py-8">
       <Link
         href={`/projects/${id}`}
-        className="mb-4 inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
+        className="mb-3 inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
       >
         <ArrowLeft size={15} /> Back to overview
       </Link>
 
-      <header className="mb-8">
+      <header className="mb-6">
         <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
           Part {pos} of {total}
         </div>
-        <h1 className="mt-2 font-serif text-5xl font-medium leading-[1.05] tracking-tight">{group.name}</h1>
-        <p className="mt-3 max-w-2xl text-lg leading-relaxed text-[var(--muted)]">{group.blurb}</p>
+        <h1 className="mt-1.5 font-serif text-3xl font-medium leading-[1.05] tracking-tight lg:text-4xl">{group.name}</h1>
+        <p className="mt-2 max-w-2xl text-base leading-relaxed text-[var(--muted)]">{group.blurb}</p>
       </header>
 
       <PillarReview

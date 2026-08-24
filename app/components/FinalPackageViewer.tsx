@@ -197,25 +197,25 @@ export function FinalPackageViewer({
           aria-labelledby="tab-overview"
           tabIndex={0}
           hidden={active !== "overview"}
-          className={`mx-auto max-w-6xl px-5 py-10 sm:px-8 ${fullscreen ? "lg:py-16" : "lg:py-12"}`}
+          className={`mx-auto max-w-6xl px-5 py-8 sm:px-8 ${fullscreen ? "lg:py-12" : "lg:py-10"}`}
         >
           <div className="max-w-3xl">
-            <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
-              <PackageCheck size={22} />
+            <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
+              <PackageCheck size={20} />
             </div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
               Final delivery
             </p>
-            <h2 className="mt-3 font-serif text-3xl font-medium tracking-tight sm:text-5xl">
+            <h2 className="mt-2 font-serif text-2xl font-medium tracking-tight sm:text-4xl">
               The complete {projectName} brand package
             </h2>
-            <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--muted)] sm:text-lg">
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--muted)] sm:text-base">
               Explore the approved identity system, landing page, and brand deck — the visual side of
               final delivery. For product teams, download files for building UI (tokens, logos, icons, copy).
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="mt-8 grid gap-3 md:grid-cols-3">
             {outputs.map((output, index) => (
               <button
                 key={output.kind}

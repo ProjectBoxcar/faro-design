@@ -22,8 +22,8 @@
 }
 
 html {
-  /* 16px = browser default; 17px made the whole UI feel oversized */
-  font-size: 16px;
+  /* Density scale: 15px rem base (~6% smaller than browser default) */
+  font-size: 15px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -47,16 +47,16 @@ body {
 }
 
 .faro-accent-line {
-  width: 40px;
-  height: 3px;
+  width: 32px;
+  height: 2px;
   background: var(--client, var(--brand-accent, #f25c2a));
   border-radius: 1px;
 }
 
 .faro-kicker {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--client, var(--brand-accent, #f25c2a));
 }

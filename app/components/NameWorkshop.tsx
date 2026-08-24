@@ -98,13 +98,13 @@ export function NameWorkshop({
   const locked = busy !== null;
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 py-10 lg:px-8 lg:py-14">
+    <div className="mx-auto w-full max-w-2xl px-5 py-8 lg:px-8 lg:py-10">
       <StagePageBanner stageId="name">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
           After strategy · before logos
         </p>
-        <h1 className="mt-2 font-serif text-4xl font-medium tracking-tight">Brand name</h1>
-        <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+        <h1 className="mt-1.5 font-serif text-3xl font-medium tracking-tight">Brand name</h1>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
           {isGenericWorkingTitle ? (
             <>
               You started with <strong className="text-[var(--foreground)]">“{workingName}”</strong>,

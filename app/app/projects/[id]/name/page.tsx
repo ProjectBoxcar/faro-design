@@ -37,7 +37,7 @@ export default async function NameWorkshopPage({
   // Confirmed name: show locked summary (re-entry) unless ?edit=1
   if (confirmed && !forceEdit) {
     return (
-      <main className="mx-auto w-full max-w-xl px-5 py-12 lg:py-16">
+      <main className="mx-auto w-full max-w-xl px-5 py-8 lg:py-10">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
           Brand name
         </p>

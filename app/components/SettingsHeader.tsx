@@ -19,10 +19,10 @@ export function SettingsHeader() {
         </Link>
         <LanguageSwitcher />
       </div>
-      <header className="mt-3 mb-6 grid items-start gap-5 sm:grid-cols-[1fr_auto]">
+      <header className="mt-3 mb-5 grid items-start gap-4 sm:grid-cols-[1fr_auto]">
         <div>
-          <h1 className="font-serif text-4xl font-medium tracking-tight">{t("settings.title")}</h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">{t("settings.blurb")}</p>
+          <h1 className="font-serif text-3xl font-medium tracking-tight">{t("settings.title")}</h1>
+          <p className="mt-1.5 text-sm text-[var(--muted)]">{t("settings.blurb")}</p>
         </div>
         <IllustrativeFigure
           id="settingsKeys"

@@ -325,7 +325,7 @@ export function ContentStudioWorkspace({
           Content Studio
         </p>
         <h1
-          className="mt-1 font-serif text-3xl font-medium tracking-tight lg:text-4xl"
+          className="mt-1 font-serif text-2xl font-medium tracking-tight lg:text-3xl"
           data-faro-anchor="faro-content-primary"
         >
           {t("content.title")}

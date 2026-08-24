@@ -168,8 +168,8 @@ export default function StartPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-6 py-10 lg:py-16">
-      <div className="mb-8 flex items-center justify-between gap-3">
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-5 py-8 lg:py-12">
+      <div className="mb-6 flex items-center justify-between gap-3">
         <Link
           href="/"
           className="inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
@@ -184,7 +184,7 @@ export default function StartPage() {
         </div>
       </div>
 
-      <div className="mb-10 flex gap-1.5">
+      <div className="mb-8 flex gap-1.5">
         {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
           <div
             key={i}
@@ -201,12 +201,12 @@ export default function StartPage() {
             <IllustrativeFigure
               id="startInterview"
               size="full"
-              className="mb-8 aspect-[16/10] w-full max-w-lg border border-[var(--border)]"
+              className="mb-6 aspect-[16/10] w-full max-w-lg border border-[var(--border)]"
             />
-            <h1 className="font-serif text-4xl font-medium leading-tight tracking-tight">
+            <h1 className="font-serif text-3xl font-medium leading-tight tracking-tight">
               {t("start.title")}
             </h1>
-            <p className="mt-3 text-[var(--muted)]">{t("start.intro")}</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">{t("start.intro")}</p>
 
             <label className="mt-8 block text-sm font-medium">{t("start.brandName")}</label>
             <input
@@ -262,10 +262,10 @@ export default function StartPage() {
             <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
               {t("start.questionOf", { n: qn, total: Q_KEYS.length })}
             </div>
-            <h1 className="mt-2 font-serif text-3xl font-medium leading-tight tracking-tight lg:text-4xl">
+            <h1 className="mt-1.5 font-serif text-2xl font-medium leading-tight tracking-tight lg:text-3xl">
               {t(`start.q${qn}Title`)}
             </h1>
-            <p className="mt-3 text-[var(--muted)]">{t(`start.q${qn}Help`)}</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">{t(`start.q${qn}Help`)}</p>
             <textarea
               autoFocus
               value={answers[qKey]}

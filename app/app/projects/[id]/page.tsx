@@ -101,9 +101,9 @@ export default async function ProjectHub({
   const draftedBanner = drafted === "1" && primary;
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-12 lg:py-12 2xl:max-w-[104rem]">
+    <div className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-12 lg:py-8 2xl:max-w-[104rem]">
       {draftedBanner ? (
-        <div className="mb-6 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-5 py-4">
+        <div className="mb-5 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-4 py-3">
           <p className="text-sm font-medium text-[var(--foreground)]">Your first draft is ready</p>
           <p className="mt-1 text-xs text-[var(--muted)]">
             Use the single Continue control below — progress saves as you go.
@@ -111,11 +111,11 @@ export default async function ProjectHub({
         </div>
       ) : null}
 
-      <div className="mb-8">
-        <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">
+      <div className="mb-6">
+        <h1 className="font-serif text-2xl font-medium tracking-tight lg:text-3xl">
           {project.name}
         </h1>
-        <p className="mt-1.5 text-sm text-[var(--muted)]">
+        <p className="mt-1 text-sm text-[var(--muted)]">
           One next step at a time — use the journey rail (or Stages on mobile) anytime.
         </p>
         <ViabilityPanel

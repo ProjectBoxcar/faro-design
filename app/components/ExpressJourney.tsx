@@ -1122,16 +1122,16 @@ export function ExpressJourney({
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-10 lg:py-14">
+    <main className="mx-auto w-full max-w-3xl px-5 py-8 lg:py-10">
       <StagePageBanner stageId="strategy" data-faro-anchor="faro-express-header">
         <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
           {t("express.kicker")}
         </div>
-        <h1 className="mt-2 font-serif text-4xl font-medium leading-tight tracking-tight lg:text-5xl">
+        <h1 className="mt-1.5 font-serif text-3xl font-medium leading-tight tracking-tight lg:text-4xl">
           {projectName} {t("express.titleSuffix")}
         </h1>
-        <p className="mt-3 max-w-2xl text-[var(--muted)]">{t("express.lede")}</p>
-        <p className="mt-2 text-xs text-[var(--subtle)]">{t("express.helper")}</p>
+        <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">{t("express.lede")}</p>
+        <p className="mt-1.5 text-xs text-[var(--subtle)]">{t("express.helper")}</p>
       </StagePageBanner>
 
       {refining && refine && (

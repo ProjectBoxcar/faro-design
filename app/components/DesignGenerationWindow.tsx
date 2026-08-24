@@ -234,7 +234,7 @@ export function DesignGenerationWindow({
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
                 Faro Design Studio
               </p>
-              <h2 id="generation-title" className="max-w-2xl font-serif text-3xl font-medium tracking-tight lg:text-4xl">
+              <h2 id="generation-title" className="max-w-2xl font-serif text-2xl font-medium tracking-tight lg:text-3xl">
                 {copy.title}
               </h2>
               <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/65">

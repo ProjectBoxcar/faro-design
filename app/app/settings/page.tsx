@@ -17,7 +17,7 @@ export default async function SettingsPage() {
   const brandMemory = brandMemoryStats();
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-10 lg:px-10 lg:py-14 2xl:max-w-3xl">
+    <main className="mx-auto max-w-2xl px-5 py-8 lg:px-10 lg:py-10 2xl:max-w-3xl">
       <SettingsHeader />
       <SettingsForm
         initial={{

@@ -49,9 +49,9 @@ export default async function ShareBriefPage({
   const version = snapshot?.version;
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-5 py-12 lg:px-8 lg:py-16 2xl:max-w-4xl">
-      <header className="mb-10 border-b border-[var(--border)] pb-8">
-        <div className="mb-5 flex flex-wrap items-center justify-end gap-2 print:hidden">
+    <main className="mx-auto w-full max-w-3xl px-5 py-8 lg:px-8 lg:py-12 2xl:max-w-4xl">
+      <header className="mb-8 border-b border-[var(--border)] pb-6">
+        <div className="mb-4 flex flex-wrap items-center justify-end gap-2 print:hidden">
           {packageReady && (
             <Link
               href={`/share/${token}/package`}
@@ -62,18 +62,18 @@ export default async function ShareBriefPage({
           )}
           <BriefDownloadBar token={token} markdown={markdown} />
         </div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
           Brand brief
           {version != null ? ` · v${version}` : ""}
           {fromSnapshot ? " · as shared" : ""}
         </p>
-        <h1 className="font-serif text-6xl font-medium leading-[1.0] tracking-tight lg:text-7xl">
+        <h1 className="font-serif text-4xl font-medium leading-[1.0] tracking-tight lg:text-5xl">
           {displayName}
         </h1>
         {displayClient && (
-          <p className="mt-3 text-lg text-[var(--muted)]">{displayClient}</p>
+          <p className="mt-2 text-base text-[var(--muted)]">{displayClient}</p>
         )}
-        <p className="mt-2 text-sm text-[var(--subtle)]">
+        <p className="mt-1.5 text-sm text-[var(--subtle)]">
           Shared from Faro — for you, collaborators, or a designer. Read-only until they update the link.
           {fromSnapshot && snapshot?.payload.publishedAt
             ? ` Published ${new Date(snapshot.payload.publishedAt).toLocaleDateString(undefined, {

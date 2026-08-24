@@ -41,10 +41,10 @@ export default async function LogoWorkspacePage({ params }: { params: Promise<{ 
   });
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-12 lg:py-12">
+    <div className="mx-auto w-full max-w-5xl px-5 py-6 lg:px-12 lg:py-8">
       <Link
         href={`/projects/${id}/studio`}
-        className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
       >
         <ArrowLeft size={15} /> Studio
       </Link>
