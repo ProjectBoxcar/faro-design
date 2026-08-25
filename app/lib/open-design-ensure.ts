@@ -13,7 +13,10 @@ export async function ensureOpenDesignDaemon(opts: { timeoutMs?: number } = {}):
   if (await isOpenDesignDaemonUp()) return true;
   if (ensureInFlight) return ensureInFlight;
 
-  const timeoutMs = opts.timeoutMs ?? 45_000;
+  // Child script may wait OPEN_DESIGN_WAIT_MS then retry once (~2×). Parent must
+  // outlive that or it kills a daemon that is still coming up on Windows.
+  const waitMs = Number(process.env.OPEN_DESIGN_WAIT_MS || 120_000);
+  const timeoutMs = opts.timeoutMs ?? waitMs * 2 + 15_000;
   ensureInFlight = (async () => {
     try {
       if (await isOpenDesignDaemonUp()) return true;

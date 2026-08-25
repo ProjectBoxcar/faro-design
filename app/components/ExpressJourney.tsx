@@ -5,8 +5,16 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Loader2, Pencil, Sparkles, Square, X } from "lucide-react";
 import { FaroLoaderPanel } from "@/components/FaroLoader";
+import { StagePageBanner } from "@/components/StagePageBanner";
 import { useLocale } from "@/components/LocaleProvider";
 import { countBasedPercent } from "@/lib/generation-progress";
+import { sectionGuide } from "@/lib/guide";
+
+function cardGuide(sectionId: string): string | null {
+  const g = sectionGuide(sectionId);
+  const line = (g.takeaway || g.whatItIs || "").trim();
+  return line || null;
+}
 
 // One value block of a strategy section, already reduced to plain JSON.
 export type ExpressSection = {
@@ -305,6 +313,7 @@ function RewriteHint({ saving }: { saving?: boolean }) {
 
 function CardShell({
   title,
+  guide,
   accent,
   editing,
   updating,
@@ -320,6 +329,8 @@ function CardShell({
   children,
 }: {
   title: string;
+  /** One-line owner prompt from guide.json */
+  guide?: string | null;
   accent?: boolean;
   editing: boolean;
   updating: boolean;
@@ -333,6 +344,7 @@ function CardShell({
   viewActions?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { t } = useLocale();
   const editLocked = readyBusy || rewriteBusy;
   return (
     <section
@@ -344,19 +356,24 @@ function CardShell({
           : "border-[var(--border)] bg-[var(--surface)]"
       }`}
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h3
-          className={`font-serif text-lg font-medium tracking-tight ${
-            accent ? "text-[var(--accent)]" : ""
-          }`}
-        >
-          {title}
-          {updating && (
-            <span className="ml-2 inline-flex items-center gap-1 align-middle text-[11px] font-sans font-medium text-[var(--accent)]">
-              <Loader2 size={12} className="animate-spin" /> Updating…
-            </span>
-          )}
-        </h3>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3
+            className={`font-serif text-lg font-medium tracking-tight ${
+              accent ? "text-[var(--accent)]" : ""
+            }`}
+          >
+            {title}
+            {updating && (
+              <span className="ml-2 inline-flex items-center gap-1 align-middle text-[11px] font-sans font-medium text-[var(--accent)]">
+                <Loader2 size={12} className="animate-spin" /> {t("express.updating")}
+              </span>
+            )}
+          </h3>
+          {guide ? (
+            <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">{guide}</p>
+          ) : null}
+        </div>
         {editing ? (
           <div className="flex shrink-0 flex-col items-end gap-1">
             <div className="flex flex-wrap items-center justify-end gap-2">
@@ -366,7 +383,7 @@ function CardShell({
                 disabled={editLocked}
                 className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs text-[var(--muted)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
               >
-                <X size={12} /> Cancel
+                <X size={12} /> {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -379,12 +396,13 @@ function CardShell({
                 ) : (
                   <Sparkles size={12} />
                 )}
-                {rewriteBusy ? "Rewriting…" : "Rewrite with AI"}
+                {rewriteBusy ? t("express.rewriting", { name: "…" }) : t("express.rewriteAi")}
               </button>
               <button
                 type="button"
                 onClick={onReady}
                 disabled={editLocked}
+                data-faro-anchor="faro-express-apply"
                 className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
               >
                 {readyBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
@@ -402,7 +420,7 @@ function CardShell({
               disabled={updating}
               className="inline-flex items-center gap-1 text-xs text-[var(--subtle)] transition hover:text-[var(--foreground)] disabled:opacity-40"
             >
-              <Pencil size={12} /> Edit
+              <Pencil size={12} /> {t("express.edit")}
             </button>
           </div>
         )}
@@ -430,8 +448,10 @@ function ExpressDraftingScreen({
   stopping: boolean;
   stopGeneration: () => void | Promise<void>;
 }) {
+  const { t } = useLocale();
   const [peakPct, setPeakPct] = useState(0);
   const [secondsInCurrent, setSecondsInCurrent] = useState(0);
+  const [resuming, setResuming] = useState(false);
   const lastDoneRef = useRef(state.done);
   const unitStartedAtRef = useRef(Date.now());
 
@@ -472,31 +492,61 @@ function ExpressDraftingScreen({
   const activeFromCurrent = stageIndexOf(state.current);
 
   const stopped = state.status === "cancelled";
+  const interrupted =
+    state.status === "failed" &&
+    (state.errorCode === "interrupted" ||
+      /interrupt|server restart/i.test(state.error ?? ""));
+  const canResume = state.status === "failed" || state.status === "cancelled";
+
+  const panelTitle = stopped
+    ? t("express.stoppedTitle")
+    : interrupted
+      ? t("express.interruptedTitle")
+      : state.status === "failed"
+        ? t("express.pausedTitle")
+        : t("express.draftingTitle", { name: projectName });
+  const panelDesc = stopped
+    ? t("express.stoppedDesc")
+    : interrupted
+      ? t("express.interruptedDesc")
+      : state.status === "failed"
+        ? t("express.pausedDesc")
+        : t("express.draftingDesc");
+
+  async function resumeDrafting() {
+    if (resuming) return;
+    setResuming(true);
+    setState({
+      ...state,
+      status: "running",
+      error: null,
+      errorCode: null,
+      errorHint: null,
+    });
+    try {
+      await fetch(`/api/projects/${projectId}/express`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "start" }),
+      });
+    } finally {
+      setResuming(false);
+    }
+  }
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center px-6 py-16">
       <FaroLoaderPanel
         beaconSize="hero"
-        title={
-          stopped
-            ? "Strategy drafting stopped"
-            : state.status === "failed"
-              ? "Strategy drafting paused"
-              : `Drafting the ${projectName} strategy`
-        }
-        description={
-          stopped
-            ? "You stopped generation. Sections already drafted are kept — resume when you are ready."
-            : state.status === "failed"
-              ? "Something went wrong mid-run. Progress so far is kept — you can resume from here."
-              : "Your answers are becoming a complete brand strategy and design plan. This takes a few minutes — you'll review everything on one page when it's ready."
-        }
+        title={panelTitle}
+        description={panelDesc}
         progressPercent={pct}
         progressLabel={
           state.total > 0
-            ? `${state.done} of ${state.total} sections${
-                state.currentName && running ? ` · ${state.currentName}` : ""
-              }`
+            ? `${t("express.sectionsProgress", {
+                done: state.done,
+                total: state.total,
+              })}${state.currentName && running ? ` · ${state.currentName}` : ""}`
             : undefined
         }
       >
@@ -560,20 +610,18 @@ function ExpressDraftingScreen({
             >
               {stopping ? (
                 <>
-                  <Loader2 size={14} className="animate-spin" /> Stopping…
+                  <Loader2 size={14} className="animate-spin" /> {t("express.stopping")}
                 </>
               ) : (
                 <>
-                  <Square size={12} fill="currentColor" /> Stop generation
+                  <Square size={12} fill="currentColor" /> {t("express.stopGeneration")}
                 </>
               )}
             </button>
-            <p className="text-xs text-[var(--subtle)]">
-              Stops after the current section finishes. Progress so far is kept.
-            </p>
+            <p className="text-xs text-[var(--subtle)]">{t("express.stopHint")}</p>
           </div>
         )}
-        {(state.status === "failed" || state.status === "cancelled") && (
+        {canResume && (
           <div
             className={`mt-8 w-full max-w-md rounded-2xl border px-5 py-4 text-left text-sm ${
               state.status === "failed"
@@ -583,30 +631,26 @@ function ExpressDraftingScreen({
           >
             <p>
               {state.status === "failed"
-                ? state.error ?? "Strategy drafting failed."
-                : "Generation stopped. You can resume from where it left off."}
+                ? state.error ?? t("express.failedDefault")
+                : t("express.stoppedDefault")}
             </p>
             {state.errorHint && state.status === "failed" ? (
               <p className="mt-2 text-xs text-[var(--muted)]">{state.errorHint}</p>
             ) : null}
             <button
-              onClick={async () => {
-                setState({
-                  ...state,
-                  status: "running",
-                  error: null,
-                  errorCode: null,
-                  errorHint: null,
-                });
-                await fetch(`/api/projects/${projectId}/express`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ action: "start" }),
-                });
-              }}
-              className="mt-3 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)]"
+              type="button"
+              data-faro-anchor="faro-express-resume"
+              disabled={resuming}
+              onClick={() => void resumeDrafting()}
+              className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-60"
             >
-              Resume drafting
+              {resuming ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" /> {t("express.continueDrafting")}
+                </>
+              ) : (
+                t("express.continueDrafting")
+              )}
             </button>
           </div>
         )}
@@ -621,12 +665,15 @@ export function ExpressJourney({
   initialState,
   sections: initialSections,
   approved,
+  intakeError: intakeErrorProp = null,
 }: {
   projectId: string;
   projectName: string;
   initialState: ExpressStateDto;
   sections: Record<string, ExpressSection>;
   approved: boolean;
+  /** From /express?intakeError=… when intake expansion failed but answers were saved. */
+  intakeError?: string | null;
 }) {
   const router = useRouter();
   const { t } = useLocale();
@@ -634,6 +681,7 @@ export function ExpressJourney({
   const [sections, setSections] = useState(initialSections);
   const [approving, setApproving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [intakeError, setIntakeError] = useState<string | null>(intakeErrorProp);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record<string, unknown>>({});
   const draftRef = useRef<Record<string, unknown>>({});
@@ -1078,17 +1126,43 @@ export function ExpressJourney({
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-10 lg:py-14">
-      <header className="mb-8">
+    <main className="mx-auto w-full max-w-3xl px-5 py-8 lg:py-10">
+      <StagePageBanner stageId="strategy" data-faro-anchor="faro-express-header">
         <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
           {t("express.kicker")}
         </div>
-        <h1 className="mt-2 font-serif text-4xl font-medium leading-tight tracking-tight lg:text-5xl">
+        <h1 className="mt-1.5 font-serif text-3xl font-medium leading-tight tracking-tight lg:text-4xl">
           {projectName} {t("express.titleSuffix")}
         </h1>
-        <p className="mt-3 max-w-2xl text-[var(--muted)]">{t("express.lede")}</p>
-        <p className="mt-2 text-xs text-[var(--subtle)]">{t("express.helper")}</p>
-      </header>
+        <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">{t("express.lede")}</p>
+        <p className="mt-1.5 text-xs text-[var(--subtle)]">{t("express.helper")}</p>
+      </StagePageBanner>
+
+      {intakeError ? (
+        <div
+          role="status"
+          className="mb-5 flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm"
+        >
+          <div className="min-w-0">
+            <p className="font-medium text-[var(--foreground)]">Strategy draft hit a snag</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">{intakeError}</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              Your answers are saved. Use Resume below if drafting stopped, or check{" "}
+              <Link href="/settings" className="font-medium text-[var(--accent)] underline-offset-2 hover:underline">
+                Settings
+              </Link>
+              .
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIntakeError(null)}
+            className="shrink-0 rounded-full border border-[var(--border-strong)] px-3 py-1 text-xs font-medium text-[var(--muted)] hover:bg-[var(--surface)]"
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
 
       {refining && refine && (
         <div className="mb-5 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-4 py-3 text-sm">
@@ -1126,6 +1200,7 @@ export function ExpressJourney({
         {concept?.value && (
           <CardShell
             title="Brand concept"
+            guide={cardGuide("concept")}
             accent
             editing={editingId === "concept"}
             updating={cardUpdating("concept") || conceptBusy}
@@ -1211,6 +1286,7 @@ export function ExpressJourney({
               <CardShell
                 key={id}
                 title={s.name}
+                guide={cardGuide(id)}
                 editing={editingId === id}
                 updating={cardUpdating(id)}
                 onEdit={() => beginEdit(s)}
@@ -1234,6 +1310,7 @@ export function ExpressJourney({
         {manifesto?.value && (
           <CardShell
             title="Manifesto"
+            guide={cardGuide("manifesto")}
             editing={editingId === "manifesto"}
             updating={cardUpdating("manifesto")}
             onEdit={() => beginEdit(manifesto)}
@@ -1260,6 +1337,7 @@ export function ExpressJourney({
         {designPlan?.value && (
           <CardShell
             title="Design plan — what the Studio will create"
+            guide={cardGuide("design-plan")}
             editing={editingId === "design-plan"}
             updating={cardUpdating("design-plan")}
             onEdit={() => beginEdit(designPlan)}
@@ -1376,6 +1454,7 @@ export function ExpressJourney({
         <div className="flex flex-col gap-1 text-sm">
           <Link
             href={`/projects/${projectId}/review/brief`}
+            data-faro-anchor="faro-full-map"
             className="text-[var(--muted)] transition hover:text-[var(--foreground)]"
           >
             {t("express.fullMap")}
@@ -1390,6 +1469,7 @@ export function ExpressJourney({
         <button
           onClick={approve}
           disabled={approving || refining || Boolean(editingId) || rewriteBusy}
+          data-faro-anchor="faro-express-approve"
           className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {approving ? <Loader2 size={15} className="animate-spin" /> : approved ? <Check size={15} /> : null}

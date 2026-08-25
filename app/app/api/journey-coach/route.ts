@@ -8,6 +8,17 @@ const Body = z.object({
   pathname: z.string().min(1).max(500),
   question: z.string().max(400).optional().nullable(),
   locale: z.enum(["en", "es"]).optional().nullable(),
+  mode: z.enum(["guide", "hover"]).optional().nullable(),
+  hover: z
+    .object({
+      label: z.string().max(200).optional().nullable(),
+      href: z.string().max(500).optional().nullable(),
+      tag: z.string().max(40).optional().nullable(),
+      role: z.string().max(40).optional().nullable(),
+      anchor: z.string().max(80).optional().nullable(),
+    })
+    .optional()
+    .nullable(),
 });
 
 export async function POST(req: Request) {
@@ -28,6 +39,8 @@ export async function POST(req: Request) {
       pathname: parsed.data.pathname,
       question: parsed.data.question,
       locale: parsed.data.locale ?? "en",
+      mode: parsed.data.mode ?? "guide",
+      hover: parsed.data.hover,
     });
     return NextResponse.json(guidance);
   } catch (e) {

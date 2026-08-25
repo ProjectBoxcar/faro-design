@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { FaroLoaderPanel } from "@/components/FaroLoader";
+import { IllustrativeFigure } from "@/components/IllustrativeFigure";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLocale } from "@/components/LocaleProvider";
 
@@ -167,8 +168,8 @@ export default function StartPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-6 py-10 lg:py-16">
-      <div className="mb-8 flex items-center justify-between gap-3">
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-5 py-8 lg:py-12">
+      <div className="mb-6 flex items-center justify-between gap-3">
         <Link
           href="/"
           className="inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
@@ -183,7 +184,7 @@ export default function StartPage() {
         </div>
       </div>
 
-      <div className="mb-10 flex gap-1.5">
+      <div className="mb-8 flex gap-1.5">
         {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
           <div
             key={i}
@@ -197,14 +198,20 @@ export default function StartPage() {
       <div className="flex-1">
         {isDetails && (
           <div>
-            <h1 className="font-serif text-4xl font-medium leading-tight tracking-tight">
+            <IllustrativeFigure
+              id="startInterview"
+              size="full"
+              className="mb-6 aspect-[16/10] w-full max-w-lg border border-[var(--border)]"
+            />
+            <h1 className="font-serif text-3xl font-medium leading-tight tracking-tight">
               {t("start.title")}
             </h1>
-            <p className="mt-3 text-[var(--muted)]">{t("start.intro")}</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">{t("start.intro")}</p>
 
             <label className="mt-8 block text-sm font-medium">{t("start.brandName")}</label>
             <input
               autoFocus
+              data-faro-anchor="faro-start-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && next()}
@@ -255,10 +262,10 @@ export default function StartPage() {
             <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
               {t("start.questionOf", { n: qn, total: Q_KEYS.length })}
             </div>
-            <h1 className="mt-2 font-serif text-3xl font-medium leading-tight tracking-tight lg:text-4xl">
+            <h1 className="mt-1.5 font-serif text-2xl font-medium leading-tight tracking-tight lg:text-3xl">
               {t(`start.q${qn}Title`)}
             </h1>
-            <p className="mt-3 text-[var(--muted)]">{t(`start.q${qn}Help`)}</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">{t(`start.q${qn}Help`)}</p>
             <textarea
               autoFocus
               value={answers[qKey]}
@@ -290,6 +297,7 @@ export default function StartPage() {
           <button
             onClick={build}
             disabled={!canAdvance || building}
+            data-faro-anchor="faro-start-finish"
             className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {t("start.finish")} <Check size={16} />
@@ -298,6 +306,7 @@ export default function StartPage() {
           <button
             onClick={next}
             disabled={!canAdvance}
+            data-faro-anchor="faro-start-next"
             className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isDetails ? t("start.startBtn") : t("common.next")} <ArrowRight size={15} />

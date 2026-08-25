@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Check, Loader2, Sparkles } from "lucide-react";
 import { FaroBeacon } from "@/components/FaroLoader";
+import { StagePageBanner } from "@/components/StagePageBanner";
 
 export type NameCandidateDto = {
   name: string;
@@ -97,26 +98,28 @@ export function NameWorkshop({
   const locked = busy !== null;
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 py-10 lg:px-8 lg:py-14">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
-        After strategy · before logos
-      </p>
-      <h1 className="mt-2 font-serif text-4xl font-medium tracking-tight">Brand name</h1>
-      <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-        {isGenericWorkingTitle ? (
-          <>
-            You started with <strong className="text-[var(--foreground)]">“{workingName}”</strong>,
-            which still looks like a temporary label. Logos will lock the spelling — pick a stronger
-            name now, or keep this one for now.
-          </>
-        ) : (
-          <>
-            You started with <strong className="text-[var(--foreground)]">“{workingName}”</strong>.
-            Confirm it for logos, type a different name, or ask for strategy-based suggestions. One
-            click is enough — logos use whatever you lock here.
-          </>
-        )}
-      </p>
+    <div className="mx-auto w-full max-w-2xl px-5 py-8 lg:px-8 lg:py-10">
+      <StagePageBanner stageId="name">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
+          After strategy · before logos
+        </p>
+        <h1 className="mt-1.5 font-serif text-3xl font-medium tracking-tight">Brand name</h1>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+          {isGenericWorkingTitle ? (
+            <>
+              You started with <strong className="text-[var(--foreground)]">“{workingName}”</strong>,
+              which still looks like a temporary label. Logos will lock the spelling — pick a stronger
+              name now, or keep this one for now.
+            </>
+          ) : (
+            <>
+              You started with <strong className="text-[var(--foreground)]">“{workingName}”</strong>.
+              Confirm it for logos, type a different name, or ask for strategy-based suggestions. One
+              click is enough — logos use whatever you lock here.
+            </>
+          )}
+        </p>
+      </StagePageBanner>
 
       <div className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
         <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left sm:gap-5">
@@ -131,6 +134,7 @@ export function NameWorkshop({
               type="button"
               onClick={() => void propose()}
               disabled={locked}
+              data-faro-anchor="faro-name-primary"
               className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
               {busy === "propose" ? (
@@ -210,30 +214,69 @@ export function NameWorkshop({
       </div>
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <button
-          type="button"
-          onClick={() => void skip()}
-          disabled={locked}
-          className="text-sm text-[var(--subtle)] underline-offset-2 transition hover:text-[var(--muted)] hover:underline disabled:opacity-50"
-        >
-          {busy === "skip" ? "Continuing…" : `Keep “${workingName}” for logos`}
-        </button>
-        <button
-          type="button"
-          disabled={locked || (!selected && custom.trim().length < 2)}
-          onClick={() => void pick(selected ?? custom)}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {busy === "pick" ? (
-            <>
-              <Loader2 size={15} className="animate-spin" /> Saving…
-            </>
-          ) : (
-            <>
-              Use this name &amp; open Logo Workshop <ArrowRight size={15} />
-            </>
-          )}
-        </button>
+        {isGenericWorkingTitle ? (
+          <>
+            <button
+              type="button"
+              onClick={() => void skip()}
+              disabled={locked}
+              className="text-sm text-[var(--subtle)] underline-offset-2 transition hover:text-[var(--muted)] hover:underline disabled:opacity-50"
+            >
+              {busy === "skip" ? "Continuing…" : `Keep “${workingName}” for logos`}
+            </button>
+            <button
+              type="button"
+              disabled={locked || (!selected && custom.trim().length < 2)}
+              onClick={() => void pick(selected ?? custom)}
+              data-faro-anchor="faro-name-confirm"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy === "pick" ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" /> Saving…
+                </>
+              ) : (
+                <>
+                  Use this name &amp; open Logo Workshop <ArrowRight size={15} />
+                </>
+              )}
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled={locked || (!selected && custom.trim().length < 2)}
+              onClick={() => void pick(selected ?? custom)}
+              className="order-2 inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] px-5 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50 sm:order-1"
+            >
+              {busy === "pick" ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" /> Saving…
+                </>
+              ) : (
+                <>Use a different name</>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => void skip()}
+              disabled={locked}
+              data-faro-anchor="faro-name-confirm"
+              className="order-1 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50 sm:order-2"
+            >
+              {busy === "skip" ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" /> Continuing…
+                </>
+              ) : (
+                <>
+                  Keep “{workingName}” for logos <ArrowRight size={15} />
+                </>
+              )}
+            </button>
+          </>
+        )}
       </div>
 
       <p className="mt-6 text-center text-xs text-[var(--subtle)]">

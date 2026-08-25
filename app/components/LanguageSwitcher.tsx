@@ -9,6 +9,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
 
   return (
     <div
+      data-faro-anchor="faro-lang"
       className={`inline-flex items-center rounded-[var(--radius-md)] border border-[var(--border-strong)] p-0.5 ${className}`}
       role="group"
       aria-label={t("nav.language")}

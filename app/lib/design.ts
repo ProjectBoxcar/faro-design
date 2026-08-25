@@ -6,7 +6,14 @@ import { nanoid } from "nanoid";
 // Design Studio only — Open Design + Anthropic BYOK; never OpenAI/Gemini. See docs/11-ai-lanes.md
 import { generateDesignText, hasOpenDesignKey } from "@/lib/ai";
 import { getSectionRow, getProject } from "@/lib/queries";
-import { designSystemPrompt, landingPagePrompt, brandDeckPrompt } from "@/lib/design-prompts";
+import {
+  designSystemPrompt,
+  landingPagePrompt,
+  brandDeckPrompt,
+  channelTemplatePrompt,
+  type ChannelPromptKind,
+} from "@/lib/design-prompts";
+import { CHANNEL_ASSET_KINDS, type ChannelAssetKind } from "@/lib/db/types";
 import { designSystemBlockedReason, artifactBlockedReason } from "@/lib/design-gates";
 import { isNearDuplicateProposal, proposalSimilarity } from "@/lib/design-similarity";
 import { generatedArtifactIssues, normalizeGeneratedHtml } from "@/lib/design-validation";
@@ -213,13 +220,30 @@ async function generateSingleAsset(
   } else if (kind === "landing_page") {
     prompt = landingPagePrompt(variant, brief, designSystemHtml ?? "");
     name = `${projectName} — Landing Page ${variant}`;
-  } else {
+  } else if (kind === "deck") {
     prompt = brandDeckPrompt(variant, brief, designSystemHtml ?? "");
     name = `${projectName} — Brand Deck ${variant}`;
+  } else if (
+    kind === "sms" ||
+    kind === "email" ||
+    kind === "ad" ||
+    kind === "print"
+  ) {
+    prompt = channelTemplatePrompt(kind as ChannelPromptKind, brief, designSystemHtml ?? "");
+    const labels: Record<ChannelAssetKind, string> = {
+      sms: "SMS template",
+      email: "Email template",
+      ad: "Ad mockups",
+      print: "Print collateral",
+    };
+    name = `${projectName} — ${labels[kind]}`;
+  } else {
+    throw new Error(`Unsupported design asset kind: ${kind}`);
   }
 
-  // Identity systems need headroom for full HTML; mockups a bit less.
-  const maxTokens = kind === "design_system" ? 24_000 : 16_000;
+  // Identity systems need headroom for full HTML; channels a bit less than decks.
+  const maxTokens =
+    kind === "design_system" ? 24_000 : kind === "sms" || kind === "ad" ? 10_000 : 16_000;
 
   let html = "";
   let lastIssues: string[] = [];
@@ -309,7 +333,7 @@ async function generateProposalSet({
   refine,
 }: {
   projectId: string;
-  kind: "design_system" | "landing_page" | "deck";
+  kind: "design_system" | "landing_page" | "deck" | ChannelAssetKind;
   count: number;
   brief: string;
   projectName: string;
@@ -464,6 +488,49 @@ export async function generateApplicationMockups(
   return results;
 }
 
+export async function generateChannelTemplate(
+  projectId: string,
+  designSystemId: string,
+  kind: ChannelAssetKind,
+  onAsset?: (asset: AssetRow) => void
+): Promise<AssetRow> {
+  const ctx = buildBriefContext(projectId);
+  const designSystem = getAsset(projectId, designSystemId);
+  const blocked = artifactBlockedReason(
+    Boolean(designSystem?.kind === "design_system" && designSystem.selected),
+    kind
+  );
+  if (blocked || !designSystem) throw new Error(blocked ?? "Selected design system not found");
+
+  const brief = stringifyContext(ctx);
+  const [asset] = await generateProposalSet({
+    projectId,
+    kind,
+    count: 1,
+    brief,
+    projectName: ctx.name,
+    designSystemHtml: designSystem.html ?? "",
+    designSystemId: designSystem.id,
+    onAsset,
+  });
+  selectAsset(projectId, asset.id);
+  return getAsset(projectId, asset.id)!;
+}
+
+/** SMS + email + ad + print — one each, auto-selected, following the identity. */
+export async function generateChannelMockups(
+  projectId: string,
+  designSystemId: string,
+  onAsset?: (asset: AssetRow) => void
+): Promise<AssetRow[]> {
+  const results: AssetRow[] = [];
+  for (const kind of CHANNEL_ASSET_KINDS) {
+    const asset = await generateChannelTemplate(projectId, designSystemId, kind, onAsset);
+    results.push(asset);
+  }
+  return results;
+}
+
 // Keep single-generation helpers for callers that expect one asset; they create a single variant "A".
 export async function generateDesignSystem(projectId: string): Promise<AssetRow> {
   const proposals = await generateDesignSystemProposals(projectId, 1);
@@ -550,12 +617,20 @@ export function selectAsset(projectId: string, assetId: string): AssetRow {
     .run();
 
   if (asset.kind === "design_system" && previousSelected?.id !== asset.id) {
+    // Deselect applications tied to the previous identity (core + channel templates).
     db.update(assets)
       .set({ selected: false, updated_at: new Date() })
       .where(
         and(
           eq(assets.project_id, projectId),
-          or(eq(assets.kind, "landing_page"), eq(assets.kind, "deck"))
+          or(
+            eq(assets.kind, "landing_page"),
+            eq(assets.kind, "deck"),
+            eq(assets.kind, "sms"),
+            eq(assets.kind, "email"),
+            eq(assets.kind, "ad"),
+            eq(assets.kind, "print")
+          )
         )
       )
       .run();

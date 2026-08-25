@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
-import { getProject } from "@/lib/queries";
+import { getProject, listEvaluations } from "@/lib/queries";
 import { listAssets } from "@/lib/design";
 import { canEnterDesignStudio } from "@/lib/studio";
 import { designApiKeyStatus } from "@/lib/settings";
 import { DesignStudio } from "@/components/DesignStudio";
 import { getActiveDesignJob, serializeDesignJob, startDesignJob } from "@/lib/design-jobs";
 import { ensureOpenDesignDaemon } from "@/lib/open-design-ensure";
+import { isOpenDesignDaemonUp } from "@/lib/open-design-engine";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +19,16 @@ export default async function DesignPage({
   const project = getProject(id);
   if (!project) notFound();
 
-  // Best-effort: wake OD when the owner opens Design Studio.
-  void ensureOpenDesignDaemon().catch(() => undefined);
+  // Wake OD when the owner opens Design Studio; surface status to the UI.
+  let daemonUp = false;
+  try {
+    daemonUp = await ensureOpenDesignDaemon();
+  } catch {
+    daemonUp = await isOpenDesignDaemonUp().catch(() => false);
+  }
+  if (!daemonUp) {
+    daemonUp = await isOpenDesignDaemonUp().catch(() => false);
+  }
 
   const assets = listAssets(id);
   const openDesign = designApiKeyStatus();
@@ -28,6 +37,7 @@ export default async function DesignPage({
   if (activeJob) void startDesignJob(activeJob.id, { resume: true });
 
   const enter = canEnterDesignStudio(id);
+  const latestViabilityEval = listEvaluations(id, "viability")[0] ?? null;
 
   return (
     <DesignStudio
@@ -38,6 +48,13 @@ export default async function DesignPage({
       initialShareToken={project.share_token}
       generationBlockedReason={enter.reason}
       apiKeyConfigured={openDesign.configured}
+      daemonUp={daemonUp}
+      viability={{
+        status: project.viability,
+        overrideNote: project.viability_override_note,
+        scores: latestViabilityEval?.scores ?? null,
+        personal: project.personal,
+      }}
     />
   );
 }

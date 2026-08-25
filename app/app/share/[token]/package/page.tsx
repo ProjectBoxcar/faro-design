@@ -84,17 +84,17 @@ export default async function SharePackagePage({
 
 function notReady(token: string, issue: string) {
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-5 py-16 text-center">
-      <div className="mx-auto mb-5 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--muted)]">
-        <PackageX size={22} />
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-5 py-12 text-center">
+      <div className="mx-auto mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--muted)]">
+        <PackageX size={20} />
       </div>
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
         Private final package
       </p>
-      <h1 className="mt-3 font-serif text-4xl font-medium tracking-tight">
+      <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight">
         This package is not ready yet
       </h1>
-      <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-[var(--muted)]">{issue}</p>
+      <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-[var(--muted)]">{issue}</p>
       <Link
         href={`/share/${token}`}
         className="mx-auto mt-7 inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] px-5 py-2.5 text-sm font-medium transition hover:bg-[var(--surface-2)]"

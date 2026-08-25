@@ -74,25 +74,25 @@ export default async function SectionPage({
   const nextGuide = nextId ? sectionGuide(nextId) : null;
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-12 lg:py-12 2xl:max-w-[96rem]">
+    <div className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-12 lg:py-8 2xl:max-w-[96rem]">
       <Link
         href={prevId ? `/projects/${id}/${encodeURIComponent(prevId)}` : `/projects/${id}`}
-        className="mb-4 inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
+        className="mb-3 inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
       >
         <ArrowLeft size={15} />
         {prevId && prev ? `Back: ${prev.name}` : "Back to overview"}
       </Link>
 
-      <header className="mb-6">
+      <header className="mb-5">
         <div className="text-xs uppercase tracking-wider text-[var(--subtle)]">
           {phase?.name} · {pillar?.name}
         </div>
-        <div className="mt-2 flex items-center gap-3">
+        <div className="mt-1.5 flex items-center gap-3">
           <ProgressBar done={phaseProg.done} total={phaseProg.total} className="max-w-[240px] flex-1" />
           <span className="shrink-0 text-xs text-[var(--subtle)]">{phasePercent}% of this phase</span>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <h1 className="font-serif text-5xl font-medium leading-[1.05] tracking-tight">{section.name}</h1>
+        <div className="mt-2 flex flex-wrap items-center gap-2.5">
+          <h1 className="font-serif text-3xl font-medium leading-[1.05] tracking-tight lg:text-4xl">{section.name}</h1>
           <StepKindBadge kind={section.kind} />
         </div>
       </header>
@@ -101,7 +101,7 @@ export default async function SectionPage({
         {/* Working column — kept readable even on very wide screens */}
         <div className="min-w-0 2xl:max-w-4xl">
           {guide.whatItIs && (
-            <p className="mb-6 max-w-2xl text-2xl font-normal leading-relaxed tracking-tight text-[var(--foreground)]">
+            <p className="mb-5 max-w-2xl text-lg font-normal leading-relaxed tracking-tight text-[var(--foreground)]">
               {guide.whatItIs}
             </p>
           )}

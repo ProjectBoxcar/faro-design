@@ -12,6 +12,7 @@ import { listAssets } from "@/lib/design";
 import { getProject } from "@/lib/queries";
 import { designStudioBlockedReason } from "@/lib/studio";
 import { getCurrentSnapshotForProject } from "@/lib/publish-snapshot";
+import { CHANNEL_ASSET_KINDS } from "@/lib/db/types";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,13 @@ const LABELS: Record<FinalDesignKind, string> = {
   design_system: "Brand Identity System",
   landing_page: "Landing Page",
   deck: "Brand Deck",
+};
+
+const CHANNEL_LABELS: Record<(typeof CHANNEL_ASSET_KINDS)[number], string> = {
+  sms: "SMS template",
+  email: "Email template",
+  ad: "Ad mockups",
+  print: "Print collateral",
 };
 
 export default async function BrandHandoverPage({
@@ -44,6 +52,24 @@ export default async function BrandHandoverPage({
     };
   });
 
+  const identityId =
+    assets.find((a) => a.kind === "design_system" && a.selected)?.id ?? null;
+  const channelChecklist = CHANNEL_ASSET_KINDS.map((kind) => {
+    const selected = assets.find(
+      (a) =>
+        a.kind === kind &&
+        a.selected &&
+        a.html?.trim() &&
+        (!identityId || a.design_system_id === identityId)
+    );
+    return {
+      kind,
+      label: CHANNEL_LABELS[kind],
+      ready: Boolean(selected),
+    };
+  });
+  const channelsReadyCount = channelChecklist.filter((c) => c.ready).length;
+
   const outputs = checklist
     .filter((item) => item.ready)
     .map((item) => ({
@@ -64,18 +90,28 @@ export default async function BrandHandoverPage({
         <ArrowLeft size={15} /> Design Studio
       </Link>
 
-      <header className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
-          Finish
-        </p>
-        <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight lg:text-4xl">
-          Brand Handover
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-          Everything you approved in one place—identity, landing page, and deck. Download files for{" "}
-          <strong className="font-medium text-[var(--foreground)]">product teams</strong>, present
-          full screen, or share a private client link.
-        </p>
+      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
+            Finish
+          </p>
+          <h1 className="mt-1.5 font-serif text-2xl font-medium tracking-tight lg:text-3xl">
+            Brand Handover
+          </h1>
+          <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">
+            Everything you approved in one place—identity, landing page, and deck. Download files for{" "}
+            <strong className="font-medium text-[var(--foreground)]">product teams</strong>, present
+            full screen, or share a private client link.
+          </p>
+        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/illustrations/stage-handover.jpg"
+          alt=""
+          width={96}
+          height={96}
+          className="h-20 w-20 shrink-0 rounded-[var(--radius-lg)] border border-[var(--border)] object-cover shadow-[var(--shadow-card)] sm:h-24 sm:w-24"
+        />
       </header>
 
       {studioBlocked ? (
@@ -117,6 +153,30 @@ export default async function BrandHandoverPage({
                       {item.ready && item.variant ? ` · ${item.variant}` : " · needed"}
                     </li>
                   ))}
+                  {channelChecklist.map((item) => (
+                    <li
+                      key={item.kind}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
+                        item.ready
+                          ? "bg-[var(--ok)]/15 text-[var(--ok)]"
+                          : "bg-[var(--surface-2)] text-[var(--muted)]"
+                      }`}
+                      title="Optional channel template from Design Studio"
+                    >
+                      {item.ready ? (
+                        <Check size={13} />
+                      ) : (
+                        <span className="h-2 w-2 rounded-full bg-[var(--border-strong)]" />
+                      )}
+                      {item.label}
+                      {item.ready ? "" : " · optional"}
+                    </li>
+                  ))}
+                  {channelsReadyCount > 0 && channelsReadyCount < CHANNEL_ASSET_KINDS.length ? (
+                    <li className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium bg-[var(--accent-soft)] text-[var(--accent)]">
+                      Channels {channelsReadyCount}/{CHANNEL_ASSET_KINDS.length}
+                    </li>
+                  ) : null}
                   <li
                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
                       packageReady

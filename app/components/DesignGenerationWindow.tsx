@@ -5,7 +5,12 @@ import { Clock3, Loader2, Square } from "lucide-react";
 import { FaroBeacon } from "@/components/FaroLoader";
 import { countBasedPercent, timeBasedPercent } from "@/lib/generation-progress";
 
-export type DesignGenerationKind = "design_system" | "landing_page" | "deck" | "mockups";
+export type DesignGenerationKind =
+  | "design_system"
+  | "landing_page"
+  | "deck"
+  | "mockups"
+  | "channels";
 
 const GENERATION_COPY: Record<
   DesignGenerationKind,
@@ -67,6 +72,20 @@ const GENERATION_COPY: Record<
       "Making each direction genuinely distinct",
     ],
   },
+  channels: {
+    title: "Building channel templates",
+    output: "SMS, email, ad, and print mockups",
+    focuses: [
+      "Carrying the approved identity into SMS",
+      "Drafting an email layout from the strategy brief",
+      "Shaping feed and story ad canvases",
+      "Laying out print card and flyer applications",
+      "Keeping every channel true to the chosen system",
+      "Using only brief-backed claims and copy",
+      "Embedding the approved logo consistently",
+      "Keeping every file fully offline",
+    ],
+  },
 };
 
 const DIRECTIONS = [
@@ -81,6 +100,7 @@ const ESTIMATE_SECONDS: Record<DesignGenerationKind, number> = {
   landing_page: 150,
   deck: 150,
   mockups: 200,
+  channels: 280,
 };
 
 export function formatGenerationElapsed(seconds: number): string {
@@ -194,11 +214,12 @@ export function DesignGenerationWindow({
     <section
       aria-labelledby="generation-title"
       aria-busy="true"
-      className="relative flex min-h-[60vh] flex-1 overflow-hidden rounded-xl bg-[var(--foreground)] px-5 py-8 text-white lg:min-h-[70vh] lg:px-10 lg:py-10"
+      className="relative flex min-h-[40vh] flex-1 overflow-hidden rounded-xl bg-[var(--foreground)] px-5 py-6 text-white lg:min-h-[50vh] lg:px-8 lg:py-8"
     >
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        Faro is creating {kind === "mockups" ? "the" : "three"} {copy.output} for {projectName}.
-        Generation is {pct}% complete. Keep this page open.
+        Faro is creating{" "}
+        {kind === "mockups" || kind === "channels" ? "the" : "three"} {copy.output} for{" "}
+        {projectName}. Generation is {pct}% complete. Keep this page open.
       </div>
       <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -left-20 h-72 w-72 rounded-full bg-[var(--client)]/30 blur-3xl" />
@@ -213,17 +234,21 @@ export function DesignGenerationWindow({
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
                 Faro Design Studio
               </p>
-              <h2 id="generation-title" className="max-w-2xl font-serif text-3xl font-medium tracking-tight lg:text-4xl">
+              <h2 id="generation-title" className="max-w-2xl font-serif text-2xl font-medium tracking-tight lg:text-3xl">
                 {copy.title}
               </h2>
               <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/65">
                 {kind === "mockups"
                   ? `A landing page and brand deck for ${projectName}, applying the identity you approved.`
-                  : `Three distinct directions for ${projectName}, grounded in the strategy you already shaped.`}
+                  : kind === "channels"
+                    ? `SMS, email, ad, and print templates for ${projectName}, applying the identity you approved.`
+                    : `Three distinct directions for ${projectName}, grounded in the strategy you already shaped.`}
               </p>
               <p className="mt-2 max-w-xl text-xs leading-relaxed text-white/45">
                 {kind === "mockups"
                   ? "Landing page first, then brand deck — each applies the identity you approved. Typically a few minutes — keep this tab open."
+                  : kind === "channels"
+                    ? "Four channel templates, one after another (often several minutes). Progress ticks as each finishes — keep this tab open."
                   : kind === "design_system"
                     ? "Three full identity systems, built one at a time (often 10–15 minutes total). Progress ticks up as each proposal finishes — keep this tab open."
                     : "Directions build one at a time so each stays distinct and grounded in your strategy. Proposals appear as each finishes."}
@@ -262,12 +287,12 @@ export function DesignGenerationWindow({
           {progressTotal > 0 && (
             <p className="mt-2 text-xs text-white/45">
               {progressDone} of {progressTotal}{" "}
-              {kind === "mockups" ? "applications" : "directions"} ready
+              {kind === "mockups" || kind === "channels" ? "applications" : "directions"} ready
             </p>
           )}
         </div>
 
-        {kind !== "mockups" && (
+        {kind !== "mockups" && kind !== "channels" && (
         <div>
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
             Three directions in this round

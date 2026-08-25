@@ -84,8 +84,10 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
   );
   const deckOk = designAssets.some((a) => a.kind === "deck" && a.selected && a.design_system_id);
   const designDone = identityOk && landingOk && deckOk;
-  const handoverUnlocked = designUnlocked; // open once design is available
-  const handoverDone = designDone; // package complete when all finals chosen
+  // Handover opens only when identity + landing + deck finals exist — so the
+  // rail doesn't imply "finish" before export is actually possible.
+  const handoverUnlocked = designDone;
+  const handoverDone = designDone;
   const contentBlocked = contentStudioBlockedReason(projectId);
   const contentUnlocked = !contentBlocked;
   let contentHasWork = false;
@@ -295,17 +297,13 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       href: `/projects/${projectId}/handover`,
       locked: !handoverUnlocked,
       done: handoverDone,
-      lockHint: "Unlocks with Design Studio",
+      lockHint: "Finish identity, landing, and deck in Design Studio first",
       doneDetail: project.share_token
         ? "Package ready · brand package published"
         : "Package ready · download or publish",
-      todoDetail: designUnlocked
-        ? designDone
-          ? project.share_token
-            ? "Update shared package or download"
-            : "Share brand package or download"
-          : "Finish Design Studio finals"
-        : "Complete design first",
+      todoDetail: project.share_token
+        ? "Update shared package or download"
+        : "Share brand package or download",
     },
     {
       id: "content",
@@ -313,7 +311,7 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       href: `/projects/${projectId}/content`,
       locked: !contentUnlocked && !contentHasWork,
       done: contentDone,
-      lockHint: contentBlocked ?? "Finish brand package first",
+      lockHint: contentBlocked ?? "Approve a logo and choose an identity system first",
       doneDetail: "Month of posts ready",
       todoDetail: contentHasWork
         ? "Review posts and approve what ships"

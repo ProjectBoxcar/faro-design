@@ -120,6 +120,7 @@ export function BrandHandoverActions({
           type="button"
           onClick={() => void downloadBrandPack()}
           disabled={!packageReady || packBusy}
+          data-faro-anchor="faro-handover-pack"
           className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
           title="tokens.css, logos, icons, copy.json, IMPLEMENT.md"
         >
@@ -168,6 +169,7 @@ export function BrandHandoverActions({
             type="button"
             onClick={() => void publish()}
             disabled={!packageReady || busy}
+            data-faro-anchor="faro-handover-share"
             className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-strong)] px-4 py-2.5 text-sm font-medium transition hover:bg-[var(--surface-2)] disabled:opacity-50"
           >
             {busy ? <Loader2 size={15} className="animate-spin" /> : <Share2 size={15} />}

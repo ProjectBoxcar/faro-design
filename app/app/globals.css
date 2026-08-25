@@ -22,7 +22,8 @@
 }
 
 html {
-  font-size: 17px;
+  /* Density scale: 15px rem base (~6% smaller than browser default) */
+  font-size: 15px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -46,16 +47,16 @@ body {
 }
 
 .faro-accent-line {
-  width: 40px;
-  height: 3px;
+  width: 32px;
+  height: 2px;
   background: var(--client, var(--brand-accent, #f25c2a));
   border-radius: 1px;
 }
 
 .faro-kicker {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--client, var(--brand-accent, #f25c2a));
 }
@@ -144,6 +145,69 @@ body {
   animation: faro-generation-focus 0.35s ease-out;
 }
 
+/* Living Faro assistant — travels to touchpoints */
+@keyframes faro-assistant-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes faro-assistant-travel-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--brand-accent, #f25c2a) 55%, transparent));
+  }
+}
+
+.faro-assistant-bob {
+  animation: faro-assistant-bob 2.8s ease-in-out infinite;
+}
+
+.faro-assistant-traveling .faro-assistant-bob,
+.faro-assistant-traveling [role="img"] {
+  animation: faro-assistant-bob 0.9s ease-in-out infinite, faro-assistant-travel-glow 0.7s ease-in-out;
+}
+
+/* Dock slide — disabled under prefers-reduced-motion below */
+.faro-assistant {
+  transition: left 0.7s cubic-bezier(0.22, 1, 0.36, 1), top 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Global keyboard focus — journey forms often set outline-none */
+:focus-visible {
+  outline: 2px solid var(--accent, #16514b);
+  outline-offset: 2px;
+}
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible),
+select:focus:not(:focus-visible) {
+  outline: none;
+}
+
+@keyframes faro-assistant-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.faro-assistant-speech {
+  animation: faro-assistant-pop 0.35s ease-out;
+}
+
 /* Journey coach lighthouse character */
 @keyframes faro-coach-beam {
   0%,
@@ -205,7 +269,7 @@ body {
   animation: faro-persona-ring 1.6s ease-out infinite;
 }
 
-/* Lighthouse robot face — eyes, blink, lamp */
+/* Robot lamp-eyes agent face */
 @keyframes faro-robot-blink {
   0%,
   42%,
@@ -334,10 +398,20 @@ body {
   .faro-persona-dot,
   .faro-robot-pupils,
   .faro-robot-lids .faro-robot-lid,
+  .faro-robot-lids-simple .faro-robot-lid,
   .faro-robot-lamp,
   .faro-robot-lamp-on,
-  .faro-robot-beams {
-    animation: none;
-    transform: none;
+  .faro-robot-beams,
+  .faro-assistant-bob,
+  .faro-assistant-traveling .faro-assistant-bob,
+  .faro-assistant-traveling [role="img"],
+  .faro-assistant-speech {
+    animation: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  .faro-assistant {
+    transition: none !important;
   }
 }

@@ -82,7 +82,8 @@ export function ingestBrandProfileFromProject(projectId: string): BrandProfile {
     logoSvgPreview: (logo?.payload as { svg?: string } | null)?.svg ?? null,
     designSystemId: designSystem?.id ?? null,
     locked: true,
-    notes: "Ingested from completed FARO brand package. Do not regenerate brand here.",
+    notes:
+      "Ingested from Faro project (logo + identity). Landing/deck finals improve fidelity but are optional for Content Studio.",
     strategyContext,
   };
 }

@@ -307,7 +307,12 @@ export function chooseStudioAsset(projectId: string, id: string): void {
 export function approveStudioAsset(projectId: string, id: string): void {
   const target = getStudioAsset(id);
   if (!target || target.project_id !== projectId) throw new Error("Unknown asset");
-  if (target.status !== "chosen") throw new Error("Choose this direction first, then approve it");
+  // One-click Approve & continue: auto-choose a live candidate first.
+  if (target.status === "candidate") {
+    chooseStudioAsset(projectId, id);
+  } else if (target.status !== "chosen") {
+    throw new Error("Choose this direction first, then approve it");
+  }
   db.update(studio_assets)
     .set({ status: "candidate", approved_at: null })
     .where(and(eq(studio_assets.project_id, projectId), eq(studio_assets.kind, target.kind), eq(studio_assets.status, "approved")))

@@ -29,10 +29,10 @@ export default async function ProjectHub({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ plan?: string; drafted?: string }>;
+  searchParams: Promise<{ plan?: string; drafted?: string; aiSkipped?: string; msg?: string }>;
 }) {
   const { id } = await params;
-  const { plan, drafted } = await searchParams;
+  const { plan, drafted, aiSkipped, msg } = await searchParams;
   const project = getProject(id);
   if (!project) notFound();
 
@@ -56,6 +56,7 @@ export default async function ProjectHub({
         label: primary.label,
         whatItIs: primary.detail,
         overall: primary.overall,
+        stageId: primary.stageId ?? null,
       }
     : null;
 
@@ -98,11 +99,41 @@ export default async function ProjectHub({
 
   // When drafted=1, Up next is the only primary CTA (banner copy only, no second button)
   const draftedBanner = drafted === "1" && primary;
+  const aiSkippedBanner = aiSkipped === "1";
+  const aiSkippedMsg =
+    typeof msg === "string" && msg.trim()
+      ? msg.trim().slice(0, 200)
+      : "Your answers are saved. Add a Claude key in Settings (Brand strategy) to draft the strategy automatically.";
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-12 lg:py-12 2xl:max-w-[104rem]">
+    <div className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-12 lg:py-8 2xl:max-w-[104rem]">
+      {aiSkippedBanner ? (
+        <div
+          role="status"
+          className="mb-5 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3"
+        >
+          <p className="text-sm font-medium text-[var(--foreground)]">Strategy drafting needs an API key</p>
+          <p className="mt-1 text-xs text-[var(--muted)]">{aiSkippedMsg}</p>
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            <Link
+              href="/settings"
+              className="font-medium text-[var(--accent)] underline-offset-2 hover:underline"
+            >
+              Open Settings
+            </Link>
+            {" · "}
+            <Link
+              href={`/projects/${id}/express`}
+              className="font-medium text-[var(--foreground)] underline-offset-2 hover:underline"
+            >
+              Continue to strategy
+            </Link>
+            {" when the key is saved."}
+          </p>
+        </div>
+      ) : null}
       {draftedBanner ? (
-        <div className="mb-6 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-5 py-4">
+        <div className="mb-5 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-4 py-3">
           <p className="text-sm font-medium text-[var(--foreground)]">Your first draft is ready</p>
           <p className="mt-1 text-xs text-[var(--muted)]">
             Use the single Continue control below — progress saves as you go.
@@ -110,11 +141,11 @@ export default async function ProjectHub({
         </div>
       ) : null}
 
-      <div className="mb-8">
-        <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">
+      <div className="mb-6">
+        <h1 className="font-serif text-2xl font-medium tracking-tight lg:text-3xl">
           {project.name}
         </h1>
-        <p className="mt-1.5 text-sm text-[var(--muted)]">
+        <p className="mt-1 text-sm text-[var(--muted)]">
           One next step at a time — use the journey rail (or Stages on mobile) anytime.
         </p>
         <ViabilityPanel
@@ -123,6 +154,7 @@ export default async function ProjectHub({
           overrideNote={project.viability_override_note}
           scores={latestViabilityEval?.scores ?? null}
           personal={project.personal}
+          forceShow={project.viability === "pending" || project.viability === "fail"}
         />
       </div>
 

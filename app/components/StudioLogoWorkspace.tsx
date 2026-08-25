@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, Check, Loader2, MessageSquarePlus, Sparkles, Square, Trash2, Undo2, X } from "lucide-react";
 import { FaroBeacon, FaroLoaderInline } from "@/components/FaroLoader";
+import { StagePageBanner } from "@/components/StagePageBanner";
+import { ViabilityPanel } from "@/components/ViabilityPanel";
 import { LOGO_STAGES, stageStatus, timeBasedPercent } from "@/lib/generation-progress";
 import type { AssetPayload, EvalScore } from "@/lib/db/types";
 
@@ -107,11 +109,19 @@ export function StudioLogoWorkspace({
   initialBlocked,
   name,
   initialAssets,
+  viability = null,
 }: {
   projectId: string;
   initialBlocked: string | null;
   name: string | null;
   initialAssets: WorkspaceAsset[];
+  /** When set, show ViabilityPanel on blocked screens so owners can recheck/override. */
+  viability?: {
+    status: "pending" | "pass" | "fail" | "caveat";
+    overrideNote: string | null;
+    scores: EvalScore[] | null;
+    personal: boolean;
+  } | null;
 }) {
   const [assets, setAssets] = useState<WorkspaceAsset[]>(() =>
     initialAssets.map((a) => ({
@@ -256,9 +266,31 @@ export function StudioLogoWorkspace({
   }
 
   if (initialBlocked) {
+    const viabilityRelated = /viability/i.test(initialBlocked);
     return (
-      <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
-        {initialBlocked}
+      <div className="space-y-4">
+        {viabilityRelated && viability ? (
+          <ViabilityPanel
+            projectId={projectId}
+            viability={viability.status}
+            overrideNote={viability.overrideNote}
+            scores={viability.scores}
+            personal={viability.personal}
+            forceShow
+          />
+        ) : null}
+        <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
+          <p>{initialBlocked}</p>
+          {viabilityRelated ? (
+            <p className="mt-2 text-xs">
+              Use Re-check above, or open the{" "}
+              <Link href={`/projects/${projectId}`} className="font-medium text-[var(--accent)] underline-offset-2 hover:underline">
+                project hub
+              </Link>{" "}
+              if you need to add an override note.
+            </p>
+          ) : null}
+        </div>
       </div>
     );
   }
@@ -270,19 +302,21 @@ export function StudioLogoWorkspace({
       ))}
 
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
+        <StagePageBanner stageId="logo" className="mb-0 min-w-0 flex-1">
           <h1 className="font-serif text-3xl font-medium tracking-tight">Logo — “{name}”</h1>
           <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">
             You get three proposals, each scored by a skeptical AI critic (scores are advice, not a
-            veto). Like a direction but want tweaks? Use{" "}
-            <strong className="font-medium text-[var(--foreground)]">Improve with feedback</strong>{" "}
-            on that card. When it feels right, choose and{" "}
-            <strong className="text-[var(--foreground)]">approve</strong> — only you make it official.
+            veto). Want tweaks? Use{" "}
+            <strong className="font-medium text-[var(--foreground)]">Improve with feedback</strong>.
+            When it feels right,{" "}
+            <strong className="text-[var(--foreground)]">Approve &amp; continue</strong> — that makes
+            it official and unlocks Design Studio.
           </p>
-        </div>
+        </StagePageBanner>
         <button
           onClick={() => act({ action: "generate" }, "generate")}
           disabled={busy !== null}
+          data-faro-anchor="faro-logo-primary"
           className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {isFreshGenerate ? (
@@ -389,6 +423,7 @@ export function StudioLogoWorkspace({
             </div>
             <Link
               href={`/projects/${projectId}/design`}
+              data-faro-anchor="faro-logo-continue"
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
             >
               Continue to Design Studio <ArrowRight size={16} />
@@ -532,6 +567,7 @@ export function StudioLogoWorkspace({
             </div>
             <Link
               href={`/projects/${projectId}/design`}
+              data-faro-anchor="faro-logo-continue"
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--accent-hover)]"
             >
               Continue to Design Studio <ArrowRight size={16} />
@@ -990,11 +1026,12 @@ function CandidateCard({
         {asset.status === "candidate" && (
           <>
             <button
-              onClick={onChoose}
+              onClick={onApprove}
               disabled={isBusy || generating}
-              className="rounded-full border border-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent)] transition hover:bg-[var(--accent-soft)] disabled:opacity-50"
+              data-faro-anchor="faro-logo-approve"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
-              Choose this direction
+              <BadgeCheck size={16} /> Approve &amp; continue
             </button>
             <button
               type="button"
@@ -1005,16 +1042,13 @@ function CandidateCard({
               <MessageSquarePlus size={15} />
               {feedbackOpen ? "Hide feedback" : "Improve with feedback"}
             </button>
-            {/* Approval is always visible so the human gate is never a surprise —
-                just disabled until this candidate is the chosen direction. */}
             <button
-              disabled
-              title="Choose this direction first — then you can approve it"
-              className="inline-flex cursor-not-allowed items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white opacity-35"
+              onClick={onChoose}
+              disabled={isBusy || generating}
+              className="rounded-full border border-[var(--border)] px-4 py-2 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)] disabled:opacity-50"
             >
-              <BadgeCheck size={16} /> Approve
+              Choose only (decide later)
             </button>
-            <span className="text-xs text-[var(--subtle)]">← choose first, then approve</span>
           </>
         )}
         {asset.status === "chosen" && (
@@ -1022,9 +1056,10 @@ function CandidateCard({
             <button
               onClick={onApprove}
               disabled={isBusy || generating}
+              data-faro-anchor="faro-logo-approve"
               className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
-              <BadgeCheck size={16} /> Approve — make it official
+              <BadgeCheck size={16} /> Approve &amp; continue
             </button>
             <button
               type="button"

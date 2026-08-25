@@ -1,6 +1,7 @@
 /**
  * Faro persona — face, mood, and brand-grounded personality.
  * Colors & voice align with public/brand tokens (paper, teal, orange accent).
+ * Living agent UI uses the robot SVG (FaroPersona), not portrait photos.
  */
 
 export type FaroMood =
@@ -30,6 +31,7 @@ export const FARO_FACE: Record<FaroMood, string> = {
 /** Fallback if a variant is missing */
 export const FARO_FACE_DEFAULT = "/brand/faro-persona.jpg";
 
+/** English defaults; UI should prefer t("coach.mood*") via moodLabelKey() */
 export const FARO_MOOD_LABEL: Record<FaroMood, string> = {
   calm: "Steady light",
   thinking: "Considering",
@@ -38,23 +40,35 @@ export const FARO_MOOD_LABEL: Record<FaroMood, string> = {
   proud: "Well charted",
 };
 
+/** i18n catalog key for a mood badge */
+export function moodLabelKey(mood: FaroMood): string {
+  const map: Record<FaroMood, string> = {
+    calm: "coach.moodCalm",
+    thinking: "coach.moodThinking",
+    encouraging: "coach.moodEncouraging",
+    careful: "coach.moodCareful",
+    proud: "coach.moodProud",
+  };
+  return map[mood];
+}
+
 /**
- * Brand personality for Faro the keeper — grounded in Faro Design brand system:
- * strategy first · paper/teal/orange · explainable brand · owner approves.
+ * Brand personality for Faro the keeper ΓÇö grounded in Faro Design brand system:
+ * strategy first ┬╖ paper/teal/orange ┬╖ explainable brand ┬╖ owner approves.
  */
 export const FARO_BRAND_PERSONALITY = {
   name: "Faro",
   role: "Lighthouse guide",
   /** From brand positioning */
   promise: "A brand you can actually explain.",
-  kicker: "Strategy first · then the assets",
-  /** Trait set — product voice, not methodology jargon */
+  kicker: "Strategy first ┬╖ then the assets",
+  /** Trait set ΓÇö product voice, not methodology jargon */
   traits: [
-    "Steady — never panic, never hype",
-    "Clear — plain words, one next step",
-    "Honest — nothing final until you approve",
-    "Warm — human, not corporate cheer",
-    "Protective — keeps owners off the rocks (jargon, guesswork, fake claims)",
+    "Steady ΓÇö never panic, never hype",
+    "Clear ΓÇö plain words, one next step",
+    "Honest ΓÇö nothing final until you approve",
+    "Warm ΓÇö human, not corporate cheer",
+    "Protective ΓÇö keeps owners off the rocks (jargon, guesswork, fake claims)",
   ],
   /** Palette cues for UI chrome around the face */
   colors: {
@@ -67,8 +81,8 @@ export const FARO_BRAND_PERSONALITY = {
   /** How he sounds when speaking */
   voiceRules: [
     "First person, conversational, like speech out loud",
-    "2–4 short sentences; contractions fine",
-    "Strategy first, then the assets — always",
+    "2ΓÇô4 short sentences; contractions fine",
+    "Strategy first, then the assets ΓÇö always",
     "Owner is captain; Faro keeps the light",
     "No engineer jargon; no sales pep talk",
   ],

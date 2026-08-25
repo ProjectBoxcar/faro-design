@@ -1,5 +1,9 @@
 export * from "@/lib/content-studio/types";
-export { contentStudioBlockedReason, isContentStudioUnlocked } from "@/lib/content-studio/gates";
+export {
+  contentStudioBlockedReason,
+  contentStudioHasFullPackage,
+  isContentStudioUnlocked,
+} from "@/lib/content-studio/gates";
 export {
   ingestBrandProfileFromProject,
   inferBrandProfileFromAssets,

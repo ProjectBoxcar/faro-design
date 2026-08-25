@@ -7,6 +7,8 @@ import {
   deleteAsset,
   generateApplicationMockups,
   generateBrandDeckProposals,
+  generateChannelMockups,
+  generateChannelTemplate,
   generateDesignSystemProposals,
   generateLandingPageProposals,
   getAsset,
@@ -14,6 +16,7 @@ import {
   selectAsset,
   type AssetRow,
 } from "@/lib/design";
+import { CHANNEL_ASSET_KINDS } from "@/lib/db/types";
 import { finalDeliverableIssue } from "@/lib/design-deliverable";
 import { getProject, setProjectPhase } from "@/lib/queries";
 import type { DesignJobKind, DesignJobState } from "@/lib/design-job-types";
@@ -390,6 +393,32 @@ export function startDesignJob(
           }
         }
       }
+    } else if (latest.kind === "channels") {
+      if (!latest.design_system_id) throw new Error("A final Brand Identity System is required.");
+      const existingAssets = safeKept
+        .map((id) => getAsset(latest.project_id, id))
+        .filter((a): a is AssetRow => Boolean(a));
+      const missing = CHANNEL_ASSET_KINDS.filter(
+        (k) => !existingAssets.some((a) => a.kind === k && a.design_system_id === latest.design_system_id)
+      );
+      if (missing.length === CHANNEL_ASSET_KINDS.length) {
+        generated = await generateChannelMockups(
+          latest.project_id,
+          latest.design_system_id,
+          onAsset
+        );
+      } else {
+        generated = [...existingAssets];
+        for (const kind of missing) {
+          const asset = await generateChannelTemplate(
+            latest.project_id,
+            latest.design_system_id,
+            kind,
+            onAsset
+          );
+          generated.push(asset);
+        }
+      }
     } else if (latest.kind === "landing_page") {
       if (!latest.design_system_id) throw new Error("A final Brand Identity System is required.");
       const fresh = await generateLandingPageProposals(
@@ -402,7 +431,7 @@ export function startDesignJob(
         ...safeKept.map((id) => getAsset(latest.project_id, id)!).filter(Boolean),
         ...fresh,
       ];
-    } else {
+    } else if (latest.kind === "deck") {
       if (!latest.design_system_id) throw new Error("A final Brand Identity System is required.");
       const fresh = await generateBrandDeckProposals(
         latest.project_id,
@@ -414,6 +443,25 @@ export function startDesignJob(
         ...safeKept.map((id) => getAsset(latest.project_id, id)!).filter(Boolean),
         ...fresh,
       ];
+    } else if (
+      latest.kind === "sms" ||
+      latest.kind === "email" ||
+      latest.kind === "ad" ||
+      latest.kind === "print"
+    ) {
+      if (!latest.design_system_id) throw new Error("A final Brand Identity System is required.");
+      const asset = await generateChannelTemplate(
+        latest.project_id,
+        latest.design_system_id,
+        latest.kind,
+        onAsset
+      );
+      generated = [
+        ...safeKept.map((id) => getAsset(latest.project_id, id)!).filter(Boolean),
+        asset,
+      ];
+    } else {
+      throw new Error(`Unsupported design job kind: ${latest.kind}`);
     }
     throwIfJobCancelled(jobId);
     updateJob(job.id, {

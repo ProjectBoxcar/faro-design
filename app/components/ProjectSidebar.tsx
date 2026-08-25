@@ -66,7 +66,7 @@ export function ProjectSidebar({
 
   return (
     <aside
-      className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col border-r border-[var(--border)] lg:flex"
+      className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-[var(--border)] lg:flex"
       style={{
         backgroundColor: "color-mix(in srgb, var(--background) 92%, transparent)",
         backdropFilter: "blur(20px)",
@@ -202,7 +202,14 @@ function StageRow({
     <li>
       <div className="flex items-center gap-0.5">
         {href ? (
-          <Link href={href} className={`min-w-0 flex-1 ${rowClass}`} aria-current={active ? "page" : undefined}>
+          <Link
+            href={href}
+            data-faro-anchor={
+              stage.status === "current" || active ? "faro-journey-current" : undefined
+            }
+            className={`min-w-0 flex-1 ${rowClass}`}
+            aria-current={active ? "page" : undefined}
+          >
             {main}
           </Link>
         ) : (

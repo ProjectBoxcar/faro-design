@@ -14,6 +14,11 @@ export type ViabilityPanelProps = {
   /** Latest evaluation scores (if any). */
   scores: EvalScore[] | null;
   personal: boolean;
+  /**
+   * When true, show even if pending with no scores yet.
+   * Use when logo/design are hard-blocked on viability so the owner can recheck/override.
+   */
+  forceShow?: boolean;
 };
 
 const STYLE_CLASS: Record<string, { className: string; Icon: typeof CheckCircle2 }> = {
@@ -41,6 +46,7 @@ export function ViabilityPanel({
   overrideNote,
   scores,
   personal,
+  forceShow = false,
 }: ViabilityPanelProps) {
   const router = useRouter();
   const { t } = useLocale();
@@ -124,9 +130,16 @@ export function ViabilityPanel({
     }
   }
 
-  // Hide entirely until something useful can be shown (pending with no scores
-  // is noise on a brand-new project).
-  if (localViability === "pending" && !scores?.length) return null;
+  // Hide pending-with-no-scores on quiet hubs; never hide when it hard-blocks
+  // logo/design (forceShow) or when the gate failed.
+  if (
+    localViability === "pending" &&
+    !scores?.length &&
+    !forceShow &&
+    !localOverride
+  ) {
+    return null;
+  }
 
   return (
     <div className={`mt-4 rounded-2xl border p-4 ${shell.className}`}>

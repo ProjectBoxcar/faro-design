@@ -1,30 +1,56 @@
 "use client";
 
 /**
- * Faro the keeper — dynamic face + brand personality through the journey.
+ * Faro living assistant — docks to UI touchpoints and travels with the user.
  */
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronDown, Loader2, Send, X } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import { ChevronDown, Loader2, MessageCircle, Send, X } from "lucide-react";
 import { FaroPersona, FaroPersonaMini } from "@/components/FaroPersona";
 import {
   coachTipFromPath,
   projectIdFromPath,
   resolveCoachCtaHref,
+  type CoachScene,
   type CoachTip,
 } from "@/lib/journey-coach-pure";
 import {
   FARO_BRAND_PERSONALITY,
-  FARO_MOOD_LABEL,
   moodForScene,
+  moodLabelKey,
   type FaroMood,
 } from "@/lib/faro-persona";
+import {
+  dockNearRect,
+  resolveAssistantAnchor,
+  type DockRect,
+} from "@/lib/faro-assistant-anchors";
+import {
+  explainElement,
+  findExplainTarget,
+  hoverContextPayload,
+  type HoverExplain,
+} from "@/lib/faro-hover-explain";
 import { useLocale } from "@/components/LocaleProvider";
 
 const MIN_KEY = "faro-journey-coach-minimized";
 const HIDE_KEY = "faro-journey-coach-hidden-session";
+/** One-time clear after portrait regression left people with hide stuck on */
+const RECOVERY_KEY = "faro-journey-coach-restored-v3";
+const INTERACT_MS = 4500;
+const HOVER_DWELL_MS = 350;
+const HOVER_AI_MS = 550;
+/** Dense work stages — keep Faro present but quiet (no speech bubble by default). */
+const QUIET_SCENES = new Set(["strategy", "strategy_map", "design", "handover"]);
 
 type LiveGuidance = {
   title: string;
@@ -44,24 +70,54 @@ type ChatLine = {
   mood?: FaroMood;
 };
 
+function sceneFromTip(
+  tip: CoachTip | { scene: "hidden" }
+): Exclude<CoachScene, "hidden"> | "hidden" {
+  return tip.scene;
+}
+
 export function JourneyCoach() {
   const pathname = usePathname() || "/";
   const { locale, t } = useLocale();
   const [minimized, setMinimized] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [ready, setReady] = useState(false);
+  const [openChat, setOpenChat] = useState(false);
   const [guidance, setGuidance] = useState<LiveGuidance | null>(null);
   const [mood, setMood] = useState<FaroMood>("calm");
   const [loading, setLoading] = useState(false);
   const [asking, setAsking] = useState(false);
   const [question, setQuestion] = useState("");
   const [thread, setThread] = useState<ChatLine[]>([]);
+  const [dock, setDock] = useState<DockRect | null>(null);
+  const [traveling, setTraveling] = useState(false);
+  const [bubbleOpen, setBubbleOpen] = useState(true);
+  const [hover, setHover] = useState<HoverExplain | null>(null);
+  /** Bump after click-dismiss so Faro re-parks on the scene anchor, not the button. */
+  const [parkTick, setParkTick] = useState(0);
+
   const abortRef = useRef<AbortController | null>(null);
   const pathKeyRef = useRef("");
   const threadEndRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const interactionRef = useRef<HTMLElement | null>(null);
+  const interactionUntilRef = useRef(0);
+  const prevDockRef = useRef<DockRect | null>(null);
+  const hoverKeyRef = useRef("");
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverAiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverAiAbortRef = useRef<AbortController | null>(null);
+  const lastPointerRef = useRef({ x: 0, y: 0 });
+  /** After a page click, pause chase-dock so the owner can read/use controls. */
+  const suppressFollowUntilRef = useRef(0);
 
   useEffect(() => {
     try {
+      // Recover users who hid Faro during the broken portrait episode
+      if (sessionStorage.getItem(RECOVERY_KEY) !== "1") {
+        sessionStorage.removeItem(HIDE_KEY);
+        sessionStorage.setItem(RECOVERY_KEY, "1");
+      }
       setMinimized(localStorage.getItem(MIN_KEY) === "1");
       setHidden(sessionStorage.getItem(HIDE_KEY) === "1");
     } catch {
@@ -70,9 +126,22 @@ export function JourneyCoach() {
     setReady(true);
   }, []);
 
+  const unhide = useCallback(() => {
+    setHidden(false);
+    setMinimized(false);
+    setOpenChat(false);
+    setBubbleOpen(true);
+    try {
+      sessionStorage.removeItem(HIDE_KEY);
+      localStorage.setItem(MIN_KEY, "0");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [thread, loading, asking, mood]);
+  }, [thread, loading, asking, mood, openChat]);
 
   const persistMin = useCallback((value: boolean) => {
     setMinimized(value);
@@ -94,7 +163,252 @@ export function JourneyCoach() {
 
   const seedTip = coachTipFromPath(pathname, locale);
   const projectId = projectIdFromPath(pathname);
-  const onProject = Boolean(projectId);
+  const scene = sceneFromTip(seedTip);
+
+  /** Cursor / focus: walk to the control and explain it */
+  useEffect(() => {
+    if (scene === "hidden" || !ready || hidden) return;
+
+    function applyTarget(el: HTMLElement | null, opts?: { follow?: boolean }) {
+      if (!el) {
+        hoverKeyRef.current = "";
+        setHover(null);
+        if (hoverAiTimerRef.current) clearTimeout(hoverAiTimerRef.current);
+        hoverAiAbortRef.current?.abort();
+        return;
+      }
+      const exp = explainElement(el, locale, pathname);
+      if (!exp) {
+        hoverKeyRef.current = "";
+        setHover(null);
+        if (opts?.follow !== false) {
+          interactionRef.current = el;
+          interactionUntilRef.current = Date.now() + INTERACT_MS;
+        }
+        return;
+      }
+      if (hoverKeyRef.current !== exp.key) {
+        hoverKeyRef.current = exp.key;
+        setHover(exp);
+        // Never auto-open the speech bubble — only the Faro face / Talk control
+        // opens it. Hover still updates tip content for when the owner opens Faro.
+        if (hoverAiTimerRef.current) clearTimeout(hoverAiTimerRef.current);
+        hoverAiAbortRef.current?.abort();
+        if (!exp.deep) {
+          hoverAiTimerRef.current = setTimeout(() => {
+            void enrichHoverWithAi(exp, pathname, locale);
+          }, HOVER_AI_MS);
+        }
+      } else {
+        setHover(exp);
+      }
+      if (opts?.follow !== false) {
+        interactionRef.current = exp.el;
+        interactionUntilRef.current = Date.now() + INTERACT_MS;
+      }
+    }
+
+    async function enrichHoverWithAi(
+      exp: HoverExplain,
+      path: string,
+      loc: typeof locale
+    ) {
+      if (hoverKeyRef.current !== exp.key) return;
+      hoverAiAbortRef.current?.abort();
+      const ac = new AbortController();
+      hoverAiAbortRef.current = ac;
+      try {
+        const ctx = hoverContextPayload(exp.el, path);
+        const res = await fetch("/api/journey-coach", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pathname: path,
+            locale: loc,
+            mode: "hover",
+            hover: ctx,
+          }),
+          signal: ac.signal,
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { title?: string; body?: string; source?: string };
+        if (hoverKeyRef.current !== exp.key) return;
+        if (data.source === "ai" && data.body?.trim()) {
+          setHover({
+            ...exp,
+            title: data.title?.trim() || exp.title,
+            body: data.body.trim(),
+            deep: true,
+          });
+        }
+      } catch {
+        /* keep local explain */
+      }
+    }
+
+    function onMove(e: MouseEvent) {
+      lastPointerRef.current = { x: e.clientX, y: e.clientY };
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = setTimeout(() => {
+        const { x, y } = lastPointerRef.current;
+        // Temporarily ignore Faro so elementFromPoint hits the page under the cursor
+        const assistant = document.querySelectorAll("[data-faro-assistant]");
+        const prev: string[] = [];
+        assistant.forEach((n, i) => {
+          if (n instanceof HTMLElement) {
+            prev[i] = n.style.pointerEvents;
+            n.style.pointerEvents = "none";
+          }
+        });
+        const under = document.elementFromPoint(x, y);
+        assistant.forEach((n, i) => {
+          if (n instanceof HTMLElement) n.style.pointerEvents = prev[i] ?? "";
+        });
+        const target = findExplainTarget(under);
+        const follow = Date.now() >= suppressFollowUntilRef.current;
+        applyTarget(target, { follow });
+      }, HOVER_DWELL_MS);
+    }
+
+    function onFocusIn(e: FocusEvent) {
+      // Focus often follows a click — update tip quietly, do not open bubble or chase.
+      const target = findExplainTarget(e.target as Element);
+      applyTarget(target, { follow: false });
+    }
+
+    function onClick(e: MouseEvent) {
+      const t = e.target;
+      if (t instanceof Element && t.closest("[data-faro-assistant]")) return;
+      // Click = owner is reading/using the UI. Keep Faro closed and out of the way.
+      setBubbleOpen(false);
+      setOpenChat(false);
+      setHover(null);
+      hoverKeyRef.current = "";
+      interactionRef.current = null;
+      interactionUntilRef.current = 0;
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      if (hoverAiTimerRef.current) clearTimeout(hoverAiTimerRef.current);
+      hoverAiAbortRef.current?.abort();
+      suppressFollowUntilRef.current = Date.now() + 5000;
+      setParkTick((n) => n + 1);
+    }
+
+    window.addEventListener("mousemove", onMove, { passive: true });
+    document.addEventListener("focusin", onFocusIn, true);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      document.removeEventListener("focusin", onFocusIn, true);
+      document.removeEventListener("click", onClick, true);
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      if (hoverAiTimerRef.current) clearTimeout(hoverAiTimerRef.current);
+      hoverAiAbortRef.current?.abort();
+    };
+  }, [scene, ready, hidden, locale, pathname]);
+
+  const dockRafRef = useRef(0);
+
+  /** Reposition next to hovered control / scene anchor (rAF-throttled) */
+  const recomputeDock = useCallback(() => {
+    if (scene === "hidden" || typeof window === "undefined") return;
+    if (dockRafRef.current) cancelAnimationFrame(dockRafRef.current);
+    dockRafRef.current = requestAnimationFrame(() => {
+      const live =
+        Date.now() < interactionUntilRef.current ? interactionRef.current : null;
+      const anchor = resolveAssistantAnchor(scene, live);
+
+      const faceOnly = minimized || !openChat;
+      const pw = faceOnly
+        ? bubbleOpen && !minimized
+          ? 280
+          : 72
+        : Math.min(360, window.innerWidth - 24);
+      const ph = faceOnly
+        ? bubbleOpen && !minimized
+          ? 200
+          : 88
+        : Math.min(420, window.innerHeight - 24);
+
+      let next: DockRect;
+      if (anchor) {
+        const r = anchor.getBoundingClientRect();
+        next = dockNearRect(
+          {
+            left: r.left,
+            top: r.top,
+            width: r.width,
+            height: r.height,
+            right: r.right,
+            bottom: r.bottom,
+          },
+          pw,
+          ph,
+          faceOnly ? 10 : 14,
+          ["right", "left", "above", "below"]
+        );
+      } else {
+        const onProject = Boolean(projectIdFromPath(pathname));
+        next = {
+          left: window.innerWidth - pw - 16,
+          top: window.innerHeight - ph - (onProject ? 72 : 20),
+          placement: "left",
+        };
+      }
+
+      const prev = prevDockRef.current;
+      if (
+        prev &&
+        (Math.abs(prev.left - next.left) > 24 || Math.abs(prev.top - next.top) > 24)
+      ) {
+        setTraveling(true);
+        window.setTimeout(() => setTraveling(false), 700);
+      }
+      prevDockRef.current = next;
+      setDock(next);
+    });
+  }, [scene, minimized, openChat, pathname, bubbleOpen]);
+
+  useLayoutEffect(() => {
+    if (!ready || hidden || scene === "hidden") return;
+    recomputeDock();
+  }, [hover?.key, ready, hidden, scene, recomputeDock, parkTick]);
+
+  useLayoutEffect(() => {
+    if (!ready || hidden || scene === "hidden") return;
+    recomputeDock();
+
+    const onScroll = () => recomputeDock();
+    const onResize = () => recomputeDock();
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+
+    // Light poll only while a live interaction is active (not forever every 400ms)
+    const interval = window.setInterval(() => {
+      if (Date.now() < interactionUntilRef.current) recomputeDock();
+    }, 500);
+
+    const mo = new MutationObserver((mutations) => {
+      // Ignore pure attribute noise (class toggles); react to structure changes
+      if (mutations.some((m) => m.type === "childList" && m.addedNodes.length > 0)) {
+        recomputeDock();
+      }
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+      window.clearInterval(interval);
+      mo.disconnect();
+      if (dockRafRef.current) cancelAnimationFrame(dockRafRef.current);
+    };
+  }, [ready, hidden, scene, recomputeDock]);
+
+  // Re-open bubble on light scenes; stay quiet on Express / Design / Handover
+  useEffect(() => {
+    setOpenChat(false);
+    setBubbleOpen(!QUIET_SCENES.has(scene));
+  }, [pathname, locale, scene]);
 
   const fetchGuidance = useCallback(
     async (path: string, q?: string) => {
@@ -128,10 +442,7 @@ export function JourneyCoach() {
         ]);
       } else {
         setMood("thinking");
-        setThread((prev) => [
-          ...prev,
-          { id: `you-${Date.now()}`, role: "you", text: q },
-        ]);
+        setThread((prev) => [...prev, { id: `you-${Date.now()}`, role: "you", text: q }]);
       }
 
       abortRef.current?.abort();
@@ -210,7 +521,6 @@ export function JourneyCoach() {
       setThread([]);
       return;
     }
-    // Refetch when path or language changes
     const key = `${pathname}::${locale}`;
     if (pathKeyRef.current === key) return;
     pathKeyRef.current = key;
@@ -226,18 +536,47 @@ export function JourneyCoach() {
     const q = question.trim();
     if (!q || asking) return;
     setQuestion("");
+    setOpenChat(true);
     await fetchGuidance(pathname, q);
   }
 
-  if (!ready || seedTip.scene === "hidden" || hidden) return null;
+  // Public share / unlock: no owner coach
+  if (!ready || seedTip.scene === "hidden") return null;
+
+  // Hidden for session — always leave a corner control so Faro can come back
+  if (hidden) {
+    return (
+      <div
+        data-faro-assistant
+        className="faro-assistant fixed bottom-5 right-4 z-[9999]"
+        style={{ right: 16, bottom: 20 }}
+      >
+        <button
+          type="button"
+          onClick={unhide}
+          className="faro-assistant-bob group relative"
+          aria-label={t("coach.open")}
+        >
+          <FaroPersona size={52} mood="encouraging" speaking={false} className="shadow-[var(--shadow-pop)]" />
+          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--accent)] px-2 py-0.5 text-[9px] font-semibold text-white shadow">
+            Faro
+          </span>
+        </button>
+      </div>
+    );
+  }
 
   const activeTip: CoachTip = seedTip;
   const tip = (guidance ?? activeTip) as LiveGuidance | CoachTip;
-  const title = "title" in tip ? tip.title : activeTip.title;
-  const body = "body" in tip ? tip.body : activeTip.body;
-  const ctaLabel = "ctaLabel" in tip ? tip.ctaLabel : activeTip.ctaLabel;
-  const ctaTemplate =
-    "ctaHrefTemplate" in tip ? tip.ctaHrefTemplate : activeTip.ctaHrefTemplate;
+  // Cursor-over control wins: Faro explains where you're pointing
+  const title = hover?.title ?? ("title" in tip ? tip.title : activeTip.title);
+  const body = hover?.body ?? ("body" in tip ? tip.body : activeTip.body);
+  const ctaLabel = hover ? undefined : "ctaLabel" in tip ? tip.ctaLabel : activeTip.ctaLabel;
+  const ctaTemplate = hover
+    ? undefined
+    : "ctaHrefTemplate" in tip
+      ? tip.ctaHrefTemplate
+      : activeTip.ctaHrefTemplate;
   const ctaHref = resolveCoachCtaHref(
     {
       scene: activeTip.scene,
@@ -248,44 +587,153 @@ export function JourneyCoach() {
     },
     projectId
   );
-  const source = guidance?.source ?? "fallback";
-  const displayMood: FaroMood =
-    loading || asking ? "thinking" : mood;
+  const displayMood: FaroMood = loading || asking ? "thinking" : hover ? "encouraging" : mood;
 
-  const pos = onProject
-    ? "bottom-[4.75rem] right-3 lg:bottom-5 lg:right-5"
-    : "bottom-4 right-3 sm:bottom-5 sm:right-5";
-
-  if (minimized) {
-    return (
-      <div className={`fixed z-[60] ${pos}`}>
-        <button
-          type="button"
-          onClick={() => persistMin(false)}
-          className="group relative"
-          aria-label={t("coach.open")}
-        >
-          <FaroPersona size={58} mood={displayMood} speaking={false} className="shadow-[var(--shadow-pop)]" />
-          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--accent)] px-2 py-0.5 text-[9px] font-semibold text-white shadow">
-            Faro
-          </span>
-        </button>
-      </div>
-    );
-  }
+  const style: CSSProperties = dock
+    ? {
+        left: dock.left,
+        top: dock.top,
+        right: "auto",
+        bottom: "auto",
+      }
+    : {
+        right: 16,
+        bottom: 20,
+        left: "auto",
+        top: "auto",
+      };
 
   const lines =
     thread.length > 0
       ? thread
       : [{ id: "seed", role: "faro" as const, text: body, mood: displayMood }];
 
+  // Compact companion: face + optional speech chip that travels
+  if (minimized || !openChat) {
+    return (
+      <div
+        ref={panelRef}
+        data-faro-assistant
+        className={`faro-assistant fixed z-[9999] ${
+          traveling ? "faro-assistant-traveling" : ""
+        }`}
+        style={style}
+        aria-label={t("coach.open")}
+      >
+        <div className="relative flex flex-col items-center">
+          {/* Living bob */}
+          <button
+            type="button"
+            onClick={() => {
+              setOpenChat(true);
+              persistMin(false);
+              setBubbleOpen(true);
+            }}
+            className="faro-assistant-bob group relative"
+            aria-label={t("coach.open")}
+          >
+            <FaroPersona
+              size={minimized ? 52 : 60}
+              mood={displayMood}
+              speaking={loading || asking || traveling}
+              className="shadow-[var(--shadow-pop)]"
+            />
+            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--accent)] px-2 py-0.5 text-[9px] font-semibold text-white shadow">
+              Faro
+            </span>
+          </button>
+
+          {bubbleOpen && !minimized ? (
+            <div
+              className={`faro-assistant-speech mt-3 max-w-[16.5rem] rounded-2xl rounded-tl-md border bg-[var(--surface)] px-3 py-2.5 shadow-[var(--shadow-card)] ${
+                hover
+                  ? "border-[var(--accent)]/40 ring-1 ring-[var(--accent)]/15"
+                  : "border-[var(--border-strong)]"
+              }`}
+            >
+              {hover ? (
+                <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
+                  {t("coach.pointing")}
+                </p>
+              ) : null}
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)]">
+                {title}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--foreground)] line-clamp-5">
+                {loading && !guidance && !hover ? t("coach.thinking") : body}
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {ctaHref && ctaLabel ? (
+                  <Link
+                    href={ctaHref}
+                    className="rounded-full bg-[var(--accent)] px-2.5 py-1 text-[10px] font-semibold text-white"
+                  >
+                    {ctaLabel}
+                  </Link>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setOpenChat(true)}
+                  className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--accent)]"
+                >
+                  <MessageCircle size={11} /> {t("coach.talkPlaceholder").replace("…", "")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBubbleOpen(false)}
+                  className="ml-auto text-[10px] text-[var(--subtle)]"
+                >
+                  {t("common.close")}
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {minimized ? (
+            <button
+              type="button"
+              onClick={() => persistMin(false)}
+              className="mt-2 text-[10px] text-[var(--subtle)] underline-offset-2 hover:underline"
+            >
+              {t("coach.open")}
+            </button>
+          ) : (
+            <div className="mt-1.5 flex gap-1">
+              <button
+                type="button"
+                onClick={() => persistMin(true)}
+                className="rounded-full px-2 py-0.5 text-[10px] text-[var(--subtle)] hover:bg-[var(--surface)]"
+                aria-label={t("coach.minimize")}
+              >
+                <ChevronDown size={12} />
+              </button>
+              <button
+                type="button"
+                onClick={hideSession}
+                className="rounded-full px-2 py-0.5 text-[10px] text-[var(--subtle)] hover:bg-[var(--surface)]"
+                aria-label={t("coach.hide")}
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Full chat panel, still docked to the current touchpoint
   return (
     <aside
-      className={`fixed z-[60] w-[min(100vw-1.25rem,22.5rem)] ${pos}`}
-      aria-label="Faro, your guide"
+      ref={panelRef}
+      data-faro-assistant
+      className={`faro-assistant fixed z-[9999] w-[min(100vw-1.25rem,22.5rem)] ${
+        traveling ? "faro-assistant-traveling" : ""
+      }`}
+      style={style}
+      aria-label={t("coach.openChatAria")}
     >
       <div className="card-shadow overflow-hidden rounded-[1.35rem] border border-[var(--border-strong)] bg-[var(--surface)]">
-        {/* Persona header — brand paper → teal wash */}
         <div className="relative border-b border-[var(--border)] bg-[var(--brand-paper,#F5F1E8)] px-3.5 py-3">
           <div
             className="pointer-events-none absolute inset-0 opacity-90"
@@ -295,33 +743,36 @@ export function JourneyCoach() {
             }}
           />
           <div className="relative flex items-center gap-3">
-            <FaroPersona
-              size={56}
-              mood={displayMood}
-              speaking={loading || asking}
-              className="shadow-md"
-            />
+            <div className="faro-assistant-bob">
+              <FaroPersona
+                size={52}
+                mood={displayMood}
+                speaking={loading || asking || traveling}
+                className="shadow-md"
+              />
+            </div>
             <div className="min-w-0 flex-1">
               <p className="font-serif text-lg font-medium leading-none tracking-tight text-[var(--foreground)]">
                 {FARO_BRAND_PERSONALITY.name}
               </p>
-              <p className="mt-1 text-[11px] text-[var(--muted)]">
-                {t("coach.role")}
-              </p>
+              <p className="mt-1 text-[11px] text-[var(--muted)]">{t("coach.role")}</p>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
                 <span className="rounded-full bg-[var(--accent)]/12 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--accent)]">
-                  {FARO_MOOD_LABEL[displayMood]}
+                  {t(moodLabelKey(displayMood))}
                 </span>
                 <span className="truncate text-[10px] font-medium text-[var(--subtle)]">
                   {title}
-                  {loading || asking ? " · …" : source === "ai" ? "" : ""}
+                  {loading || asking ? " · …" : traveling ? " · …" : ""}
                 </span>
               </div>
             </div>
             <div className="relative flex shrink-0 gap-0.5">
               <button
                 type="button"
-                onClick={() => persistMin(true)}
+                onClick={() => {
+                  setOpenChat(false);
+                  persistMin(false);
+                }}
                 className="rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
                 aria-label={t("coach.minimize")}
               >
@@ -337,20 +788,16 @@ export function JourneyCoach() {
               </button>
             </div>
           </div>
-          <p className="relative mt-2 text-[10px] leading-snug text-[var(--subtle)]">
-            {FARO_BRAND_PERSONALITY.kicker} — {FARO_BRAND_PERSONALITY.promise}
-          </p>
         </div>
 
-        {/* Dialogue */}
-        <div className="flex max-h-[min(42vh,280px)] flex-col gap-2.5 overflow-y-auto px-3 py-3">
+        <div className="flex max-h-[min(38vh,260px)] flex-col gap-2.5 overflow-y-auto px-3 py-3">
           {lines.map((line) =>
             line.role === "faro" ? (
               <div key={line.id} className="flex items-end gap-2">
                 <span className="mb-0.5 hidden shrink-0 sm:inline-flex">
                   <FaroPersonaMini mood={line.mood ?? displayMood} />
                 </span>
-                <div className="faro-speech relative max-w-[92%] rounded-2xl rounded-bl-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm leading-relaxed text-[var(--foreground)]">
+                <div className="max-w-[92%] rounded-2xl rounded-bl-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm leading-relaxed text-[var(--foreground)]">
                   {line.text}
                 </div>
               </div>
@@ -404,9 +851,7 @@ export function JourneyCoach() {
               {asking ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
             </button>
           </form>
-          <p className="mt-1.5 text-center text-[10px] text-[var(--subtle)]">
-            {t("coach.footer")}
-          </p>
+          <p className="mt-1.5 text-center text-[10px] text-[var(--subtle)]">{t("coach.footer")}</p>
         </div>
       </div>
     </aside>

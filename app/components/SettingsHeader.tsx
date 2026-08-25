@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLocale } from "@/components/LocaleProvider";
+import { IllustrativeFigure } from "@/components/IllustrativeFigure";
 
 export function SettingsHeader() {
   const { t } = useLocale();
@@ -18,9 +19,17 @@ export function SettingsHeader() {
         </Link>
         <LanguageSwitcher />
       </div>
-      <header className="mt-3 mb-6">
-        <h1 className="font-serif text-4xl font-medium tracking-tight">{t("settings.title")}</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">{t("settings.blurb")}</p>
+      <header className="mt-3 mb-5 grid items-start gap-4 sm:grid-cols-[1fr_auto]">
+        <div>
+          <h1 className="font-serif text-3xl font-medium tracking-tight">{t("settings.title")}</h1>
+          <p className="mt-1.5 text-sm text-[var(--muted)]">{t("settings.blurb")}</p>
+        </div>
+        <IllustrativeFigure
+          id="settingsKeys"
+          size="sm"
+          className="hidden border border-[var(--border)] sm:block"
+          decorative
+        />
       </header>
     </>
   );

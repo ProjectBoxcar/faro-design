@@ -18,7 +18,12 @@ import {
   MessageSquarePlus,
   X,
   ExternalLink,
+  MessageSquare,
+  Mail,
+  Megaphone,
+  Printer,
 } from "lucide-react";
+import { CHANNEL_ASSET_KINDS } from "@/lib/db/types";
 import type { AssetRow } from "@/lib/design";
 import {
   buildArtifactPreviewHtml,
@@ -26,7 +31,10 @@ import {
   type IdentityPreviewSection,
 } from "@/lib/design-preview";
 import { FaroBeacon } from "@/components/FaroLoader";
+import { StagePageBanner } from "@/components/StagePageBanner";
+import { ViabilityPanel } from "@/components/ViabilityPanel";
 import { useLocale } from "@/components/LocaleProvider";
+import type { EvalScore } from "@/lib/db/types";
 import {
   DesignGenerationWindow,
   type DesignGenerationKind,
@@ -73,10 +81,38 @@ const KIND_META: Record<
     description: "Logo exploration.",
     cta: "Generate logos",
   },
+  sms: {
+    label: "SMS template",
+    shortLabel: "SMS",
+    icon: <MessageSquare size={18} />,
+    description: "Text-message mockup from your strategy and identity.",
+    cta: "Build SMS template",
+  },
+  email: {
+    label: "Email template",
+    shortLabel: "Email",
+    icon: <Mail size={18} />,
+    description: "Marketing email layout using your brand system.",
+    cta: "Build email template",
+  },
+  ad: {
+    label: "Ad mockups",
+    shortLabel: "Ads",
+    icon: <Megaphone size={18} />,
+    description: "Feed and story ad canvases bound to the brief.",
+    cta: "Build ad mockups",
+  },
+  print: {
+    label: "Print collateral",
+    shortLabel: "Print",
+    icon: <Printer size={18} />,
+    description: "Business card and flyer mockups for print.",
+    cta: "Build print set",
+  },
 };
 
 type GenerationState = {
-  kind: AssetRow["kind"] | "mockups";
+  kind: AssetRow["kind"] | "mockups" | "channels";
   stage: "generating" | "selecting";
   jobId?: string;
 } | null;
@@ -89,6 +125,8 @@ export function DesignStudio({
   initialShareToken: _initialShareToken,
   generationBlockedReason,
   apiKeyConfigured,
+  daemonUp = true,
+  viability = null,
 }: {
   projectId: string;
   projectName: string;
@@ -98,6 +136,14 @@ export function DesignStudio({
   initialShareToken: string | null;
   generationBlockedReason: string | null;
   apiKeyConfigured: boolean;
+  /** Open Design daemon reachable (pre-flight) */
+  daemonUp?: boolean;
+  viability?: {
+    status: "pending" | "pass" | "fail" | "caveat";
+    overrideNote: string | null;
+    scores: EvalScore[] | null;
+    personal: boolean;
+  } | null;
 }) {
   void _initialShareToken;
   const router = useRouter();
@@ -113,6 +159,9 @@ export function DesignStudio({
   const [discardingKind, setDiscardingKind] = useState<AssetRow["kind"] | null>(null);
   const [previewSection, setPreviewSection] = useState<IdentityPreviewSection>("overview");
   const [error, setError] = useState<string | null>(null);
+  const [failedJob, setFailedJob] = useState<DesignJobState | null>(
+    initialJob && initialJob.status === "failed" ? initialJob : null
+  );
   const [stopping, setStopping] = useState(false);
   const [jobProgress, setJobProgress] = useState<{ done: number; total: number }>(() =>
     initialJob && (initialJob.status === "queued" || initialJob.status === "running")
@@ -133,6 +182,10 @@ export function DesignStudio({
       deck: [],
       brand_guidelines: [],
       logo_concept: [],
+      sms: [],
+      email: [],
+      ad: [],
+      print: [],
     };
     for (const asset of assets) {
       map[asset.kind].push(asset);
@@ -215,6 +268,16 @@ export function DesignStudio({
                   ...previous.filter((asset) => asset.kind !== "landing_page" && asset.kind !== "deck"),
                   ...generated,
                 ]
+              : job.kind === "channels"
+                ? [
+                    ...previous.filter(
+                      (asset) =>
+                        !CHANNEL_ASSET_KINDS.includes(
+                          asset.kind as (typeof CHANNEL_ASSET_KINDS)[number]
+                        )
+                    ),
+                    ...generated,
+                  ]
               : [
                   ...previous.filter((asset) => asset.kind !== job.kind || asset.selected),
                   ...generated,
@@ -231,12 +294,14 @@ export function DesignStudio({
           const stopped = /stopped/i.test(job.error ?? "");
           if (stopped) {
             setError(null);
+            setFailedJob(null);
           } else {
             const hint =
               typeof job.errorHint === "string" && job.errorHint.trim()
-                ? ` ${job.errorHint}`
-                : " Check Settings if this keeps failing, then try again.";
-            setError((job.error ?? "Design generation failed.") + hint);
+                ? job.errorHint
+                : t("design.resumeHint");
+            setError(job.error ?? t("design.failedDefault"));
+            setFailedJob({ ...job, errorHint: hint });
           }
           setLoading(null);
           setJobProgress({ done: 0, total: 0 });
@@ -263,6 +328,7 @@ export function DesignStudio({
     setLoading({ kind: "mockups", stage: "generating" });
     setJobProgress({ done: 0, total: 0 });
     setError(null);
+    setFailedJob(null);
     try {
       const res = await fetch("/api/design", {
         method: "POST",
@@ -277,6 +343,38 @@ export function DesignStudio({
       setLoading({ kind: "mockups", stage: "generating", jobId: job.id });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Mockup generation failed");
+      setLoading(null);
+      setJobProgress({ done: 0, total: 0 });
+    }
+  }
+
+  async function generateChannels(designSystemId: string) {
+    if (!apiKeyConfigured) {
+      setError(t("design.notSetup"));
+      return;
+    }
+    if (!daemonUp) {
+      setError(t("design.daemonDownHint"));
+      return;
+    }
+    setLoading({ kind: "channels", stage: "generating" });
+    setJobProgress({ done: 0, total: 4 });
+    setError(null);
+    setFailedJob(null);
+    try {
+      const res = await fetch("/api/design", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, kind: "channels", count: 4, designSystemId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? t("design.channelsFailed"));
+      const job: DesignJobState | undefined = data.job;
+      if (!job) throw new Error(t("design.channelsFailed"));
+      setJobProgress({ done: job.asset_ids?.length ?? 0, total: job.count ?? 4 });
+      setLoading({ kind: "channels", stage: "generating", jobId: job.id });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("design.channelsFailed"));
       setLoading(null);
       setJobProgress({ done: 0, total: 0 });
     }
@@ -314,9 +412,11 @@ export function DesignStudio({
     opts?: { feedback?: string; refineFromAssetId?: string }
   ) {
     if (!apiKeyConfigured) {
-      setError(
-        "Design Studio isn’t set up yet. Add your Claude key in Settings and start Faro with start.bat so the design helper can run. Logo Workshop uses a different key."
-      );
+      setError(t("design.notSetup"));
+      return;
+    }
+    if (!daemonUp) {
+      setError(t("design.daemonDownHint"));
       return;
     }
     if (generationBlockedReason) {
@@ -558,58 +658,147 @@ export function DesignStudio({
   ];
   const finalCount = finalOutputs.filter((output) => output.ready).length;
   const deliverableReady = finalCount === finalOutputs.length;
-  const generationKind: DesignGenerationKind | null = loading?.stage === "generating"
-    && (loading.kind === "design_system" || loading.kind === "landing_page" || loading.kind === "deck" || loading.kind === "mockups")
-    ? loading.kind
-    : null;
+  const generationKind: DesignGenerationKind | null =
+    loading?.stage === "generating" &&
+    (loading.kind === "design_system" ||
+      loading.kind === "landing_page" ||
+      loading.kind === "deck" ||
+      loading.kind === "mockups" ||
+      loading.kind === "channels")
+      ? loading.kind
+      : null;
   const mockupsAligned =
     Boolean(identitySelected) &&
     Boolean(landingSelected?.design_system_id === identitySelected?.id) &&
     Boolean(deckSelected?.design_system_id === identitySelected?.id);
   const mockupsIncomplete = Boolean(identitySelected) && !mockupsAligned;
   const isBuildingMockups = loading?.kind === "mockups" && loading.stage === "generating";
+  const isBuildingChannels = loading?.kind === "channels" && loading.stage === "generating";
+  const channelsAligned = Boolean(
+    identitySelected &&
+      CHANNEL_ASSET_KINDS.every((k) => {
+        const a = selectedAsset(k) ?? byKind[k]?.[0];
+        return a && a.design_system_id === identitySelected.id;
+      })
+  );
+  const channelsIncomplete = Boolean(identitySelected) && !channelsAligned;
   const actionsBusy = Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-12 lg:py-12 2xl:max-w-[104rem]">
-      <div className="mb-8">
-        <h1 className="font-serif text-3xl font-medium tracking-tight lg:text-4xl">
+    <div className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-12 lg:py-8 2xl:max-w-[104rem]">
+      <StagePageBanner stageId="design" data-faro-anchor="faro-design-primary">
+        <h1 className="font-serif text-2xl font-medium tracking-tight lg:text-3xl">
           {t("design.title")}
         </h1>
-        <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">{t("design.lede")}</p>
-      </div>
+        <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">{t("design.lede")}</p>
+      </StagePageBanner>
 
       {!apiKeyConfigured && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
           <AlertCircle size={18} className="mt-0.5 shrink-0" />
           <div>
-            <p>
-              Design Studio needs a{" "}
-              <strong className="font-medium">Claude key in Settings → AI setup</strong> and
-              Faro&apos;s <strong className="font-medium">design helper</strong> running
-              (start Faro with <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">start.bat</code>
-              ).
-            </p>
-            <p className="mt-1.5 text-[var(--muted)]">
-              If generation fails saying the helper isn&apos;t running, restart Faro with{" "}
-              <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">start.bat</code>
-              {" "}and confirm your Claude key in Settings. Logo Workshop uses a different key —
-              not this path.
-            </p>
+            <p className="font-medium">{t("design.setupTitle")}</p>
+            <p className="mt-1.5 text-[var(--muted)]">{t("design.setupHint")}</p>
+            <Link
+              href="/settings"
+              className="mt-3 inline-flex text-sm font-medium text-[var(--accent)] hover:underline"
+            >
+              {t("nav.settings")}
+            </Link>
           </div>
         </div>
       )}
 
-      {generationBlockedReason && (
+      {apiKeyConfigured && !daemonUp && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
+          <AlertCircle size={18} className="mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">{t("design.daemonDownTitle")}</p>
+            <p className="mt-1.5 text-[var(--muted)]">{t("design.daemonDownHint")}</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-3 inline-flex rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2 text-xs font-medium hover:bg-[var(--surface-2)]"
+            >
+              {t("design.retryHelper")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {generationBlockedReason && /viability/i.test(generationBlockedReason) && viability ? (
+        <div className="mb-5">
+          <ViabilityPanel
+            projectId={projectId}
+            viability={viability.status}
+            overrideNote={viability.overrideNote}
+            scores={viability.scores}
+            personal={viability.personal}
+            forceShow
+          />
+        </div>
+      ) : null}
+
+      {generationBlockedReason && (
+        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm text-[var(--foreground)]">
           <AlertCircle size={18} className="mt-0.5 shrink-0" />
           {generationBlockedReason}
         </div>
       )}
 
       {error && (
-        <div role="alert" className="mb-6 rounded-2xl border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
-          {error}
+        <div
+          role="alert"
+          className="mb-6 rounded-2xl border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-6 py-4 text-sm text-[var(--foreground)]"
+        >
+          <p className="font-medium">{t("design.pausedTitle")}</p>
+          <p className="mt-1">{error}</p>
+          {failedJob?.errorHint ? (
+            <p className="mt-2 text-xs text-[var(--muted)]">{failedJob.errorHint}</p>
+          ) : null}
+          {(failedJob?.resumable !== false || failedJob) && (
+            <button
+              type="button"
+              className="mt-3 inline-flex rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
+              disabled={actionsBusy || !daemonUp || !apiKeyConfigured}
+              onClick={() => {
+                const kind = failedJob?.kind;
+                setError(null);
+                setFailedJob(null);
+                if (kind === "mockups") {
+                  const ds = selectedAsset("design_system");
+                  if (ds) void generateMockups(ds.id);
+                  else setError(t("design.needIdentity"));
+                } else if (kind === "channels") {
+                  const ds = selectedAsset("design_system");
+                  if (ds) void generateChannels(ds.id);
+                  else setError(t("design.needIdentity"));
+                } else if (
+                  kind === "design_system" ||
+                  kind === "landing_page" ||
+                  kind === "deck" ||
+                  kind === "sms" ||
+                  kind === "email" ||
+                  kind === "ad" ||
+                  kind === "print"
+                ) {
+                  if (kind === "design_system") void generateProposals(kind);
+                  else {
+                    const ds = selectedAsset("design_system");
+                    if (ds && kind !== "landing_page" && kind !== "deck") {
+                      void generateChannels(ds.id);
+                    } else if (kind === "landing_page" || kind === "deck") {
+                      void generateProposals(kind);
+                    } else void generateProposals("design_system");
+                  }
+                } else {
+                  void generateProposals("design_system");
+                }
+              }}
+            >
+              {t("design.continueGenerating")}
+            </button>
+          )}
         </div>
       )}
 
@@ -632,6 +821,7 @@ export function DesignStudio({
               type="button"
               onClick={() => identitySelected && void generateMockups(identitySelected.id)}
               disabled={actionsBusy || !identitySelected}
+              data-faro-anchor="faro-design-generate"
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
               <Sparkles size={16} />
@@ -642,18 +832,38 @@ export function DesignStudio({
       )}
 
       {/* Package / publish lives only on Brand Handover — keep Design Studio = create & select */}
-      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="text-sm font-medium text-[var(--foreground)]">
             {deliverableReady
               ? t("design.visualsReady")
               : t("design.chooseFinals", { n: finalCount })}
           </p>
-          <p className="mt-0.5 text-xs text-[var(--muted)]">{t("design.handoverNote")}</p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {finalOutputs.map((output) => (
+              <li
+                key={output.kind}
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
+                  output.ready
+                    ? "border-[var(--ok)]/40 bg-[var(--ok)]/10 text-[var(--ok)]"
+                    : "border-[var(--border)] text-[var(--muted)]"
+                }`}
+              >
+                {output.ready ? <Check size={12} /> : <span className="inline-block h-2 w-2 rounded-full bg-[var(--border-strong)]" />}
+                {output.label}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-xs text-[var(--muted)]">{t("design.handoverNote")}</p>
         </div>
         <Link
           href={`/projects/${projectId}/handover`}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)]"
+          data-faro-anchor="faro-design-handover"
+          className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+            deliverableReady
+              ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
+              : "border border-[var(--border-strong)] text-[var(--foreground)] hover:bg-[var(--surface-2)]"
+          }`}
         >
           <PackageCheck size={16} />
           {deliverableReady ? t("design.openHandover") : t("design.leftForHandover")}
@@ -661,7 +871,7 @@ export function DesignStudio({
       </div>
 
       {/* Sticky current step for cognitive load */}
-      <div className="sticky top-14 z-20 mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]/95 px-4 py-2.5 shadow-sm backdrop-blur lg:top-4">
+      <div className="sticky top-14 z-20 mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]/95 px-4 py-2 shadow-sm backdrop-blur lg:top-4">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
           Design Studio · create & select
         </p>
@@ -676,7 +886,7 @@ export function DesignStudio({
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+      <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
         {/* Pipeline sidebar */}
         <div className="space-y-5">
           <PipelineStep
@@ -796,10 +1006,102 @@ export function DesignStudio({
               </>
             )}
           </section>
+
+          {/* Channel templates: SMS, email, ads, print — optional applications */}
+          <section
+            id="channel-templates"
+            aria-labelledby="channel-templates-title"
+            className={`mt-4 scroll-mt-24 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow ${!identitySelected ? "opacity-60" : ""}`}
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent)]">
+                3
+              </span>
+              <span className="text-[var(--accent)]">
+                <Megaphone size={18} />
+              </span>
+              <h2
+                id="channel-templates-title"
+                className="text-sm font-semibold uppercase tracking-wider text-[var(--subtle)]"
+              >
+                {t("design.channelsTitle")}
+              </h2>
+            </div>
+            <p className="mb-4 text-xs text-[var(--muted)]">{t("design.channelsBlurb")}</p>
+            {!identitySelected ? (
+              <p className="rounded-xl bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--muted)]">
+                {t("design.channelsNeedIdentity")}
+              </p>
+            ) : (
+              <>
+                <ul className="space-y-2">
+                  {CHANNEL_ASSET_KINDS.map((chKind) => {
+                    const asset = selectedAsset(chKind) ?? byKind[chKind]?.[0] ?? null;
+                    const aligned = Boolean(asset && asset.design_system_id === identitySelected.id);
+                    const isPreviewed = Boolean(asset && asset.id === previewAssetId);
+                    return (
+                      <li
+                        key={chKind}
+                        className={`flex items-center gap-1 rounded-xl border px-1 py-1 transition ${
+                          isPreviewed
+                            ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                            : "border-[var(--border)] bg-[var(--surface)]"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => asset && previewProposal(asset.id)}
+                          disabled={!asset}
+                          aria-pressed={isPreviewed}
+                          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left disabled:cursor-default"
+                        >
+                          <span className="text-[var(--accent)]">{KIND_META[chKind].icon}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm">{KIND_META[chKind].label}</span>
+                            <span className="block truncate text-xs text-[var(--subtle)]">
+                              {asset && aligned
+                                ? isPreviewed
+                                  ? t("design.previewing")
+                                  : t("design.builtPreview")
+                                : isBuildingChannels
+                                  ? t("design.building")
+                                  : t("design.notBuilt")}
+                            </span>
+                          </span>
+                          {asset && aligned && <Check size={14} className="text-[var(--ok)]" />}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => void generateChannels(identitySelected.id)}
+                  disabled={actionsBusy}
+                  className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                    channelsIncomplete
+                      ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
+                      : "border border-[var(--border-strong)] text-[var(--foreground)] hover:bg-[var(--surface-2)]"
+                  }`}
+                >
+                  {isBuildingChannels ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={15} />
+                  )}
+                  {isBuildingChannels
+                    ? t("design.channelsBuilding")
+                    : channelsAligned
+                      ? t("design.channelsRebuild")
+                      : t("design.channelsBuild")}
+                </button>
+              </>
+            )}
+          </section>
         </div>
 
         {/* Preview */}
-        <div className="flex min-h-[60vh] flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow">
+        <div className="flex min-h-[40vh] flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 card-shadow lg:min-h-[48vh]">
           {generationKind ? (
             <DesignGenerationWindow
               kind={generationKind}
@@ -1067,6 +1369,11 @@ function PipelineStep({
           {isGenerating ? <FaroBeacon size="sm" tone="light" /> : <Sparkles size={16} />}
           {isGenerating ? "Generating 3 proposals..." : proposals.length > 0 ? "Regenerate proposals" : meta.cta}
         </button>
+        {kind === "design_system" && proposals.length === 0 && !isGenerating ? (
+          <p className="text-[11px] leading-snug text-[var(--subtle)]">
+            Usually several minutes — uses Open Design and your design key. Keep this tab open.
+          </p>
+        ) : null}
         {proposals.length > 0 && (
           <div className="flex flex-wrap gap-2">
             <button
