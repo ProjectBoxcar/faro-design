@@ -40,8 +40,15 @@ function toDto(projectId: string, id: string): ExpressSection | null {
   };
 }
 
-export default async function ExpressPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ExpressPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ intakeError?: string }>;
+}) {
   const { id } = await params;
+  const { intakeError: intakeErrorRaw } = await searchParams;
   const project = getProject(id);
   if (!project) notFound();
 
@@ -51,6 +58,15 @@ export default async function ExpressPage({ params }: { params: Promise<{ id: st
     if (dto) sections[key] = dto;
   }
 
+  let intakeError: string | null = null;
+  if (intakeErrorRaw?.trim()) {
+    try {
+      intakeError = decodeURIComponent(intakeErrorRaw).slice(0, 300);
+    } catch {
+      intakeError = intakeErrorRaw.trim().slice(0, 300);
+    }
+  }
+
   return (
     <ExpressJourney
       projectId={id}
@@ -58,6 +74,7 @@ export default async function ExpressPage({ params }: { params: Promise<{ id: st
       initialState={expressStatus(id)}
       sections={sections}
       approved={Boolean(project.published_at)}
+      intakeError={intakeError}
     />
   );
 }

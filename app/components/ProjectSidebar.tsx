@@ -66,7 +66,7 @@ export function ProjectSidebar({
 
   return (
     <aside
-      className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col border-r border-[var(--border)] lg:flex"
+      className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-[var(--border)] lg:flex"
       style={{
         backgroundColor: "color-mix(in srgb, var(--background) 92%, transparent)",
         backdropFilter: "blur(20px)",

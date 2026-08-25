@@ -9,7 +9,7 @@ export function ScrollProgressBar() {
   const scaleX = useSpring(scrollYProgress, { stiffness: 220, damping: 40, restDelta: 0.001 });
 
   return (
-    <div aria-hidden className="fixed inset-x-0 top-0 z-50 h-1.5 bg-[var(--accent-soft)] lg:left-72">
+    <div aria-hidden className="fixed inset-x-0 top-0 z-50 h-1.5 bg-[var(--accent-soft)] lg:left-60">
       <motion.div
         style={{ scaleX }}
         className="h-full w-full origin-left rounded-r-full bg-[var(--accent)] shadow-[0_1px_3px_rgba(0,0,0,0.25)]"

@@ -214,7 +214,7 @@ export function DesignGenerationWindow({
     <section
       aria-labelledby="generation-title"
       aria-busy="true"
-      className="relative flex min-h-[60vh] flex-1 overflow-hidden rounded-xl bg-[var(--foreground)] px-5 py-8 text-white lg:min-h-[70vh] lg:px-10 lg:py-10"
+      className="relative flex min-h-[40vh] flex-1 overflow-hidden rounded-xl bg-[var(--foreground)] px-5 py-6 text-white lg:min-h-[50vh] lg:px-8 lg:py-8"
     >
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         Faro is creating{" "}

@@ -214,31 +214,69 @@ export function NameWorkshop({
       </div>
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <button
-          type="button"
-          onClick={() => void skip()}
-          disabled={locked}
-          className="text-sm text-[var(--subtle)] underline-offset-2 transition hover:text-[var(--muted)] hover:underline disabled:opacity-50"
-        >
-          {busy === "skip" ? "Continuing…" : `Keep “${workingName}” for logos`}
-        </button>
-        <button
-          type="button"
-          disabled={locked || (!selected && custom.trim().length < 2)}
-          onClick={() => void pick(selected ?? custom)}
-          data-faro-anchor="faro-name-confirm"
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {busy === "pick" ? (
-            <>
-              <Loader2 size={15} className="animate-spin" /> Saving…
-            </>
-          ) : (
-            <>
-              Use this name &amp; open Logo Workshop <ArrowRight size={15} />
-            </>
-          )}
-        </button>
+        {isGenericWorkingTitle ? (
+          <>
+            <button
+              type="button"
+              onClick={() => void skip()}
+              disabled={locked}
+              className="text-sm text-[var(--subtle)] underline-offset-2 transition hover:text-[var(--muted)] hover:underline disabled:opacity-50"
+            >
+              {busy === "skip" ? "Continuing…" : `Keep “${workingName}” for logos`}
+            </button>
+            <button
+              type="button"
+              disabled={locked || (!selected && custom.trim().length < 2)}
+              onClick={() => void pick(selected ?? custom)}
+              data-faro-anchor="faro-name-confirm"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy === "pick" ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" /> Saving…
+                </>
+              ) : (
+                <>
+                  Use this name &amp; open Logo Workshop <ArrowRight size={15} />
+                </>
+              )}
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled={locked || (!selected && custom.trim().length < 2)}
+              onClick={() => void pick(selected ?? custom)}
+              className="order-2 inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] px-5 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50 sm:order-1"
+            >
+              {busy === "pick" ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" /> Saving…
+                </>
+              ) : (
+                <>Use a different name</>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => void skip()}
+              disabled={locked}
+              data-faro-anchor="faro-name-confirm"
+              className="order-1 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50 sm:order-2"
+            >
+              {busy === "skip" ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" /> Continuing…
+                </>
+              ) : (
+                <>
+                  Keep “{workingName}” for logos <ArrowRight size={15} />
+                </>
+              )}
+            </button>
+          </>
+        )}
       </div>
 
       <p className="mt-6 text-center text-xs text-[var(--subtle)]">

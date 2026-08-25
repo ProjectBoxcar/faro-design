@@ -33,7 +33,7 @@ export default function SectionTemplate({ children }: { children: React.ReactNod
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
             // Covers the working area; the journey sidebar (w-72) stays put on desktop.
-            className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-[var(--background)] lg:left-72"
+            className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-[var(--background)] lg:left-60"
           >
             <motion.div
               initial={{ opacity: 0, y: 14 }}

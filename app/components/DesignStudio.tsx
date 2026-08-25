@@ -32,7 +32,9 @@ import {
 } from "@/lib/design-preview";
 import { FaroBeacon } from "@/components/FaroLoader";
 import { StagePageBanner } from "@/components/StagePageBanner";
+import { ViabilityPanel } from "@/components/ViabilityPanel";
 import { useLocale } from "@/components/LocaleProvider";
+import type { EvalScore } from "@/lib/db/types";
 import {
   DesignGenerationWindow,
   type DesignGenerationKind,
@@ -124,6 +126,7 @@ export function DesignStudio({
   generationBlockedReason,
   apiKeyConfigured,
   daemonUp = true,
+  viability = null,
 }: {
   projectId: string;
   projectName: string;
@@ -135,6 +138,12 @@ export function DesignStudio({
   apiKeyConfigured: boolean;
   /** Open Design daemon reachable (pre-flight) */
   daemonUp?: boolean;
+  viability?: {
+    status: "pending" | "pass" | "fail" | "caveat";
+    overrideNote: string | null;
+    scores: EvalScore[] | null;
+    personal: boolean;
+  } | null;
 }) {
   void _initialShareToken;
   const router = useRouter();
@@ -717,8 +726,21 @@ export function DesignStudio({
         </div>
       )}
 
+      {generationBlockedReason && /viability/i.test(generationBlockedReason) && viability ? (
+        <div className="mb-5">
+          <ViabilityPanel
+            projectId={projectId}
+            viability={viability.status}
+            overrideNote={viability.overrideNote}
+            scores={viability.scores}
+            personal={viability.personal}
+            forceShow
+          />
+        </div>
+      ) : null}
+
       {generationBlockedReason && (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
+        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm text-[var(--foreground)]">
           <AlertCircle size={18} className="mt-0.5 shrink-0" />
           {generationBlockedReason}
         </div>
@@ -810,19 +832,38 @@ export function DesignStudio({
       )}
 
       {/* Package / publish lives only on Brand Handover — keep Design Studio = create & select */}
-      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="text-sm font-medium text-[var(--foreground)]">
             {deliverableReady
               ? t("design.visualsReady")
               : t("design.chooseFinals", { n: finalCount })}
           </p>
-          <p className="mt-0.5 text-xs text-[var(--muted)]">{t("design.handoverNote")}</p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {finalOutputs.map((output) => (
+              <li
+                key={output.kind}
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
+                  output.ready
+                    ? "border-[var(--ok)]/40 bg-[var(--ok)]/10 text-[var(--ok)]"
+                    : "border-[var(--border)] text-[var(--muted)]"
+                }`}
+              >
+                {output.ready ? <Check size={12} /> : <span className="inline-block h-2 w-2 rounded-full bg-[var(--border-strong)]" />}
+                {output.label}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-xs text-[var(--muted)]">{t("design.handoverNote")}</p>
         </div>
         <Link
           href={`/projects/${projectId}/handover`}
           data-faro-anchor="faro-design-handover"
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)]"
+          className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+            deliverableReady
+              ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
+              : "border border-[var(--border-strong)] text-[var(--foreground)] hover:bg-[var(--surface-2)]"
+          }`}
         >
           <PackageCheck size={16} />
           {deliverableReady ? t("design.openHandover") : t("design.leftForHandover")}
@@ -830,7 +871,7 @@ export function DesignStudio({
       </div>
 
       {/* Sticky current step for cognitive load */}
-      <div className="sticky top-14 z-20 mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]/95 px-4 py-2.5 shadow-sm backdrop-blur lg:top-4">
+      <div className="sticky top-14 z-20 mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]/95 px-4 py-2 shadow-sm backdrop-blur lg:top-4">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
           Design Studio · create & select
         </p>
@@ -845,7 +886,7 @@ export function DesignStudio({
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+      <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
         {/* Pipeline sidebar */}
         <div className="space-y-5">
           <PipelineStep
@@ -1060,7 +1101,7 @@ export function DesignStudio({
         </div>
 
         {/* Preview */}
-        <div className="flex min-h-[60vh] flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow">
+        <div className="flex min-h-[40vh] flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 card-shadow lg:min-h-[48vh]">
           {generationKind ? (
             <DesignGenerationWindow
               kind={generationKind}
@@ -1328,6 +1369,11 @@ function PipelineStep({
           {isGenerating ? <FaroBeacon size="sm" tone="light" /> : <Sparkles size={16} />}
           {isGenerating ? "Generating 3 proposals..." : proposals.length > 0 ? "Regenerate proposals" : meta.cta}
         </button>
+        {kind === "design_system" && proposals.length === 0 && !isGenerating ? (
+          <p className="text-[11px] leading-snug text-[var(--subtle)]">
+            Usually several minutes — uses Open Design and your design key. Keep this tab open.
+          </p>
+        ) : null}
         {proposals.length > 0 && (
           <div className="flex flex-wrap gap-2">
             <button

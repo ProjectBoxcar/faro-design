@@ -665,12 +665,15 @@ export function ExpressJourney({
   initialState,
   sections: initialSections,
   approved,
+  intakeError: intakeErrorProp = null,
 }: {
   projectId: string;
   projectName: string;
   initialState: ExpressStateDto;
   sections: Record<string, ExpressSection>;
   approved: boolean;
+  /** From /express?intakeError=… when intake expansion failed but answers were saved. */
+  intakeError?: string | null;
 }) {
   const router = useRouter();
   const { t } = useLocale();
@@ -678,6 +681,7 @@ export function ExpressJourney({
   const [sections, setSections] = useState(initialSections);
   const [approving, setApproving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [intakeError, setIntakeError] = useState<string | null>(intakeErrorProp);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record<string, unknown>>({});
   const draftRef = useRef<Record<string, unknown>>({});
@@ -1133,6 +1137,32 @@ export function ExpressJourney({
         <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">{t("express.lede")}</p>
         <p className="mt-1.5 text-xs text-[var(--subtle)]">{t("express.helper")}</p>
       </StagePageBanner>
+
+      {intakeError ? (
+        <div
+          role="status"
+          className="mb-5 flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm"
+        >
+          <div className="min-w-0">
+            <p className="font-medium text-[var(--foreground)]">Strategy draft hit a snag</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">{intakeError}</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              Your answers are saved. Use Resume below if drafting stopped, or check{" "}
+              <Link href="/settings" className="font-medium text-[var(--accent)] underline-offset-2 hover:underline">
+                Settings
+              </Link>
+              .
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIntakeError(null)}
+            className="shrink-0 rounded-full border border-[var(--border-strong)] px-3 py-1 text-xs font-medium text-[var(--muted)] hover:bg-[var(--surface)]"
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
 
       {refining && refine && (
         <div className="mb-5 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-4 py-3 text-sm">

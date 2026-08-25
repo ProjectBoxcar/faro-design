@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getProject } from "@/lib/queries";
+import { getProject, listEvaluations } from "@/lib/queries";
 import { listAssets } from "@/lib/design";
 import { canEnterDesignStudio } from "@/lib/studio";
 import { designApiKeyStatus } from "@/lib/settings";
@@ -37,6 +37,7 @@ export default async function DesignPage({
   if (activeJob) void startDesignJob(activeJob.id, { resume: true });
 
   const enter = canEnterDesignStudio(id);
+  const latestViabilityEval = listEvaluations(id, "viability")[0] ?? null;
 
   return (
     <DesignStudio
@@ -48,6 +49,12 @@ export default async function DesignPage({
       generationBlockedReason={enter.reason}
       apiKeyConfigured={openDesign.configured}
       daemonUp={daemonUp}
+      viability={{
+        status: project.viability,
+        overrideNote: project.viability_override_note,
+        scores: latestViabilityEval?.scores ?? null,
+        personal: project.personal,
+      }}
     />
   );
 }

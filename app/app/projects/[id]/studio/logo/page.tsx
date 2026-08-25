@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { getProject } from "@/lib/queries";
+import { getProject, listEvaluations } from "@/lib/queries";
 import { logoWorkspace, studioBlockedReason } from "@/lib/studio";
 import { needsNameWorkshop } from "@/lib/naming-propose";
 import { StudioLogoWorkspace, type WorkspaceAsset } from "@/components/StudioLogoWorkspace";
@@ -40,6 +40,8 @@ export default async function LogoWorkspacePage({ params }: { params: Promise<{ 
     };
   });
 
+  const latestViabilityEval = listEvaluations(id, "viability")[0] ?? null;
+
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-6 lg:px-12 lg:py-8">
       <Link
@@ -48,7 +50,18 @@ export default async function LogoWorkspacePage({ params }: { params: Promise<{ 
       >
         <ArrowLeft size={15} /> Studio
       </Link>
-      <StudioLogoWorkspace projectId={id} initialBlocked={ws.blocked} name={ws.name} initialAssets={assets} />
+      <StudioLogoWorkspace
+        projectId={id}
+        initialBlocked={ws.blocked}
+        name={ws.name}
+        initialAssets={assets}
+        viability={{
+          status: project.viability,
+          overrideNote: project.viability_override_note,
+          scores: latestViabilityEval?.scores ?? null,
+          personal: project.personal,
+        }}
+      />
     </div>
   );
 }
