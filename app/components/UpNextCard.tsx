@@ -17,7 +17,7 @@ export type UpNext = {
 export function UpNextCard({ next }: { next: UpNext | null }) {
   if (!next) {
     return (
-      <div className="rounded-2xl border border-[var(--ok)]/30 bg-[var(--ok)]/10 p-6">
+      <div className="rounded-2xl border border-[var(--ok)]/30 bg-[var(--ok)]/10 p-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <IllustrativeFigure
             id="stepHandoff"
@@ -41,8 +41,8 @@ export function UpNextCard({ next }: { next: UpNext | null }) {
   }
 
   return (
-    <div className="card-shadow rounded-2xl border border-[var(--accent)]/30 bg-[var(--surface)] p-7">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+    <div className="card-shadow rounded-2xl border border-[var(--accent)]/30 bg-[var(--surface)] p-4 sm:p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         {next.stageId ? (
           <StageIllustration
             stageId={next.stageId}
@@ -55,20 +55,20 @@ export function UpNextCard({ next }: { next: UpNext | null }) {
             Up next
           </div>
 
-          <div className="mt-2">
+          <div className="mt-1.5">
             <div className="text-xs text-[var(--muted)]">{next.label}</div>
-            <h2 className="mt-0.5 font-serif text-2xl font-semibold tracking-tight">{next.name}</h2>
-            {next.whatItIs && <p className="mt-1.5 text-sm text-[var(--muted)]">{next.whatItIs}</p>}
+            <h2 className="mt-0.5 font-serif text-xl font-semibold tracking-tight">{next.name}</h2>
+            {next.whatItIs && <p className="mt-1 text-sm text-[var(--muted)]">{next.whatItIs}</p>}
           </div>
 
-          <ProgressBar done={next.overall.done} total={next.overall.total} className="mt-4" showPercent />
+          <ProgressBar done={next.overall.done} total={next.overall.total} className="mt-3" showPercent />
 
-          <div className="mt-5">
+          <div className="mt-4">
             <Link
               href={next.href}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
             >
-              Continue · {next.name} <ArrowRight size={16} />
+              Continue · {next.name} <ArrowRight size={15} />
             </Link>
           </div>
         </div>

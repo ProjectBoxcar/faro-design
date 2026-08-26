@@ -309,9 +309,9 @@ export function ContentStudioWorkspace({
 
   if (mode === "project" && blockedReason && !profile) {
     return (
-      <div className="mx-auto max-w-2xl px-5 py-16 text-center">
-        <Lock className="mx-auto text-[var(--subtle)]" size={28} />
-        <h1 className="mt-4 font-serif text-3xl font-medium tracking-tight">{t("stage.content")}</h1>
+      <div className="mx-auto max-w-2xl px-4 py-10 text-center">
+        <Lock className="mx-auto text-[var(--subtle)]" size={24} />
+        <h1 className="mt-3 font-serif text-2xl font-medium tracking-tight">{t("stage.content")}</h1>
         <p className="mt-3 text-sm text-[var(--muted)]">{blockedReason}</p>
         <p className="mt-2 text-xs text-[var(--subtle)]">{t("content.blocked")}</p>
       </div>
@@ -319,13 +319,13 @@ export function ContentStudioWorkspace({
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8 px-5 py-8 lg:px-12 lg:py-10">
+    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-5 lg:px-6 lg:py-6">
       <StagePageBanner stageId="content" className="mb-0">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
           Content Studio
         </p>
         <h1
-          className="mt-1 font-serif text-2xl font-medium tracking-tight lg:text-3xl"
+          className="mt-1 font-serif text-xl font-medium tracking-tight lg:text-2xl"
           data-faro-anchor="faro-content-primary"
         >
           {t("content.title")}

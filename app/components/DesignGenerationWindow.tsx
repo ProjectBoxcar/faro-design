@@ -214,7 +214,7 @@ export function DesignGenerationWindow({
     <section
       aria-labelledby="generation-title"
       aria-busy="true"
-      className="relative flex min-h-[40vh] flex-1 overflow-hidden rounded-xl bg-[var(--foreground)] px-5 py-6 text-white lg:min-h-[50vh] lg:px-8 lg:py-8"
+      className="relative flex min-h-[32vh] flex-1 overflow-hidden rounded-xl bg-[var(--foreground)] px-5 py-5 text-white lg:min-h-[40vh] lg:px-6 lg:py-6"
     >
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         Faro is creating{" "}
@@ -229,12 +229,12 @@ export function DesignGenerationWindow({
           <div className="flex items-start justify-between gap-5">
             <div>
               <div className="mb-6 inline-flex items-center justify-center">
-                <FaroBeacon size="xl" tone="light" />
+                <FaroBeacon size="lg" tone="light" />
               </div>
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
                 Faro Design Studio
               </p>
-              <h2 id="generation-title" className="max-w-2xl font-serif text-2xl font-medium tracking-tight lg:text-3xl">
+              <h2 id="generation-title" className="max-w-2xl font-serif text-xl font-medium tracking-tight lg:text-2xl">
                 {copy.title}
               </h2>
               <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/65">

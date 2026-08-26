@@ -303,7 +303,7 @@ export function StudioLogoWorkspace({
 
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <StagePageBanner stageId="logo" className="mb-0 min-w-0 flex-1">
-          <h1 className="font-serif text-3xl font-medium tracking-tight">Logo — “{name}”</h1>
+          <h1 className="font-serif text-2xl font-medium tracking-tight lg:text-3xl">Logo — “{name}”</h1>
           <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">
             You get three proposals, each scored by a skeptical AI critic (scores are advice, not a
             veto). Want tweaks? Use{" "}
@@ -424,7 +424,7 @@ export function StudioLogoWorkspace({
             <Link
               href={`/projects/${projectId}/design`}
               data-faro-anchor="faro-logo-continue"
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
             >
               Continue to Design Studio <ArrowRight size={16} />
             </Link>
@@ -556,7 +556,7 @@ export function StudioLogoWorkspace({
 
       {/* Always-visible next step after approval — user is often mid-list when they approve. */}
       {approved && (
-        <div className="sticky bottom-0 z-20 -mx-5 mt-10 border-t border-[var(--border)] bg-[var(--background)]/95 px-5 py-4 backdrop-blur-md lg:-mx-12 lg:px-12">
+        <div className="sticky bottom-0 z-20 -mx-4 mt-8 border-t border-[var(--border)] bg-[var(--background)]/95 px-4 py-3 backdrop-blur-md lg:-mx-6 lg:px-6">
           <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 text-sm">
               <span className="font-medium text-[var(--ok)]">Logo ready</span>
@@ -568,7 +568,7 @@ export function StudioLogoWorkspace({
             <Link
               href={`/projects/${projectId}/design`}
               data-faro-anchor="faro-logo-continue"
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--accent-hover)]"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--accent-hover)]"
             >
               Continue to Design Studio <ArrowRight size={16} />
             </Link>
@@ -699,7 +699,7 @@ function GenerationProgress({
   return (
     <div className="mb-6 space-y-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
       <div className="flex flex-col items-center text-center">
-        <FaroBeacon size="xl" />
+        <FaroBeacon size="lg" />
         <p className="mt-4 text-sm font-medium text-[var(--foreground)]">{activeLabel}</p>
         <p className="mt-1 text-xs text-[var(--subtle)]">
           {mode === "improve"

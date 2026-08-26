@@ -106,7 +106,7 @@ export default async function ProjectHub({
       : "Your answers are saved. Add a Claude key in Settings (Brand strategy) to draft the strategy automatically.";
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-12 lg:py-8 2xl:max-w-[104rem]">
+    <div className="mx-auto w-full max-w-7xl px-4 py-5 lg:px-6 lg:py-6">
       {aiSkippedBanner ? (
         <div
           role="status"
@@ -142,7 +142,7 @@ export default async function ProjectHub({
       ) : null}
 
       <div className="mb-6">
-        <h1 className="font-serif text-2xl font-medium tracking-tight lg:text-3xl">
+        <h1 className="font-serif text-xl font-medium tracking-tight lg:text-2xl">
           {project.name}
         </h1>
         <p className="mt-1 text-sm text-[var(--muted)]">
@@ -158,7 +158,7 @@ export default async function ProjectHub({
         />
       </div>
 
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-12 2xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-8">
         <div className="min-w-0 space-y-5" id="plan">
           {/* Single primary accent CTA on the hub */}
           <UpNextCard next={next} />

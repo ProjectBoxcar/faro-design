@@ -152,7 +152,7 @@ export function FaroLoaderPanel({
         <FaroBeacon size={beaconSize} tone={tone} />
       </div>
       <h1
-        className={`mt-6 font-serif text-3xl font-medium tracking-tight ${
+        className={`mt-4 font-serif text-xl font-medium tracking-tight lg:text-2xl ${
           dark ? "text-white" : "text-[var(--foreground)]"
         }`}
       >
@@ -164,7 +164,7 @@ export function FaroLoaderPanel({
         </p>
       ) : null}
       {typeof progressPercent === "number" ? (
-        <div className="mt-8 w-full max-w-sm">
+        <div className="mt-6 w-full max-w-sm">
           <div className="flex items-center gap-3">
             <div
               className={`h-1.5 flex-1 overflow-hidden rounded-full ${dark ? "bg-white/10" : "bg-[var(--surface-2)]"}`}

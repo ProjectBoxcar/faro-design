@@ -91,7 +91,7 @@ function notReady(token: string, issue: string) {
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
         Private final package
       </p>
-      <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight">
+      <h1 className="mt-2 font-serif text-2xl font-medium tracking-tight">
         This package is not ready yet
       </h1>
       <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-[var(--muted)]">{issue}</p>

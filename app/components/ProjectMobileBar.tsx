@@ -56,45 +56,51 @@ export function ProjectMobileBar({
         paddingTop: "env(safe-area-inset-top)",
       }}
     >
-      <div className="flex items-center gap-2 px-3 py-2.5">
-        <Link
-          href={backHref}
-          aria-label="Back"
-          className="-ml-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--muted)] transition active:bg-[var(--surface-2)]"
-        >
-          <ArrowLeft size={18} />
-        </Link>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{projectName}</p>
-          {current ? (
+      <div className="px-3 py-2">
+        <div className="flex items-center gap-2">
+          <Link
+            href={backHref}
+            aria-label="Back"
+            className="-ml-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted)] transition active:bg-[var(--surface-2)]"
+          >
+            <ArrowLeft size={17} />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium leading-tight">{projectName}</p>
             <p className="truncate text-[10px] text-[var(--subtle)]">
-              {shortName(current.name)} · {current.detail}
+              {current ? `${shortName(current.name)} · ` : ""}
+              <span className="tabular-nums">
+                {overall.done}/{overall.total} stages
+              </span>
             </p>
-          ) : null}
+          </div>
+          <LanguageSwitcher className="shrink-0 scale-90" />
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-2.5 py-1 text-xs font-medium text-[var(--muted)] active:bg-[var(--surface-2)]"
+            aria-haspopup="dialog"
+            aria-expanded={open}
+          >
+            <Map size={13} />
+            Stages
+          </button>
+          <Link
+            href="/settings"
+            aria-label="Settings"
+            className="-mr-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted)] transition active:bg-[var(--surface-2)]"
+          >
+            <Settings size={16} />
+          </Link>
         </div>
-        <LanguageSwitcher className="shrink-0 scale-90" />
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--muted)] active:bg-[var(--surface-2)]"
-          aria-haspopup="dialog"
-          aria-expanded={open}
-        >
-          <Map size={14} />
-          Stages
-        </button>
-        <Link
-          href="/settings"
-          aria-label="Settings"
-          className="-mr-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--muted)] transition active:bg-[var(--surface-2)]"
-        >
-          <Settings size={17} />
-        </Link>
+        <div className="mt-1.5">
+          <ProgressBar done={overall.done} total={overall.total} />
+        </div>
       </div>
 
-      {/* Horizontal stage chips */}
+      {/* Stage chips — second band only; full list also in Stages sheet */}
       {stages.length > 0 ? (
-        <div className="flex gap-1.5 overflow-x-auto px-3 pb-2 scrollbar-none">
+        <div className="flex gap-1 overflow-x-auto border-t border-[var(--border)] px-3 py-1.5 scrollbar-none">
           {stages.map((s) => {
             const active =
               path === s.href ||
@@ -103,14 +109,13 @@ export function ProjectMobileBar({
               (s.id === "strategy" &&
                 (path.includes("/express") || path.includes("/review") || path === `/projects/${projectId}`));
             const locked = s.status === "locked";
-            const Comp = locked ? "span" : Link;
             if (locked) {
               return (
                 <span
                   key={s.id}
-                  className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${stageTone(s.status, false)}`}
+                  className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${stageTone(s.status, false)}`}
                 >
-                  <LockKeyhole size={11} />
+                  <LockKeyhole size={10} />
                   {shortName(s.name)}
                 </span>
               );
@@ -119,26 +124,16 @@ export function ProjectMobileBar({
               <Link
                 key={s.id}
                 href={s.href}
-                className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${stageTone(s.status, Boolean(active))}`}
+                className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${stageTone(s.status, Boolean(active))}`}
                 aria-current={active ? "page" : undefined}
               >
-                {s.status === "done" ? <Check size={11} /> : null}
+                {s.status === "done" ? <Check size={10} /> : null}
                 {shortName(s.name)}
               </Link>
             );
           })}
         </div>
       ) : null}
-
-      <div className="px-3 pb-2">
-        <div className="mb-1 flex justify-between text-[10px] text-[var(--subtle)]">
-          <span>Journey</span>
-          <span className="tabular-nums">
-            {overall.done}/{overall.total} stages
-          </span>
-        </div>
-        <ProgressBar done={overall.done} total={overall.total} showPercent />
-      </div>
 
       {open ? (
         <div

@@ -3,7 +3,7 @@
 import { motion, useScroll, useSpring } from "motion/react";
 
 // Thin bar along the top that fills as you scroll, so long review screens show
-// how much reading is left. Offset past the sidebar on desktop (w-72).
+// how much reading is left. Offset past the sidebar on desktop (w-60).
 export function ScrollProgressBar() {
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 220, damping: 40, restDelta: 0.001 });

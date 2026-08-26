@@ -157,9 +157,9 @@ export default function StartPage() {
 
   if (building) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center px-6 py-16">
+      <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center px-5 py-10">
         <FaroLoaderPanel
-          beaconSize="hero"
+          beaconSize="lg"
           title={t("start.draftingTitle")}
           description={t("start.draftingDesc")}
         />
@@ -168,8 +168,8 @@ export default function StartPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-5 py-8 lg:py-12">
-      <div className="mb-6 flex items-center justify-between gap-3">
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-4 py-6 lg:py-8">
+      <div className="mb-5 flex items-center justify-between gap-3">
         <Link
           href="/"
           className="inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
@@ -201,14 +201,14 @@ export default function StartPage() {
             <IllustrativeFigure
               id="startInterview"
               size="full"
-              className="mb-6 aspect-[16/10] w-full max-w-lg border border-[var(--border)]"
+              className="mb-5 aspect-[16/9] w-full max-w-md border border-[var(--border)]"
             />
-            <h1 className="font-serif text-3xl font-medium leading-tight tracking-tight">
+            <h1 className="font-serif text-2xl font-medium leading-tight tracking-tight lg:text-3xl">
               {t("start.title")}
             </h1>
             <p className="mt-2 text-sm text-[var(--muted)]">{t("start.intro")}</p>
 
-            <label className="mt-8 block text-sm font-medium">{t("start.brandName")}</label>
+            <label className="mt-6 block text-sm font-medium">{t("start.brandName")}</label>
             <input
               autoFocus
               data-faro-anchor="faro-start-name"
@@ -216,7 +216,7 @@ export default function StartPage() {
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && next()}
               placeholder={t("start.brandNamePh")}
-              className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-4 py-3 text-lg outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+              className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3.5 py-2 text-base outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
             />
             <p className="mt-1.5 text-xs text-[var(--subtle)]">{t("start.brandNameHint")}</p>
 
@@ -225,10 +225,10 @@ export default function StartPage() {
               value={client}
               onChange={(e) => setClient(e.target.value)}
               placeholder={t("start.companyPh")}
-              className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-4 py-3 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+              className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3.5 py-2 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
             />
 
-            <label className="mt-5 flex items-start gap-2.5 text-sm text-[var(--muted)]">
+            <label className="mt-4 flex items-start gap-2.5 text-sm text-[var(--muted)]">
               <input
                 type="checkbox"
                 checked={greenfield}
@@ -298,7 +298,7 @@ export default function StartPage() {
             onClick={build}
             disabled={!canAdvance || building}
             data-faro-anchor="faro-start-finish"
-            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {t("start.finish")} <Check size={16} />
           </button>
@@ -307,7 +307,7 @@ export default function StartPage() {
             onClick={next}
             disabled={!canAdvance}
             data-faro-anchor="faro-start-next"
-            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isDetails ? t("start.startBtn") : t("common.next")} <ArrowRight size={15} />
           </button>

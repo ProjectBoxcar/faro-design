@@ -206,7 +206,7 @@ export function FinalPackageViewer({
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
               Final delivery
             </p>
-            <h2 className="mt-2 font-serif text-2xl font-medium tracking-tight sm:text-4xl">
+            <h2 className="mt-2 font-serif text-2xl font-medium tracking-tight sm:text-3xl">
               The complete {projectName} brand package
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--muted)] sm:text-base">
@@ -221,7 +221,7 @@ export function FinalPackageViewer({
                 key={output.kind}
                 type="button"
                 onClick={() => activate(output.kind)}
-                className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-left card-shadow transition hover:-translate-y-0.5 hover:border-[var(--border-strong)]"
+                className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left card-shadow transition hover:-translate-y-0.5 hover:border-[var(--border-strong)]"
               >
                 <div className="flex items-center justify-between">
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface-2)] text-xs font-semibold">

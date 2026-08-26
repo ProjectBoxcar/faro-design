@@ -320,14 +320,14 @@ export function JourneyCoach() {
       const faceOnly = minimized || !openChat;
       const pw = faceOnly
         ? bubbleOpen && !minimized
-          ? 280
-          : 72
-        : Math.min(360, window.innerWidth - 24);
+          ? 260
+          : 56
+        : Math.min(320, window.innerWidth - 24);
       const ph = faceOnly
         ? bubbleOpen && !minimized
-          ? 200
-          : 88
-        : Math.min(420, window.innerHeight - 24);
+          ? 180
+          : 72
+        : Math.min(380, window.innerHeight - 24);
 
       let next: DockRect;
       if (anchor) {
@@ -557,7 +557,7 @@ export function JourneyCoach() {
           className="faro-assistant-bob group relative"
           aria-label={t("coach.open")}
         >
-          <FaroPersona size={52} mood="encouraging" speaking={false} className="shadow-[var(--shadow-pop)]" />
+          <FaroPersona size={40} mood="encouraging" speaking={false} className="shadow-[var(--shadow-pop)]" />
           <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--accent)] px-2 py-0.5 text-[9px] font-semibold text-white shadow">
             Faro
           </span>
@@ -633,7 +633,7 @@ export function JourneyCoach() {
             aria-label={t("coach.open")}
           >
             <FaroPersona
-              size={minimized ? 52 : 60}
+              size={minimized ? 40 : 44}
               mood={displayMood}
               speaking={loading || asking || traveling}
               className="shadow-[var(--shadow-pop)]"
@@ -727,14 +727,14 @@ export function JourneyCoach() {
     <aside
       ref={panelRef}
       data-faro-assistant
-      className={`faro-assistant fixed z-[9999] w-[min(100vw-1.25rem,22.5rem)] ${
+      className={`faro-assistant fixed z-[9999] w-[min(100vw-1.25rem,20rem)] ${
         traveling ? "faro-assistant-traveling" : ""
       }`}
       style={style}
       aria-label={t("coach.openChatAria")}
     >
       <div className="card-shadow overflow-hidden rounded-[1.35rem] border border-[var(--border-strong)] bg-[var(--surface)]">
-        <div className="relative border-b border-[var(--border)] bg-[var(--brand-paper,#F5F1E8)] px-3.5 py-3">
+        <div className="relative border-b border-[var(--border)] bg-[var(--brand-paper,#F5F1E8)] px-3 py-2.5">
           <div
             className="pointer-events-none absolute inset-0 opacity-90"
             style={{
@@ -742,17 +742,17 @@ export function JourneyCoach() {
                 "linear-gradient(135deg, color-mix(in srgb, var(--brand-primary, #16514B) 14%, transparent) 0%, transparent 55%, color-mix(in srgb, var(--brand-accent, #F25C2A) 10%, transparent) 100%)",
             }}
           />
-          <div className="relative flex items-center gap-3">
+          <div className="relative flex items-center gap-2.5">
             <div className="faro-assistant-bob">
               <FaroPersona
-                size={52}
+                size={40}
                 mood={displayMood}
                 speaking={loading || asking || traveling}
                 className="shadow-md"
               />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-serif text-lg font-medium leading-none tracking-tight text-[var(--foreground)]">
+              <p className="font-serif text-base font-medium leading-none tracking-tight text-[var(--foreground)]">
                 {FARO_BRAND_PERSONALITY.name}
               </p>
               <p className="mt-1 text-[11px] text-[var(--muted)]">{t("coach.role")}</p>

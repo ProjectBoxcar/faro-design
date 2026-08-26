@@ -74,7 +74,7 @@ export default async function SectionPage({
   const nextGuide = nextId ? sectionGuide(nextId) : null;
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-12 lg:py-8 2xl:max-w-[96rem]">
+    <div className="mx-auto w-full max-w-7xl px-4 py-5 lg:px-6 lg:py-6">
       <Link
         href={prevId ? `/projects/${id}/${encodeURIComponent(prevId)}` : `/projects/${id}`}
         className="mb-3 inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
@@ -92,16 +92,16 @@ export default async function SectionPage({
           <span className="shrink-0 text-xs text-[var(--subtle)]">{phasePercent}% of this phase</span>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2.5">
-          <h1 className="font-serif text-3xl font-medium leading-[1.05] tracking-tight lg:text-4xl">{section.name}</h1>
+          <h1 className="font-serif text-2xl font-medium leading-[1.05] tracking-tight lg:text-3xl">{section.name}</h1>
           <StepKindBadge kind={section.kind} />
         </div>
       </header>
 
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12 2xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-8">
         {/* Working column — kept readable even on very wide screens */}
         <div className="min-w-0 2xl:max-w-4xl">
           {guide.whatItIs && (
-            <p className="mb-5 max-w-2xl text-lg font-normal leading-relaxed tracking-tight text-[var(--foreground)]">
+            <p className="mb-5 max-w-2xl text-sm font-normal leading-relaxed tracking-tight text-[var(--foreground)]">
               {guide.whatItIs}
             </p>
           )}

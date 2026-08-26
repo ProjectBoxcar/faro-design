@@ -17,7 +17,7 @@ export default async function UnlockPage({
         height={450}
         className="mb-6 w-full rounded-[var(--radius-lg)] border border-[var(--border)] object-cover aspect-[16/10]"
       />
-      <h1 className="font-serif text-3xl font-medium tracking-tight">Faro Design</h1>
+      <h1 className="font-serif text-2xl font-medium tracking-tight">Faro Design</h1>
       <p className="mt-2 text-sm text-[var(--muted)]">
         This device isn&apos;t unlocked yet. Enter the app password once and you&apos;re set.
       </p>

@@ -82,7 +82,7 @@ export default async function BrandHandoverPage({
   const snap = getCurrentSnapshotForProject(id);
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-5 py-8 lg:px-12 lg:py-10">
+    <div className="mx-auto w-full max-w-6xl px-4 py-5 lg:px-6 lg:py-6">
       <Link
         href={`/projects/${id}/design`}
         className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
@@ -110,7 +110,7 @@ export default async function BrandHandoverPage({
           alt=""
           width={96}
           height={96}
-          className="h-20 w-20 shrink-0 rounded-[var(--radius-lg)] border border-[var(--border)] object-cover shadow-[var(--shadow-card)] sm:h-24 sm:w-24"
+          className="h-16 w-16 shrink-0 rounded-[var(--radius-lg)] border border-[var(--border)] object-cover shadow-[var(--shadow-card)] sm:h-20 sm:w-20"
         />
       </header>
 

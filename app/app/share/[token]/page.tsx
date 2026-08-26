@@ -67,7 +67,7 @@ export default async function ShareBriefPage({
           {version != null ? ` · v${version}` : ""}
           {fromSnapshot ? " · as shared" : ""}
         </p>
-        <h1 className="font-serif text-4xl font-medium leading-[1.0] tracking-tight lg:text-5xl">
+        <h1 className="font-serif text-3xl font-medium leading-[1.0] tracking-tight lg:text-4xl">
           {displayName}
         </h1>
         {displayClient && (

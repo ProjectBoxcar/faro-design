@@ -685,20 +685,20 @@ export function DesignStudio({
   const actionsBusy = Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-5 py-6 lg:px-12 lg:py-8 2xl:max-w-[104rem]">
+    <div className="mx-auto w-full max-w-7xl px-4 py-5 lg:px-6 lg:py-6">
       <StagePageBanner stageId="design" data-faro-anchor="faro-design-primary">
-        <h1 className="font-serif text-2xl font-medium tracking-tight lg:text-3xl">
+        <h1 className="font-serif text-xl font-medium tracking-tight lg:text-2xl">
           {t("design.title")}
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">{t("design.lede")}</p>
       </StagePageBanner>
 
       {!apiKeyConfigured && (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
-          <AlertCircle size={18} className="mt-0.5 shrink-0" />
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm text-[var(--foreground)]">
+          <AlertCircle size={16} className="mt-0.5 shrink-0" />
           <div>
             <p className="font-medium">{t("design.setupTitle")}</p>
-            <p className="mt-1.5 text-[var(--muted)]">{t("design.setupHint")}</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">{t("design.setupHint")}</p>
             <Link
               href="/settings"
               className="mt-3 inline-flex text-sm font-medium text-[var(--accent)] hover:underline"
@@ -710,11 +710,11 @@ export function DesignStudio({
       )}
 
       {apiKeyConfigured && !daemonUp && (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-6 py-4 text-sm text-[var(--foreground)]">
-          <AlertCircle size={18} className="mt-0.5 shrink-0" />
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm text-[var(--foreground)]">
+          <AlertCircle size={16} className="mt-0.5 shrink-0" />
           <div>
             <p className="font-medium">{t("design.daemonDownTitle")}</p>
-            <p className="mt-1.5 text-[var(--muted)]">{t("design.daemonDownHint")}</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">{t("design.daemonDownHint")}</p>
             <button
               type="button"
               onClick={() => window.location.reload()}
@@ -822,9 +822,9 @@ export function DesignStudio({
               onClick={() => identitySelected && void generateMockups(identitySelected.id)}
               disabled={actionsBusy || !identitySelected}
               data-faro-anchor="faro-design-generate"
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
-              <Sparkles size={16} />
+              <Sparkles size={15} />
               Build landing page &amp; deck
             </button>
           </div>
@@ -1101,7 +1101,7 @@ export function DesignStudio({
         </div>
 
         {/* Preview */}
-        <div className="flex min-h-[40vh] flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 card-shadow lg:min-h-[48vh]">
+        <div className="flex min-h-[32vh] flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 card-shadow lg:min-h-[40vh]">
           {generationKind ? (
             <DesignGenerationWindow
               kind={generationKind}
@@ -1236,10 +1236,10 @@ export function DesignStudio({
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center text-center text-[var(--muted)]">
               <div className="mb-4 rounded-full bg-[var(--surface-2)] p-4">
-                <Sparkles size={32} />
+                <Sparkles size={22} />
               </div>
-              <p className="text-lg font-medium">No preview yet</p>
-              <p className="max-w-sm text-sm">Generate Brand Identity System proposals to start the Design Studio pipeline.</p>
+              <p className="text-sm font-medium">No preview yet</p>
+              <p className="max-w-sm text-xs text-[var(--muted)]">Generate Brand Identity System proposals to start the Design Studio pipeline.</p>
             </div>
           )}
         </div>

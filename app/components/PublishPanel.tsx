@@ -101,7 +101,7 @@ export function PublishPanel({
   if (prominent) {
     return (
       <div className="card-shadow rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] p-6 lg:p-8">
-        <h2 className="font-serif text-3xl font-medium tracking-tight">
+        <h2 className="font-serif text-2xl font-medium tracking-tight">
           {token ? copy.title : "Hand off your strategy brief"}
         </h2>
         <p className="mt-2 max-w-2xl text-[var(--muted)]">{copy.blurb}</p>
@@ -112,7 +112,7 @@ export function PublishPanel({
           <button
             onClick={publish}
             disabled={busy}
-            className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+            className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
           >
             <Share2 size={16} />
             {busy ? "Publishing…" : "Publish strategy brief"}

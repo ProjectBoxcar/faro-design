@@ -22,8 +22,8 @@
 }
 
 html {
-  /* Density scale: 15px rem base (~6% smaller than browser default) */
-  font-size: 15px;
+  /* Density scale: 14.5px after type/chrome pass (tool-sized, still readable) */
+  font-size: 14.5px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;

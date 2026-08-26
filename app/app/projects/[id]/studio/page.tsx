@@ -41,9 +41,9 @@ export default async function StudioHub({ params }: { params: Promise<{ id: stri
         : { label: "Not started", tone: "text-[var(--subtle)]" };
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 py-6 lg:px-12 lg:py-8">
-      <div className="mb-6">
-        <h1 className="font-serif text-2xl font-medium tracking-tight lg:text-3xl">Logo Workshop</h1>
+    <div className="mx-auto w-full max-w-5xl px-4 py-5 lg:px-6 lg:py-6">
+      <div className="mb-5">
+        <h1 className="font-serif text-xl font-medium tracking-tight lg:text-2xl">Logo Workshop</h1>
         <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">
           First visual step after strategy: design and approve your logo here. Design Studio comes
           next for color, type, and mockups — it will use this approved mark, not invent a new one.

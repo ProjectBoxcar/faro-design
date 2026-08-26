@@ -38,7 +38,7 @@ export default function ReviewTemplate({ children }: { children: React.ReactNode
               className="px-6 text-center"
             >
               <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">Reviewing</div>
-              <h1 className="mt-2 font-serif text-4xl font-medium tracking-tight lg:text-5xl">{group.name}</h1>
+              <h1 className="mt-2 font-serif text-2xl font-medium tracking-tight lg:text-3xl">{group.name}</h1>
             </motion.div>
           </motion.div>
         )}

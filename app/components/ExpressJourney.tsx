@@ -535,9 +535,9 @@ function ExpressDraftingScreen({
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center px-6 py-16">
+    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center px-5 py-10">
       <FaroLoaderPanel
-        beaconSize="hero"
+        beaconSize="lg"
         title={panelTitle}
         description={panelDesc}
         progressPercent={pct}
@@ -1131,7 +1131,7 @@ export function ExpressJourney({
         <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
           {t("express.kicker")}
         </div>
-        <h1 className="mt-1.5 font-serif text-3xl font-medium leading-tight tracking-tight lg:text-4xl">
+        <h1 className="mt-1.5 font-serif text-2xl font-medium leading-tight tracking-tight lg:text-3xl">
           {projectName} {t("express.titleSuffix")}
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">{t("express.lede")}</p>
@@ -1470,7 +1470,7 @@ export function ExpressJourney({
           onClick={approve}
           disabled={approving || refining || Boolean(editingId) || rewriteBusy}
           data-faro-anchor="faro-express-approve"
-          className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {approving ? <Loader2 size={15} className="animate-spin" /> : approved ? <Check size={15} /> : null}
           {approved ? t("express.reapprove") : t("express.approve")}

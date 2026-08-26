@@ -37,15 +37,15 @@ export default async function NameWorkshopPage({
   // Confirmed name: show locked summary (re-entry) unless ?edit=1
   if (confirmed && !forceEdit) {
     return (
-      <main className="mx-auto w-full max-w-xl px-5 py-8 lg:py-10">
+      <main className="mx-auto w-full max-w-xl px-4 py-5 lg:py-6">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
           Brand name
         </p>
-        <div className="mt-4 flex items-start gap-3 rounded-2xl border border-[var(--ok)]/30 bg-[var(--ok)]/10 px-5 py-4">
-          <Check size={20} className="mt-0.5 shrink-0 text-[var(--ok)]" />
+        <div className="mt-3 flex items-start gap-3 rounded-2xl border border-[var(--ok)]/30 bg-[var(--ok)]/10 px-4 py-3">
+          <Check size={18} className="mt-0.5 shrink-0 text-[var(--ok)]" />
           <div>
             <p className="text-sm font-medium text-[var(--ok)]">Name confirmed</p>
-            <h1 className="mt-1 font-serif text-3xl font-medium tracking-tight">
+            <h1 className="mt-1 font-serif text-2xl font-medium tracking-tight">
               {project.name}
             </h1>
             <p className="mt-2 text-sm text-[var(--muted)]">

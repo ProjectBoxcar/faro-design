@@ -93,7 +93,7 @@ export default async function Home() {
     <main className="min-h-full">
       <HomeNav />
       <HomeHeroActions showProjects={cards.length > 0} />
-      <div className="mx-auto max-w-7xl px-5 pt-8 lg:px-12 2xl:max-w-[110rem]">
+      <div className="mx-auto max-w-7xl px-4 pt-6 lg:px-6">
         <SetupReadinessBanner lanes={setup.lanes} daemonUp={daemonUp} />
       </div>
       <HomeBodySections projects={cards} />

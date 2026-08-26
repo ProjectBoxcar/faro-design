@@ -309,7 +309,7 @@ export function PillarReview({
           <button
             onClick={done}
             disabled={busy || anyGenerating}
-            className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
           >
             {busy ? "Saving…" : anyGenerating ? "Writing…" : isLast ? "Looks good — finish" : "Looks good — continue"}
             {isLast ? <Check size={16} /> : <ArrowRight size={16} />}
