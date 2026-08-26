@@ -6,12 +6,12 @@ import { useLocale } from "@/components/LocaleProvider";
 type Size = "xs" | "sm" | "md" | "lg" | "xl" | "hero" | "full";
 
 const SIZE_CLASS: Record<Size, string> = {
-  xs: "h-10 w-10",
-  sm: "h-14 w-14 sm:h-16 sm:w-16",
-  md: "h-24 w-24 sm:h-28 sm:w-28",
-  lg: "h-36 w-full max-w-xs sm:h-40",
-  xl: "h-40 w-full max-w-md sm:h-48",
-  hero: "h-full w-full min-h-[7rem] sm:min-h-[9rem]",
+  xs: "h-8 w-8",
+  sm: "h-12 w-12 sm:h-14 sm:w-14",
+  md: "h-20 w-20 sm:h-24 sm:w-24",
+  lg: "h-28 w-full max-w-xs sm:h-32",
+  xl: "h-32 w-full max-w-md sm:h-40",
+  hero: "h-full w-full min-h-[6rem] sm:min-h-[8rem]",
   full: "h-auto w-full",
 };
 

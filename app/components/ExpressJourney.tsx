@@ -348,7 +348,7 @@ function CardShell({
   const editLocked = readyBusy || rewriteBusy;
   return (
     <section
-      className={`rounded-2xl border p-5 card-shadow ${
+      className={`rounded-xl border p-5 card-shadow ${
         accent
           ? "border-[var(--accent)]/40 bg-[var(--accent-soft)]"
           : updating
@@ -606,7 +606,7 @@ function ExpressDraftingScreen({
               type="button"
               onClick={() => void stopGeneration()}
               disabled={stopping}
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-5 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
             >
               {stopping ? (
                 <>
@@ -623,7 +623,7 @@ function ExpressDraftingScreen({
         )}
         {canResume && (
           <div
-            className={`mt-8 w-full max-w-md rounded-2xl border px-5 py-4 text-left text-sm ${
+            className={`mt-8 w-full max-w-md rounded-xl border px-5 py-4 text-left text-sm ${
               state.status === "failed"
                 ? "border-[var(--danger)]/40 bg-[var(--danger)]/10"
                 : "border-[var(--border-strong)] bg-[var(--surface)]"
@@ -1131,7 +1131,7 @@ export function ExpressJourney({
         <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
           {t("express.kicker")}
         </div>
-        <h1 className="mt-1.5 font-serif text-2xl font-medium leading-tight tracking-tight lg:text-3xl">
+        <h1 className="mt-1.5 font-serif text-lg font-medium leading-tight tracking-tight lg:text-xl">
           {projectName} {t("express.titleSuffix")}
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">{t("express.lede")}</p>
@@ -1141,7 +1141,7 @@ export function ExpressJourney({
       {intakeError ? (
         <div
           role="status"
-          className="mb-5 flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm"
+          className="mb-5 flex flex-wrap items-start justify-between gap-3 rounded-xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm"
         >
           <div className="min-w-0">
             <p className="font-medium text-[var(--foreground)]">Strategy draft hit a snag</p>
@@ -1165,7 +1165,7 @@ export function ExpressJourney({
       ) : null}
 
       {refining && refine && (
-        <div className="mb-5 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-4 py-3 text-sm">
+        <div className="mb-5 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-4 py-3 text-sm">
           <div className="flex items-center gap-3">
             <Loader2 size={16} className="shrink-0 animate-spin text-[var(--accent)]" />
             <div className="min-w-0 flex-1">
@@ -1237,7 +1237,7 @@ export function ExpressJourney({
               />
             ) : (
               <>
-                <h2 className="font-serif text-2xl font-medium tracking-tight">
+                <h2 className="font-serif text-xl font-medium tracking-tight">
                   {String(concept.value["statement"] ?? "")}
                 </h2>
                 {typeof concept.value["description"] === "string" && (
@@ -1364,7 +1364,7 @@ export function ExpressJourney({
           </CardShell>
         )}
 
-        <details className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] card-shadow">
+        <details className="group rounded-xl border border-[var(--border)] bg-[var(--surface)] card-shadow">
           <summary className="flex cursor-pointer items-center justify-between gap-3 p-5 text-sm font-medium">
             Full strategy detail (Reality · Identity · Communication · Direction)
             <ChevronDown size={16} className="shrink-0 transition group-open:rotate-180" />
@@ -1470,7 +1470,7 @@ export function ExpressJourney({
           onClick={approve}
           disabled={approving || refining || Boolean(editingId) || rewriteBusy}
           data-faro-anchor="faro-express-approve"
-          className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {approving ? <Loader2 size={15} className="animate-spin" /> : approved ? <Check size={15} /> : null}
           {approved ? t("express.reapprove") : t("express.approve")}

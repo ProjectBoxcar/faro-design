@@ -41,11 +41,11 @@ export default async function NameWorkshopPage({
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
           Brand name
         </p>
-        <div className="mt-3 flex items-start gap-3 rounded-2xl border border-[var(--ok)]/30 bg-[var(--ok)]/10 px-4 py-3">
+        <div className="mt-3 flex items-start gap-3 rounded-xl border border-[var(--ok)]/30 bg-[var(--ok)]/10 px-4 py-3">
           <Check size={18} className="mt-0.5 shrink-0 text-[var(--ok)]" />
           <div>
             <p className="text-sm font-medium text-[var(--ok)]">Name confirmed</p>
-            <h1 className="mt-1 font-serif text-2xl font-medium tracking-tight">
+            <h1 className="mt-1 font-serif text-xl font-medium tracking-tight">
               {project.name}
             </h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
@@ -57,13 +57,13 @@ export default async function NameWorkshopPage({
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href={`/projects/${id}/studio`}
-            className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+            className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
           >
             Continue to Logo Workshop <ArrowRight size={16} />
           </Link>
           <Link
             href={`/projects/${id}/name?edit=1`}
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] px-5 py-2.5 text-sm font-medium text-[var(--muted)] transition hover:bg-[var(--surface-2)]"
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2 text-sm font-medium text-[var(--muted)] transition hover:bg-[var(--surface-2)]"
           >
             Change name
           </Link>

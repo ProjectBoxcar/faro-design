@@ -685,9 +685,9 @@ export function DesignStudio({
   const actionsBusy = Boolean(loading) || Boolean(deletingId) || Boolean(discardingKind);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-5 lg:px-6 lg:py-6">
+    <div className="mx-auto w-full max-w-7xl px-3 py-4 lg:px-5 lg:py-5">
       <StagePageBanner stageId="design" data-faro-anchor="faro-design-primary">
-        <h1 className="font-serif text-xl font-medium tracking-tight lg:text-2xl">
+        <h1 className="font-serif text-lg font-medium tracking-tight lg:text-xl">
           {t("design.title")}
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">{t("design.lede")}</p>
@@ -740,7 +740,7 @@ export function DesignStudio({
       ) : null}
 
       {generationBlockedReason && (
-        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm text-[var(--foreground)]">
+        <div className="mb-5 flex items-start gap-3 rounded-xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm text-[var(--foreground)]">
           <AlertCircle size={18} className="mt-0.5 shrink-0" />
           {generationBlockedReason}
         </div>
@@ -749,7 +749,7 @@ export function DesignStudio({
       {error && (
         <div
           role="alert"
-          className="mb-6 rounded-2xl border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-6 py-4 text-sm text-[var(--foreground)]"
+          className="mb-6 rounded-xl border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-6 py-4 text-sm text-[var(--foreground)]"
         >
           <p className="font-medium">{t("design.pausedTitle")}</p>
           <p className="mt-1">{error}</p>
@@ -804,7 +804,7 @@ export function DesignStudio({
 
       {/* After stop/cancel (or first select): clear path to finish mockups. */}
       {mockupsIncomplete && !isBuildingMockups && (
-        <div className="mb-6 rounded-2xl border border-[var(--accent)]/35 bg-[var(--accent)]/8 px-5 py-4 sm:px-6">
+        <div className="mb-6 rounded-xl border border-[var(--accent)]/35 bg-[var(--accent)]/8 px-5 py-4 sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <p className="font-medium text-[var(--foreground)]">
@@ -832,7 +832,7 @@ export function DesignStudio({
       )}
 
       {/* Package / publish lives only on Brand Handover — keep Design Studio = create & select */}
-      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="text-sm font-medium text-[var(--foreground)]">
             {deliverableReady
@@ -859,7 +859,7 @@ export function DesignStudio({
         <Link
           href={`/projects/${projectId}/handover`}
           data-faro-anchor="faro-design-handover"
-          className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+          className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
             deliverableReady
               ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
               : "border border-[var(--border-strong)] text-[var(--foreground)] hover:bg-[var(--surface-2)]"
@@ -886,7 +886,7 @@ export function DesignStudio({
         </p>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
         {/* Pipeline sidebar */}
         <div className="space-y-5">
           <PipelineStep
@@ -920,7 +920,7 @@ export function DesignStudio({
           <section
             id="application-mockups"
             aria-labelledby="application-mockups-title"
-            className={`scroll-mt-24 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow ${!identitySelected ? "opacity-60" : ""}`}
+            className={`scroll-mt-24 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow ${!identitySelected ? "opacity-60" : ""}`}
           >
             <div className="mb-3 flex items-center gap-2">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent)]">
@@ -1011,7 +1011,7 @@ export function DesignStudio({
           <section
             id="channel-templates"
             aria-labelledby="channel-templates-title"
-            className={`mt-4 scroll-mt-24 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow ${!identitySelected ? "opacity-60" : ""}`}
+            className={`mt-4 scroll-mt-24 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow ${!identitySelected ? "opacity-60" : ""}`}
           >
             <div className="mb-3 flex items-center gap-2">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent)]">
@@ -1101,7 +1101,7 @@ export function DesignStudio({
         </div>
 
         {/* Preview */}
-        <div className="flex min-h-[32vh] flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 card-shadow lg:min-h-[40vh]">
+        <div className="flex min-h-[28vh] flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 card-shadow lg:min-h-[36vh]">
           {generationKind ? (
             <DesignGenerationWindow
               kind={generationKind}
@@ -1346,7 +1346,7 @@ function PipelineStep({
     <section
       id={anchor}
       aria-labelledby={`${anchor}-title`}
-      className={`scroll-mt-24 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow ${!unlocked ? "opacity-60" : ""}`}
+      className={`scroll-mt-24 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow ${!unlocked ? "opacity-60" : ""}`}
     >
       <div className="mb-3 flex items-center gap-2">
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent)]">

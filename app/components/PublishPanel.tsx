@@ -100,8 +100,8 @@ export function PublishPanel({
 
   if (prominent) {
     return (
-      <div className="card-shadow rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] p-6 lg:p-8">
-        <h2 className="font-serif text-2xl font-medium tracking-tight">
+      <div className="card-shadow rounded-xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] p-6 lg:p-8">
+        <h2 className="font-serif text-xl font-medium tracking-tight">
           {token ? copy.title : "Hand off your strategy brief"}
         </h2>
         <p className="mt-2 max-w-2xl text-[var(--muted)]">{copy.blurb}</p>
@@ -112,7 +112,7 @@ export function PublishPanel({
           <button
             onClick={publish}
             disabled={busy}
-            className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+            className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
           >
             <Share2 size={16} />
             {busy ? "Publishing…" : "Publish strategy brief"}
@@ -138,13 +138,13 @@ export function PublishPanel({
                 href={url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+                className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
               >
                 <ExternalLink size={15} /> View the brief
               </a>
               <button
                 onClick={copyUrl}
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--accent)] px-5 py-2.5 text-sm font-medium text-[var(--accent)] transition hover:bg-[var(--surface)]"
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent)] transition hover:bg-[var(--surface)]"
               >
                 {copied ? <Check size={15} /> : <Copy size={15} />}
                 {copied ? "Copied!" : "Copy link"}
@@ -186,7 +186,7 @@ export function PublishPanel({
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
       {error && <p role="alert" className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
       {!token ? (
         <div className="flex flex-col gap-3">

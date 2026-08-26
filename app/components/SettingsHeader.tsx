@@ -21,7 +21,7 @@ export function SettingsHeader() {
       </div>
       <header className="mt-3 mb-5 grid items-start gap-4 sm:grid-cols-[1fr_auto]">
         <div>
-          <h1 className="font-serif text-2xl font-medium tracking-tight lg:text-3xl">{t("settings.title")}</h1>
+          <h1 className="font-serif text-lg font-medium tracking-tight lg:text-xl">{t("settings.title")}</h1>
           <p className="mt-1.5 text-sm text-[var(--muted)]">{t("settings.blurb")}</p>
         </div>
         <IllustrativeFigure

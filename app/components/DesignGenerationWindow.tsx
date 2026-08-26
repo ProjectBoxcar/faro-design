@@ -214,7 +214,7 @@ export function DesignGenerationWindow({
     <section
       aria-labelledby="generation-title"
       aria-busy="true"
-      className="relative flex min-h-[32vh] flex-1 overflow-hidden rounded-xl bg-[var(--foreground)] px-5 py-5 text-white lg:min-h-[40vh] lg:px-6 lg:py-6"
+      className="relative flex min-h-[28vh] flex-1 overflow-hidden rounded-xl bg-[var(--foreground)] px-5 py-5 text-white lg:min-h-[36vh] lg:px-6 lg:py-6"
     >
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         Faro is creating{" "}
@@ -234,7 +234,7 @@ export function DesignGenerationWindow({
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
                 Faro Design Studio
               </p>
-              <h2 id="generation-title" className="max-w-2xl font-serif text-xl font-medium tracking-tight lg:text-2xl">
+              <h2 id="generation-title" className="max-w-2xl font-serif text-lg font-medium tracking-tight lg:text-xl">
                 {copy.title}
               </h2>
               <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/65">
@@ -307,7 +307,7 @@ export function DesignGenerationWindow({
               return (
               <div
                 key={direction.variant}
-                className={`rounded-2xl border p-4 backdrop-blur-sm ${
+                className={`rounded-xl border p-4 backdrop-blur-sm ${
                   directionDone
                     ? "border-white/25 bg-white/12"
                     : directionActive

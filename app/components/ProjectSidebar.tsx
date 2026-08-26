@@ -66,7 +66,7 @@ export function ProjectSidebar({
 
   return (
     <aside
-      className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-[var(--border)] lg:flex"
+      className="sticky top-0 hidden h-screen w-52 shrink-0 flex-col border-r border-[var(--border)] lg:flex"
       style={{
         backgroundColor: "color-mix(in srgb, var(--background) 92%, transparent)",
         backdropFilter: "blur(20px)",
@@ -93,7 +93,7 @@ export function ProjectSidebar({
           <LanguageSwitcher />
         </div>
         <Link href={`/projects/${projectId}`} className="block">
-          <h1 className="font-serif text-xl font-normal tracking-tight">{projectName}</h1>
+          <h1 className="font-serif text-lg font-normal tracking-tight">{projectName}</h1>
         </Link>
         {clientName && <p className="text-sm text-[var(--muted)]">{clientName}</p>}
         {greenfield && (

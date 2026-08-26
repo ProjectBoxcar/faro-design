@@ -17,7 +17,7 @@ export type UpNext = {
 export function UpNextCard({ next }: { next: UpNext | null }) {
   if (!next) {
     return (
-      <div className="rounded-2xl border border-[var(--ok)]/30 bg-[var(--ok)]/10 p-4">
+      <div className="rounded-xl border border-[var(--ok)]/30 bg-[var(--ok)]/10 p-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <IllustrativeFigure
             id="stepHandoff"
@@ -41,7 +41,7 @@ export function UpNextCard({ next }: { next: UpNext | null }) {
   }
 
   return (
-    <div className="card-shadow rounded-2xl border border-[var(--accent)]/30 bg-[var(--surface)] p-4 sm:p-5">
+    <div className="card-shadow rounded-xl border border-[var(--accent)]/30 bg-[var(--surface)] p-4 sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         {next.stageId ? (
           <StageIllustration

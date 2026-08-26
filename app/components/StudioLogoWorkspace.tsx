@@ -279,7 +279,7 @@ export function StudioLogoWorkspace({
             forceShow
           />
         ) : null}
-        <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
+        <div className="rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
           <p>{initialBlocked}</p>
           {viabilityRelated ? (
             <p className="mt-2 text-xs">
@@ -303,7 +303,7 @@ export function StudioLogoWorkspace({
 
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <StagePageBanner stageId="logo" className="mb-0 min-w-0 flex-1">
-          <h1 className="font-serif text-2xl font-medium tracking-tight lg:text-3xl">Logo — “{name}”</h1>
+          <h1 className="font-serif text-lg font-medium tracking-tight lg:text-xl">Logo — “{name}”</h1>
           <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">
             You get three proposals, each scored by a skeptical AI critic (scores are advice, not a
             veto). Want tweaks? Use{" "}
@@ -317,7 +317,7 @@ export function StudioLogoWorkspace({
           onClick={() => act({ action: "generate" }, "generate")}
           disabled={busy !== null}
           data-faro-anchor="faro-logo-primary"
-          className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {isFreshGenerate ? (
             <>
@@ -348,7 +348,7 @@ export function StudioLogoWorkspace({
       )}
 
       {freshBatch && freshBatch.newIds.length > 0 && busy !== "generate" && (
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-[var(--accent)]/35 bg-[var(--accent)]/8 px-4 py-3.5 text-sm">
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-3 rounded-xl border border-[var(--accent)]/35 bg-[var(--accent)]/8 px-4 py-3.5 text-sm">
           <div className="min-w-0">
             {freshBatch.mode === "improve" ? (
               <>
@@ -394,7 +394,7 @@ export function StudioLogoWorkspace({
       )}
 
       {live.length > 0 && !approved && (
-        <div className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3.5 text-sm leading-relaxed text-[var(--muted)]">
+        <div className="mb-6 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3.5 text-sm leading-relaxed text-[var(--muted)]">
           <p className="font-medium text-[var(--foreground)]">A note on these logo proposals</p>
           <p className="mt-1.5">
             This app is strongest at building a full strategy and design system. Treat these logos as a{" "}
@@ -409,7 +409,7 @@ export function StudioLogoWorkspace({
       {approved && (
         <div
           ref={nextCtaRef}
-          className="mb-8 rounded-2xl border border-[var(--accent)]/35 bg-[var(--accent)]/5 p-5 sm:p-6"
+          className="mb-8 rounded-xl border border-[var(--accent)]/35 bg-[var(--accent)]/5 p-5 sm:p-6"
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
@@ -424,7 +424,7 @@ export function StudioLogoWorkspace({
             <Link
               href={`/projects/${projectId}/design`}
               data-faro-anchor="faro-logo-continue"
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
             >
               Continue to Design Studio <ArrowRight size={16} />
             </Link>
@@ -433,7 +433,7 @@ export function StudioLogoWorkspace({
       )}
 
       {live.length === 0 && !busy && (
-        <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-10 text-center text-sm text-[var(--muted)]">
+        <div className="rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-10 text-center text-sm text-[var(--muted)]">
           No candidates yet. Generate the first three — each is designed from your strategy, scored
           against it, and shown with its critique.
         </div>
@@ -449,7 +449,7 @@ export function StudioLogoWorkspace({
       )}
 
       {isImproving && improveJob && (
-        <div className="mb-4 sticky top-2 z-10 rounded-2xl border border-[var(--accent)]/40 bg-[var(--background)]/95 px-4 py-3 shadow-sm backdrop-blur-md">
+        <div className="mb-4 sticky top-2 z-10 rounded-xl border border-[var(--accent)]/40 bg-[var(--background)]/95 px-4 py-3 shadow-sm backdrop-blur-md">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-start gap-2.5 text-sm">
               <FaroBeacon size="sm" className="mt-0.5 shrink-0" />
@@ -568,7 +568,7 @@ export function StudioLogoWorkspace({
             <Link
               href={`/projects/${projectId}/design`}
               data-faro-anchor="faro-logo-continue"
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--accent-hover)]"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--accent-hover)]"
             >
               Continue to Design Studio <ArrowRight size={16} />
             </Link>
@@ -607,7 +607,7 @@ function ImproveInlineProgress({
     stages.find((s) => s.state === "active")?.label ??
     `Designing 3 refinements of “${sourceLabel}”…`;
   return (
-    <div className="mt-3 space-y-4 rounded-2xl border border-dashed border-[var(--accent)]/40 bg-[var(--accent)]/5 p-5">
+    <div className="mt-3 space-y-4 rounded-xl border border-dashed border-[var(--accent)]/40 bg-[var(--accent)]/5 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <FaroLoaderInline label={stage} size="sm" />
         {onCancel && (
@@ -697,7 +697,7 @@ function GenerationProgress({
     (mode === "improve" ? "Improving your mark…" : "Designing logo candidates…");
 
   return (
-    <div className="mb-6 space-y-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
+    <div className="mb-6 space-y-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
       <div className="flex flex-col items-center text-center">
         <FaroBeacon size="lg" />
         <p className="mt-4 text-sm font-medium text-[var(--foreground)]">{activeLabel}</p>
@@ -814,7 +814,7 @@ function ContextStrip({ svg, svgDark, name }: { svg: string; svgDark: string; na
         </div>
 
         <div className="flex flex-col items-center rounded-xl border border-[var(--border)] bg-white p-3">
-          <div className="w-32 rounded-2xl bg-[#0E1B2A] px-3 pb-5 pt-2">
+          <div className="w-32 rounded-xl bg-[#0E1B2A] px-3 pb-5 pt-2">
             <div className="mx-auto mb-2.5 h-1 w-10 rounded-full bg-white/20" />
             <div
               className="flex justify-center [&_svg]:h-5 [&_svg]:w-auto [&_svg]:max-w-full"
@@ -910,7 +910,7 @@ function CandidateCard({
 
   return (
     <div
-      className={`rounded-2xl border bg-[var(--surface)] p-6 transition ${
+      className={`rounded-xl border bg-[var(--surface)] p-6 transition ${
         isSourceImproving
           ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/25"
           : isNew
@@ -1029,7 +1029,7 @@ function CandidateCard({
               onClick={onApprove}
               disabled={isBusy || generating}
               data-faro-anchor="faro-logo-approve"
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
               <BadgeCheck size={16} /> Approve &amp; continue
             </button>
@@ -1057,7 +1057,7 @@ function CandidateCard({
               onClick={onApprove}
               disabled={isBusy || generating}
               data-faro-anchor="faro-logo-approve"
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
               <BadgeCheck size={16} /> Approve &amp; continue
             </button>
@@ -1089,7 +1089,7 @@ function CandidateCard({
             </p>
             <Link
               href={`/projects/${projectId}/design`}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
             >
               Next: Design Studio <ArrowRight size={15} />
             </Link>
@@ -1111,7 +1111,7 @@ function CandidateCard({
       </div>
 
       {feedbackOpen && canImprove && (
-        <div className="mt-4 rounded-2xl border border-[var(--accent)]/25 bg-[var(--accent)]/5 p-4">
+        <div className="mt-4 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/5 p-4">
           <div className="mb-2 flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-[var(--foreground)]">

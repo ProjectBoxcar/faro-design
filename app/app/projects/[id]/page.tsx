@@ -106,11 +106,11 @@ export default async function ProjectHub({
       : "Your answers are saved. Add a Claude key in Settings (Brand strategy) to draft the strategy automatically.";
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-5 lg:px-6 lg:py-6">
+    <div className="mx-auto w-full max-w-7xl px-3 py-4 lg:px-5 lg:py-5">
       {aiSkippedBanner ? (
         <div
           role="status"
-          className="mb-5 rounded-2xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3"
+          className="mb-5 rounded-xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3"
         >
           <p className="text-sm font-medium text-[var(--foreground)]">Strategy drafting needs an API key</p>
           <p className="mt-1 text-xs text-[var(--muted)]">{aiSkippedMsg}</p>
@@ -133,7 +133,7 @@ export default async function ProjectHub({
         </div>
       ) : null}
       {draftedBanner ? (
-        <div className="mb-5 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-4 py-3">
+        <div className="mb-5 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-4 py-3">
           <p className="text-sm font-medium text-[var(--foreground)]">Your first draft is ready</p>
           <p className="mt-1 text-xs text-[var(--muted)]">
             Use the single Continue control below — progress saves as you go.
@@ -142,7 +142,7 @@ export default async function ProjectHub({
       ) : null}
 
       <div className="mb-6">
-        <h1 className="font-serif text-xl font-medium tracking-tight lg:text-2xl">
+        <h1 className="font-serif text-lg font-medium tracking-tight lg:text-xl">
           {project.name}
         </h1>
         <p className="mt-1 text-sm text-[var(--muted)]">
@@ -158,7 +158,7 @@ export default async function ProjectHub({
         />
       </div>
 
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-8">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-8">
         <div className="min-w-0 space-y-5" id="plan">
           {/* Single primary accent CTA on the hub */}
           <UpNextCard next={next} />

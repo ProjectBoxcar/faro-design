@@ -41,9 +41,9 @@ export default async function StudioHub({ params }: { params: Promise<{ id: stri
         : { label: "Not started", tone: "text-[var(--subtle)]" };
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-5 lg:px-6 lg:py-6">
+    <div className="mx-auto w-full max-w-5xl px-3 py-4 lg:px-5 lg:py-5">
       <div className="mb-5">
-        <h1 className="font-serif text-xl font-medium tracking-tight lg:text-2xl">Logo Workshop</h1>
+        <h1 className="font-serif text-lg font-medium tracking-tight lg:text-xl">Logo Workshop</h1>
         <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">
           First visual step after strategy: design and approve your logo here. Design Studio comes
           next for color, type, and mockups — it will use this approved mark, not invent a new one.
@@ -53,7 +53,7 @@ export default async function StudioHub({ params }: { params: Promise<{ id: stri
       </div>
 
       {blocked ? (
-        <div className="mb-8 flex items-start gap-3 rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
+        <div className="mb-8 flex items-start gap-3 rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
           <Lock size={16} className="mt-0.5 shrink-0" />
           <p>{blocked}</p>
         </div>
@@ -68,7 +68,7 @@ export default async function StudioHub({ params }: { params: Promise<{ id: stri
       <Link
         href={`/projects/${id}/studio/logo`}
         aria-disabled={Boolean(blocked)}
-        className={`block rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 transition ${
+        className={`block rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 transition ${
           blocked ? "pointer-events-none opacity-60" : "hover:border-[var(--border-strong)]"
         }`}
       >
@@ -94,7 +94,7 @@ export default async function StudioHub({ params }: { params: Promise<{ id: stri
       </Link>
 
       {approved ? (
-        <div className="mt-8 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-6">
+        <div className="mt-8 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-6">
           <h3 className="font-serif text-xl font-medium tracking-tight">Logo approved</h3>
           <p className="mt-1.5 text-sm text-[var(--muted)]">
             Next: Design Studio builds color, typography, components, and mockups around this mark —
@@ -102,7 +102,7 @@ export default async function StudioHub({ params }: { params: Promise<{ id: stri
           </p>
           <Link
             href={`/projects/${id}/design`}
-            className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+            className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
           >
             Continue to Design Studio <ArrowRight size={16} />
           </Link>

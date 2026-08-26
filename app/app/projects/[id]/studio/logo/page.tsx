@@ -43,7 +43,7 @@ export default async function LogoWorkspacePage({ params }: { params: Promise<{ 
   const latestViabilityEval = listEvaluations(id, "viability")[0] ?? null;
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-5 lg:px-6 lg:py-6">
+    <div className="mx-auto w-full max-w-5xl px-3 py-4 lg:px-5 lg:py-5">
       <Link
         href={`/projects/${id}/studio`}
         className="mb-4 inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"

@@ -27,7 +27,7 @@ export function StagePageBanner({
       <StageIllustration
         stageId={stageId}
         size="sm"
-        className="hidden shrink-0 self-start border border-[var(--border)] shadow-[var(--shadow-card)] sm:block sm:self-center lg:h-16 lg:w-16"
+        className="hidden shrink-0 self-start border border-[var(--border)] shadow-[var(--shadow-card)] sm:block sm:self-center lg:h-14 lg:w-14"
       />
     </header>
   );

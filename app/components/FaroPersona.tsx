@@ -23,7 +23,7 @@ type Props = {
 const MAX_LOOK = 3.2; // viewBox units inside each eye
 
 export function FaroPersona({
-  size = 40,
+  size = 36,
   mood = "calm",
   speaking = false,
   className = "",

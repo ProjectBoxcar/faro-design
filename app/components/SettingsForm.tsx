@@ -198,7 +198,7 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
   return (
     <div className="space-y-6">
       {/* What’s ready */}
-      <section className="card-shadow rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+      <section className="card-shadow rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
         <h2 className="font-serif text-xl font-medium tracking-tight">What’s ready</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
           Faro uses a few keys so it can write strategy, invent logos, and build your design
@@ -233,7 +233,7 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
       {/* Main keys — plain language */}
       <section
         data-faro-anchor="faro-settings-keys"
-        className="card-shadow rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6"
+        className="card-shadow rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6"
       >
         <h2 className="font-serif text-xl font-medium tracking-tight">Your keys</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
@@ -339,7 +339,7 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
       </section>
 
       {/* Advanced — optional, for power users */}
-      <section className="card-shadow rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+      <section className="card-shadow rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
         <button
           type="button"
           onClick={() => setShowAdvanced((v) => !v)}
@@ -451,7 +451,7 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
       </section>
 
       {/* Brand memory — soft language */}
-      <section className="card-shadow rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+      <section className="card-shadow rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
         <h2 className="font-serif text-xl font-medium tracking-tight">What Faro remembers</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
           When you finish a brand, Faro keeps a few local notes so the next project can feel more

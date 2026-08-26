@@ -74,7 +74,7 @@ export default async function SectionPage({
   const nextGuide = nextId ? sectionGuide(nextId) : null;
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-5 lg:px-6 lg:py-6">
+    <div className="mx-auto w-full max-w-7xl px-3 py-4 lg:px-5 lg:py-5">
       <Link
         href={prevId ? `/projects/${id}/${encodeURIComponent(prevId)}` : `/projects/${id}`}
         className="mb-3 inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
@@ -92,12 +92,12 @@ export default async function SectionPage({
           <span className="shrink-0 text-xs text-[var(--subtle)]">{phasePercent}% of this phase</span>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2.5">
-          <h1 className="font-serif text-2xl font-medium leading-[1.05] tracking-tight lg:text-3xl">{section.name}</h1>
+          <h1 className="font-serif text-xl font-medium leading-[1.05] tracking-tight lg:text-2xl">{section.name}</h1>
           <StepKindBadge kind={section.kind} />
         </div>
       </header>
 
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-8">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-8">
         {/* Working column — kept readable even on very wide screens */}
         <div className="min-w-0 2xl:max-w-4xl">
           {guide.whatItIs && (
@@ -159,7 +159,7 @@ export default async function SectionPage({
             {nextSec && nextId ? (
               <Link
                 href={`/projects/${id}/${encodeURIComponent(nextId)}`}
-                className="card-shadow max-w-[60%] rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-3 text-right transition hover:bg-[var(--surface-2)]"
+                className="card-shadow max-w-[60%] rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-3 text-right transition hover:bg-[var(--surface-2)]"
               >
                 <div className="text-[10px] uppercase tracking-wide text-[var(--subtle)]">Next step</div>
                 <div className="flex items-center justify-end gap-1.5 text-sm font-medium">

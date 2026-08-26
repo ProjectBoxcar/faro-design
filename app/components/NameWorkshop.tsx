@@ -98,12 +98,12 @@ export function NameWorkshop({
   const locked = busy !== null;
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-5 lg:px-6 lg:py-6">
+    <div className="mx-auto w-full max-w-2xl px-3 py-4 lg:px-5 lg:py-5">
       <StagePageBanner stageId="name">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
           After strategy · before logos
         </p>
-        <h1 className="mt-1.5 font-serif text-2xl font-medium tracking-tight lg:text-3xl">Brand name</h1>
+        <h1 className="mt-1.5 font-serif text-lg font-medium tracking-tight lg:text-xl">Brand name</h1>
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
           {isGenericWorkingTitle ? (
             <>
@@ -121,7 +121,7 @@ export function NameWorkshop({
         </p>
       </StagePageBanner>
 
-      <div className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
+      <div className="mt-8 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
         <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left sm:gap-5">
           <FaroBeacon size="sm" className="shrink-0" />
           <div className="mt-4 min-w-0 sm:mt-0">
@@ -135,7 +135,7 @@ export function NameWorkshop({
               onClick={() => void propose()}
               disabled={locked}
               data-faro-anchor="faro-name-primary"
-              className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
               {busy === "propose" ? (
                 <>
@@ -168,7 +168,7 @@ export function NameWorkshop({
                   type="button"
                   disabled={locked}
                   onClick={() => setSelected(c.name)}
-                  className={`w-full rounded-2xl border px-5 py-4 text-left transition ${
+                  className={`w-full rounded-xl border px-5 py-4 text-left transition ${
                     active
                       ? "border-[var(--accent)] bg-[var(--accent-soft)]"
                       : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)]"
@@ -199,7 +199,7 @@ export function NameWorkshop({
         </ul>
       )}
 
-      <div className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+      <div className="mt-8 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
         <label className="block text-sm font-medium">Or type your own</label>
         <input
           value={custom}
@@ -229,7 +229,7 @@ export function NameWorkshop({
               disabled={locked || (!selected && custom.trim().length < 2)}
               onClick={() => void pick(selected ?? custom)}
               data-faro-anchor="faro-name-confirm"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {busy === "pick" ? (
                 <>
@@ -248,7 +248,7 @@ export function NameWorkshop({
               type="button"
               disabled={locked || (!selected && custom.trim().length < 2)}
               onClick={() => void pick(selected ?? custom)}
-              className="order-2 inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] px-5 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50 sm:order-1"
+              className="order-2 inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50 sm:order-1"
             >
               {busy === "pick" ? (
                 <>
@@ -263,7 +263,7 @@ export function NameWorkshop({
               onClick={() => void skip()}
               disabled={locked}
               data-faro-anchor="faro-name-confirm"
-              className="order-1 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50 sm:order-2"
+              className="order-1 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50 sm:order-2"
             >
               {busy === "skip" ? (
                 <>

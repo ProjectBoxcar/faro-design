@@ -571,7 +571,7 @@ function FieldInput({
           value={(value as string) ?? ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={field.placeholder}
-          className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3.5 py-2.5 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+          className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3 py-1.5.5 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
         />
       </div>
     );
@@ -586,7 +586,7 @@ function FieldInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={field.placeholder}
           rows={4}
-          className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3.5 py-2.5 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+          className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3 py-1.5.5 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
         />
       </div>
     );
@@ -599,7 +599,7 @@ function FieldInput({
         <select
           value={(value as string) ?? ""}
           onChange={(e) => onChange(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3.5 py-2.5 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+          className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3 py-1.5.5 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
         >
           <option value="">—</option>
           {(field.options ?? []).map((o) => (
@@ -627,7 +627,7 @@ function FieldInput({
                   next[i] = e.target.value;
                   onChange(next);
                 }}
-                className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3.5 py-2.5 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+                className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3 py-1.5.5 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
               />
               <button
                 onClick={() => onChange(items.filter((_, j) => j !== i))}

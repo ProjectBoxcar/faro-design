@@ -57,7 +57,7 @@ export default async function ReviewGroupPage({
     .filter((x): x is ReviewStep => x !== null);
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-5 lg:px-6 lg:py-6">
+    <div className="mx-auto w-full max-w-4xl px-3 py-4 lg:px-5 lg:py-5">
       <Link
         href={`/projects/${id}`}
         className="mb-3 inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
@@ -69,7 +69,7 @@ export default async function ReviewGroupPage({
         <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
           Part {pos} of {total}
         </div>
-        <h1 className="mt-1.5 font-serif text-2xl font-medium leading-[1.05] tracking-tight lg:text-3xl">{group.name}</h1>
+        <h1 className="mt-1.5 font-serif text-xl font-medium leading-[1.05] tracking-tight lg:text-2xl">{group.name}</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--muted)]">{group.blurb}</p>
       </header>
 

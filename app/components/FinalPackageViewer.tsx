@@ -96,7 +96,7 @@ export function FinalPackageViewer({
       ref={shellRef}
       className={
         embedded && !fullscreen
-          ? "rounded-2xl border border-[var(--border)] bg-[var(--background)] overflow-hidden"
+          ? "rounded-xl border border-[var(--border)] bg-[var(--background)] overflow-hidden"
           : "min-h-screen bg-[var(--background)]"
       }
     >
@@ -206,7 +206,7 @@ export function FinalPackageViewer({
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
               Final delivery
             </p>
-            <h2 className="mt-2 font-serif text-2xl font-medium tracking-tight sm:text-3xl">
+            <h2 className="mt-2 font-serif text-xl font-medium tracking-tight sm:text-3xl">
               The complete {projectName} brand package
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--muted)] sm:text-base">
@@ -221,7 +221,7 @@ export function FinalPackageViewer({
                 key={output.kind}
                 type="button"
                 onClick={() => activate(output.kind)}
-                className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left card-shadow transition hover:-translate-y-0.5 hover:border-[var(--border-strong)]"
+                className="group rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left card-shadow transition hover:-translate-y-0.5 hover:border-[var(--border-strong)]"
               >
                 <div className="flex items-center justify-between">
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface-2)] text-xs font-semibold">
@@ -239,7 +239,7 @@ export function FinalPackageViewer({
           </div>
 
           {projectId && (
-            <div className="mt-8 rounded-2xl border border-[var(--accent)]/25 bg-[var(--accent-soft)] p-5 sm:p-6">
+            <div className="mt-8 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent-soft)] p-5 sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
@@ -252,7 +252,7 @@ export function FinalPackageViewer({
                 </div>
                 <a
                   href={`/api/projects/${projectId}/brand-pack`}
-                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)]"
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)]"
                 >
                   <Download size={15} /> Download ZIP
                 </a>

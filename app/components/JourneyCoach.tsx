@@ -557,7 +557,7 @@ export function JourneyCoach() {
           className="faro-assistant-bob group relative"
           aria-label={t("coach.open")}
         >
-          <FaroPersona size={40} mood="encouraging" speaking={false} className="shadow-[var(--shadow-pop)]" />
+          <FaroPersona size={36} mood="encouraging" speaking={false} className="shadow-[var(--shadow-pop)]" />
           <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--accent)] px-2 py-0.5 text-[9px] font-semibold text-white shadow">
             Faro
           </span>
@@ -633,7 +633,7 @@ export function JourneyCoach() {
             aria-label={t("coach.open")}
           >
             <FaroPersona
-              size={minimized ? 40 : 44}
+              size={minimized ? 36 : 40}
               mood={displayMood}
               speaking={loading || asking || traveling}
               className="shadow-[var(--shadow-pop)]"
@@ -645,7 +645,7 @@ export function JourneyCoach() {
 
           {bubbleOpen && !minimized ? (
             <div
-              className={`faro-assistant-speech mt-3 max-w-[16.5rem] rounded-2xl rounded-tl-md border bg-[var(--surface)] px-3 py-2.5 shadow-[var(--shadow-card)] ${
+              className={`faro-assistant-speech mt-3 max-w-[16.5rem] rounded-xl rounded-tl-md border bg-[var(--surface)] px-3 py-2.5 shadow-[var(--shadow-card)] ${
                 hover
                   ? "border-[var(--accent)]/40 ring-1 ring-[var(--accent)]/15"
                   : "border-[var(--border-strong)]"
@@ -727,7 +727,7 @@ export function JourneyCoach() {
     <aside
       ref={panelRef}
       data-faro-assistant
-      className={`faro-assistant fixed z-[9999] w-[min(100vw-1.25rem,20rem)] ${
+      className={`faro-assistant fixed z-[9999] w-[min(100vw-1.25rem,18rem)] ${
         traveling ? "faro-assistant-traveling" : ""
       }`}
       style={style}
@@ -745,14 +745,14 @@ export function JourneyCoach() {
           <div className="relative flex items-center gap-2.5">
             <div className="faro-assistant-bob">
               <FaroPersona
-                size={40}
+                size={36}
                 mood={displayMood}
                 speaking={loading || asking || traveling}
                 className="shadow-md"
               />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-serif text-base font-medium leading-none tracking-tight text-[var(--foreground)]">
+              <p className="font-serif text-sm font-medium leading-none tracking-tight text-[var(--foreground)]">
                 {FARO_BRAND_PERSONALITY.name}
               </p>
               <p className="mt-1 text-[11px] text-[var(--muted)]">{t("coach.role")}</p>
@@ -797,13 +797,13 @@ export function JourneyCoach() {
                 <span className="mb-0.5 hidden shrink-0 sm:inline-flex">
                   <FaroPersonaMini mood={line.mood ?? displayMood} />
                 </span>
-                <div className="max-w-[92%] rounded-2xl rounded-bl-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm leading-relaxed text-[var(--foreground)]">
+                <div className="max-w-[92%] rounded-xl rounded-bl-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm leading-relaxed text-[var(--foreground)]">
                   {line.text}
                 </div>
               </div>
             ) : (
               <div key={line.id} className="flex justify-end">
-                <div className="max-w-[88%] rounded-2xl rounded-br-md bg-[var(--accent)] px-3 py-2.5 text-sm leading-relaxed text-white">
+                <div className="max-w-[88%] rounded-xl rounded-br-md bg-[var(--accent)] px-3 py-2.5 text-sm leading-relaxed text-white">
                   {line.text}
                 </div>
               </div>
@@ -812,7 +812,7 @@ export function JourneyCoach() {
           {(loading || asking) && (
             <div className="flex items-end gap-2">
               <span className="mb-0.5 hidden h-7 w-7 shrink-0 sm:block" />
-              <div className="inline-flex items-center gap-1.5 rounded-2xl rounded-bl-md bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--muted)]">
+              <div className="inline-flex items-center gap-1.5 rounded-xl rounded-bl-md bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--muted)]">
                 <span className="faro-persona-dot" />
                 <span className="faro-persona-dot" style={{ animationDelay: "0.15s" }} />
                 <span className="faro-persona-dot" style={{ animationDelay: "0.3s" }} />
@@ -839,7 +839,7 @@ export function JourneyCoach() {
               placeholder={t("coach.talkPlaceholder")}
               maxLength={400}
               disabled={asking}
-              className="min-w-0 flex-1 rounded-full border border-[var(--border-strong)] bg-[var(--field)] px-3.5 py-2 text-xs text-[var(--foreground)] outline-none placeholder:text-[var(--subtle)] focus:border-[var(--accent)]"
+              className="min-w-0 flex-1 rounded-full border border-[var(--border-strong)] bg-[var(--field)] px-3 py-1.5 text-xs text-[var(--foreground)] outline-none placeholder:text-[var(--subtle)] focus:border-[var(--accent)]"
               aria-label={t("coach.talkPlaceholder")}
             />
             <button

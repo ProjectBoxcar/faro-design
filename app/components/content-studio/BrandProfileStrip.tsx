@@ -6,13 +6,13 @@ export function BrandProfileStrip({ profile }: { profile: BrandProfile }) {
     ? sanitizeStudioSvg(profile.logoSvgPreview)
     : null;
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow">
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--subtle)]">
             Locked brand profile
           </p>
-          <h2 className="mt-1 font-serif text-2xl font-medium tracking-tight">{profile.brandName}</h2>
+          <h2 className="mt-1 font-serif text-xl font-medium tracking-tight">{profile.brandName}</h2>
           <p className="mt-1 text-xs text-[var(--muted)]">
             Source: {profile.source === "project" ? "FARO project package" : "Inferred from footage"} ·{" "}
             {profile.locked ? "Locked" : "Unlocked"}

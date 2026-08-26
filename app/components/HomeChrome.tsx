@@ -17,7 +17,7 @@ export function HomeNav() {
     <nav className="sticky top-0 z-40 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_92%,transparent)] backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2 lg:px-6">
         <Link href="/" className="text-[var(--foreground)]" aria-label="Faro Design home">
-          <FaroMark className="h-7 w-auto sm:h-8" />
+          <FaroMark className="h-6 w-auto sm:h-7" />
         </Link>
         <div className="flex shrink-0 items-center gap-2">
           <LanguageSwitcher />
@@ -30,7 +30,7 @@ export function HomeNav() {
           <Link
             href="/settings"
             aria-label={t("nav.settings")}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-strong)] text-[var(--muted)] transition hover:border-[var(--faro-accent)] hover:text-[var(--faro-accent)]"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-strong)] text-[var(--muted)] transition hover:border-[var(--faro-accent)] hover:text-[var(--faro-accent)]"
           >
             <Settings size={17} />
           </Link>
@@ -45,31 +45,31 @@ export function HomeHeroActions({ showProjects }: { showProjects: boolean }) {
   const { t } = useLocale();
   return (
     <header className="border-b-[3px] border-[var(--foreground)]">
-      <div className="mx-auto grid max-w-7xl items-center gap-5 px-4 py-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-6 lg:px-6 lg:py-8">
+      <div className="mx-auto grid max-w-7xl items-center gap-4 px-3 py-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-5 lg:px-5 lg:py-6">
         <div>
-          <p className="faro-kicker mb-3 inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--faro-accent)] px-3 py-1">
+          <p className="faro-kicker mb-2.5 inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--faro-accent)] px-2.5 py-0.5">
             {t("home.kicker")}
           </p>
-          <h1 className="font-serif max-w-[16ch] text-[clamp(1.65rem,4.5vw,2.5rem)] font-normal leading-[0.95] tracking-tight text-[var(--foreground)]">
+          <h1 className="font-serif max-w-[16ch] text-[clamp(1.4rem,3.8vw,2rem)] font-normal leading-[0.95] tracking-tight text-[var(--foreground)]">
             {t("home.headline")}
           </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-snug text-[var(--foreground)] sm:text-base">
+          <p className="mt-3 max-w-2xl text-sm leading-snug text-[var(--foreground)]">
             {t("home.lede")}
           </p>
 
-          <div className="mt-6 flex flex-wrap items-center gap-2.5">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <Link
               href="/start"
               data-faro-anchor="faro-start-brand"
-              className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition hover:bg-[var(--accent-hover)] hover:shadow-[var(--shadow-pop)]"
+              className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-3.5 py-1.5 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition hover:bg-[var(--accent-hover)] hover:shadow-[var(--shadow-pop)]"
             >
-              {t("home.startBrand")} <ArrowRight size={15} />
+              {t("home.startBrand")} <ArrowRight size={14} />
             </Link>
             {showProjects ? (
               <a
                 href="#projects"
                 data-faro-anchor="faro-home-projects"
-                className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border-2 border-[var(--foreground)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--foreground)] hover:text-[var(--background)]"
+                className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border-2 border-[var(--foreground)] px-3.5 py-1.5 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--foreground)] hover:text-[var(--background)]"
               >
                 {t("home.yourProjects")}
               </a>
@@ -111,7 +111,7 @@ export function HomeBodySections({
       <section className="border-b border-[var(--border)]">
         <div className="mx-auto max-w-7xl px-4 py-8 lg:px-6 lg:py-10">
           <p className="faro-kicker">{t("home.howItWorks")}</p>
-          <h2 className="font-serif mt-2 max-w-[18ch] text-xl font-normal leading-none tracking-tight sm:text-2xl lg:text-3xl">
+          <h2 className="font-serif mt-2 max-w-[18ch] text-xl font-normal leading-none tracking-tight sm:text-2xl lg:text-2xl">
             {t("home.howTitle")}
           </h2>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">

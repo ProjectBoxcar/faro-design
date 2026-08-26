@@ -25,7 +25,7 @@ export function StrategyArc({ phases }: { phases: ArcPhase[] }) {
         return (
           <li
             key={p.id}
-            className={`card-shadow flex flex-col rounded-2xl border bg-[var(--surface)] p-4 ${
+            className={`card-shadow flex flex-col rounded-xl border bg-[var(--surface)] p-4 ${
               p.isCurrent ? "border-[var(--accent)]" : "border-[var(--border)]"
             }`}
           >

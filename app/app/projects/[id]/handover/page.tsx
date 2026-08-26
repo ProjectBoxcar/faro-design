@@ -82,7 +82,7 @@ export default async function BrandHandoverPage({
   const snap = getCurrentSnapshotForProject(id);
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-5 lg:px-6 lg:py-6">
+    <div className="mx-auto w-full max-w-6xl px-3 py-4 lg:px-5 lg:py-5">
       <Link
         href={`/projects/${id}/design`}
         className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
@@ -95,7 +95,7 @@ export default async function BrandHandoverPage({
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
             Finish
           </p>
-          <h1 className="mt-1.5 font-serif text-2xl font-medium tracking-tight lg:text-3xl">
+          <h1 className="mt-1.5 font-serif text-lg font-medium tracking-tight lg:text-xl">
             Brand Handover
           </h1>
           <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">
@@ -115,7 +115,7 @@ export default async function BrandHandoverPage({
       </header>
 
       {studioBlocked ? (
-        <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-8 text-sm text-[var(--muted)]">
+        <div className="rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-8 text-sm text-[var(--muted)]">
           <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
             <LockKeyhole size={18} />
           </div>
@@ -130,7 +130,7 @@ export default async function BrandHandoverPage({
         </div>
       ) : (
         <>
-          <section className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow">
+          <section className="mb-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <h2 className="font-serif text-lg font-medium tracking-tight">Package checklist</h2>
@@ -218,7 +218,7 @@ export default async function BrandHandoverPage({
               outputs={outputs}
             />
           ) : (
-            <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-10 text-center">
+            <div className="rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-10 text-center">
               <p className="font-medium text-[var(--foreground)]">Package not complete yet</p>
               <p className="mx-auto mt-2 max-w-md text-sm text-[var(--muted)]">
                 Finish selecting finals in Design Studio. When identity, landing page, and deck are
@@ -226,7 +226,7 @@ export default async function BrandHandoverPage({
               </p>
               <Link
                 href={`/projects/${id}/design`}
-                className="mt-5 inline-flex rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
+                className="mt-5 inline-flex rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
               >
                 Continue in Design Studio
               </Link>

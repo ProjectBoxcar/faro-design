@@ -114,7 +114,7 @@ export function ContentCalendarView({
   return (
     <div className="space-y-6">
       {strategy ? (
-        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow">
+        <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 card-shadow">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
             Content strategy
           </p>
@@ -238,7 +238,7 @@ export function ContentCalendarView({
             {week.posts.map((post) => (
               <li
                 key={post.id}
-                className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 card-shadow"
+                className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 card-shadow"
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs font-medium text-[var(--muted)]">

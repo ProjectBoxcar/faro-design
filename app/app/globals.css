@@ -22,8 +22,8 @@
 }
 
 html {
-  /* Density scale: 14.5px after type/chrome pass (tool-sized, still readable) */
-  font-size: 14.5px;
+  /* Compact mode: 13.5px rem (~16% under browser 16px) — tool-sized */
+  font-size: 13.5px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -33,7 +33,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   letter-spacing: -0.011em;
-  line-height: 1.55;
+  line-height: 1.45;
 }
 
 .font-serif {
@@ -54,9 +54,9 @@ body {
 }
 
 .faro-kicker {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--client, var(--brand-accent, #f25c2a));
 }

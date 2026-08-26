@@ -203,7 +203,7 @@ export default function StartPage() {
               size="full"
               className="mb-5 aspect-[16/9] w-full max-w-md border border-[var(--border)]"
             />
-            <h1 className="font-serif text-2xl font-medium leading-tight tracking-tight lg:text-3xl">
+            <h1 className="font-serif text-lg font-medium leading-tight tracking-tight lg:text-xl">
               {t("start.title")}
             </h1>
             <p className="mt-2 text-sm text-[var(--muted)]">{t("start.intro")}</p>
@@ -216,7 +216,7 @@ export default function StartPage() {
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && next()}
               placeholder={t("start.brandNamePh")}
-              className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3.5 py-2 text-base outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+              className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3 py-1.5 text-base outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
             />
             <p className="mt-1.5 text-xs text-[var(--subtle)]">{t("start.brandNameHint")}</p>
 
@@ -225,7 +225,7 @@ export default function StartPage() {
               value={client}
               onChange={(e) => setClient(e.target.value)}
               placeholder={t("start.companyPh")}
-              className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3.5 py-2 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+              className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3 py-1.5 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
             />
 
             <label className="mt-4 flex items-start gap-2.5 text-sm text-[var(--muted)]">
@@ -262,7 +262,7 @@ export default function StartPage() {
             <div className="text-xs font-semibold uppercase tracking-wider text-[var(--subtle)]">
               {t("start.questionOf", { n: qn, total: Q_KEYS.length })}
             </div>
-            <h1 className="mt-1.5 font-serif text-2xl font-medium leading-tight tracking-tight lg:text-3xl">
+            <h1 className="mt-1.5 font-serif text-lg font-medium leading-tight tracking-tight lg:text-xl">
               {t(`start.q${qn}Title`)}
             </h1>
             <p className="mt-2 text-sm text-[var(--muted)]">{t(`start.q${qn}Help`)}</p>
@@ -271,8 +271,8 @@ export default function StartPage() {
               value={answers[qKey]}
               onChange={(e) => setAnswers((a) => ({ ...a, [qKey]: e.target.value }))}
               placeholder={t(`start.q${qn}Ph`)}
-              rows={7}
-              className="mt-5 w-full resize-y rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-4 py-3 leading-relaxed outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+              rows={5}
+              className="mt-5 w-full resize-y rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-3 py-2 leading-relaxed outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
             />
             <p className="mt-2 text-xs text-[var(--subtle)]">{t("start.typeHint")}</p>
           </div>
@@ -298,7 +298,7 @@ export default function StartPage() {
             onClick={build}
             disabled={!canAdvance || building}
             data-faro-anchor="faro-start-finish"
-            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {t("start.finish")} <Check size={16} />
           </button>
@@ -307,7 +307,7 @@ export default function StartPage() {
             onClick={next}
             disabled={!canAdvance}
             data-faro-anchor="faro-start-next"
-            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isDetails ? t("start.startBtn") : t("common.next")} <ArrowRight size={15} />
           </button>

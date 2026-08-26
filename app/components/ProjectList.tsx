@@ -196,7 +196,7 @@ export function ProjectList({ projects }: { projects: ProjectCardData[] }) {
           return (
             <li
               key={p.id}
-              className={`card-shadow flex flex-col gap-3 rounded-2xl border bg-[var(--surface)] px-5 py-4 transition ${
+              className={`card-shadow flex flex-col gap-3 rounded-xl border bg-[var(--surface)] px-5 py-4 transition ${
                 isSelected
                   ? "border-[var(--accent)] bg-[var(--accent)]/5 ring-1 ring-[var(--accent)]/30"
                   : "border-[var(--border)] hover:bg-[var(--surface-2)]"

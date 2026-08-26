@@ -311,7 +311,7 @@ export function ContentStudioWorkspace({
     return (
       <div className="mx-auto max-w-2xl px-4 py-10 text-center">
         <Lock className="mx-auto text-[var(--subtle)]" size={24} />
-        <h1 className="mt-3 font-serif text-2xl font-medium tracking-tight">{t("stage.content")}</h1>
+        <h1 className="mt-3 font-serif text-xl font-medium tracking-tight">{t("stage.content")}</h1>
         <p className="mt-3 text-sm text-[var(--muted)]">{blockedReason}</p>
         <p className="mt-2 text-xs text-[var(--subtle)]">{t("content.blocked")}</p>
       </div>
@@ -319,13 +319,13 @@ export function ContentStudioWorkspace({
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-5 lg:px-6 lg:py-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6 px-3 py-4 lg:px-5 lg:py-5">
       <StagePageBanner stageId="content" className="mb-0">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
           Content Studio
         </p>
         <h1
-          className="mt-1 font-serif text-xl font-medium tracking-tight lg:text-2xl"
+          className="mt-1 font-serif text-lg font-medium tracking-tight lg:text-xl"
           data-faro-anchor="faro-content-primary"
         >
           {t("content.title")}
@@ -380,7 +380,7 @@ export function ContentStudioWorkspace({
       ) : null}
 
       {!profile ? (
-        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
+        <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
           {mode === "project" ? (
             <>
               <p className="text-sm text-[var(--muted)]">
@@ -390,7 +390,7 @@ export function ContentStudioWorkspace({
                 type="button"
                 disabled={busy !== null}
                 onClick={() => void lockFromProject()}
-                className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
                 {busy === "lock" ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
                 Use brand from this project
@@ -431,7 +431,7 @@ export function ContentStudioWorkspace({
                 type="button"
                 disabled={busy !== null || !standaloneName.trim()}
                 onClick={() => void lockInferred()}
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
                 {busy === "lock" ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
                 Start with this brand
@@ -444,7 +444,7 @@ export function ContentStudioWorkspace({
           <BrandProfileStrip profile={profile} />
 
           {step === "brief" || step === "generate" ? (
-          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
+          <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
             <h3 className="font-medium">Month brief</h3>
             <p className="mt-1 text-xs text-[var(--muted)]">
               Optional notes for this month — goals, offer, what to avoid, and language. We treat this as the brief for planning posts.
@@ -503,7 +503,7 @@ export function ContentStudioWorkspace({
           ) : null}
 
           {step === "media" || step === "generate" ? (
-          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
+          <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
             <h3 className="font-medium">Raw media</h3>
             <p className="mt-1 text-xs text-[var(--muted)]">
               Tag each photo, skip anything you don&apos;t want used, then review fit. Skipped files never enter the month plan.
@@ -651,7 +651,7 @@ export function ContentStudioWorkspace({
           ) : null}
 
           {step === "generate" ? (
-          <div className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
+          <div className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 card-shadow">
             <h3 className="font-medium">Generate month</h3>
             <p className="text-xs text-[var(--muted)]">
               We plan the month from your photos, then design each post. This can take several minutes.
@@ -699,7 +699,7 @@ export function ContentStudioWorkspace({
               }
               onClick={() => void runGenerate()}
               data-faro-anchor="faro-content-generate"
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
               {busy === "generate" || busy === "design" ? (
                 <Loader2 size={16} className="animate-spin" />

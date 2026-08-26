@@ -195,7 +195,7 @@ export function PillarReview({
   return (
     <div>
       {anyGenerating && autoDraftStarted > 0 && (
-        <div className="mb-8 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-4 py-4">
+        <div className="mb-8 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-4 py-4">
           <div className="flex items-center justify-between gap-3 text-sm">
             <FaroLoaderInline label="Drafting this pillar from your earlier answers…" size="sm" />
             <span className="font-semibold tabular-nums text-[var(--accent)]" aria-live="polite">
@@ -231,7 +231,7 @@ export function PillarReview({
               className="border-t border-[var(--border)] pt-8 first:border-0 first:pt-0"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="font-serif text-2xl font-medium tracking-tight">{step.section.name}</h2>
+                <h2 className="font-serif text-xl font-medium tracking-tight">{step.section.name}</h2>
                 <div className="flex items-center gap-2">
                   {s.aiOwned && filled && s.status !== "complete" && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--designer)]">
@@ -309,7 +309,7 @@ export function PillarReview({
           <button
             onClick={done}
             disabled={busy || anyGenerating}
-            className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
           >
             {busy ? "Saving…" : anyGenerating ? "Writing…" : isLast ? "Looks good — finish" : "Looks good — continue"}
             {isLast ? <Check size={16} /> : <ArrowRight size={16} />}

@@ -9,11 +9,11 @@ import type { ReactNode } from "react";
 type Size = "sm" | "md" | "lg" | "xl" | "hero";
 
 const SIZE_PX: Record<Size, number> = {
-  sm: 36,
-  md: 64,
-  lg: 96,
-  xl: 128,
-  hero: 168,
+  sm: 28,
+  md: 48,
+  lg: 72,
+  xl: 96,
+  hero: 112,
 };
 
 export function FaroBeacon({
@@ -152,7 +152,7 @@ export function FaroLoaderPanel({
         <FaroBeacon size={beaconSize} tone={tone} />
       </div>
       <h1
-        className={`mt-4 font-serif text-xl font-medium tracking-tight lg:text-2xl ${
+        className={`mt-4 font-serif text-lg font-medium tracking-tight lg:text-xl ${
           dark ? "text-white" : "text-[var(--foreground)]"
         }`}
       >

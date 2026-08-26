@@ -142,7 +142,7 @@ export function ViabilityPanel({
   }
 
   return (
-    <div className={`mt-4 rounded-2xl border p-4 ${shell.className}`}>
+    <div className={`mt-4 rounded-xl border p-4 ${shell.className}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-2.5">
           <Icon size={18} className="mt-0.5 shrink-0" />

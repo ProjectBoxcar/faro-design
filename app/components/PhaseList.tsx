@@ -48,7 +48,7 @@ function PhaseRow({ projectId, phase }: { projectId: string; phase: PhaseItem })
   const complete = phase.total > 0 && phase.done === phase.total;
 
   return (
-    <div className="card-shadow overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+    <div className="card-shadow overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-3 px-4 py-3 text-left"

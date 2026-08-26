@@ -67,7 +67,7 @@ export default async function ShareBriefPage({
           {version != null ? ` · v${version}` : ""}
           {fromSnapshot ? " · as shared" : ""}
         </p>
-        <h1 className="font-serif text-3xl font-medium leading-[1.0] tracking-tight lg:text-4xl">
+        <h1 className="font-serif text-3xl font-medium leading-[1.0] tracking-tight lg:text-2xl">
           {displayName}
         </h1>
         {displayClient && (
@@ -86,7 +86,7 @@ export default async function ShareBriefPage({
       </header>
 
       {!hasAnything ? (
-        <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-12 text-center">
+        <div className="rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-12 text-center">
           <p className="text-[var(--muted)]">This brief is still being prepared.</p>
         </div>
       ) : (
