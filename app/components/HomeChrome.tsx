@@ -79,7 +79,7 @@ export function HomeHeroActions({ showProjects }: { showProjects: boolean }) {
         <IllustrativeFigure
           id="heroHarbour"
           size="hero"
-          className="aspect-[16/10] w-full border border-[var(--border)] shadow-[var(--shadow-card)]"
+          className="aspect-[16/9] max-h-[14rem] w-full border border-[var(--border)] object-cover shadow-[var(--shadow-card)] sm:max-h-[18rem]"
         />
       </div>
     </header>

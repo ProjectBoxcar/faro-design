@@ -20,14 +20,15 @@ export function StagePageBanner({
 }) {
   return (
     <header
-      className={`mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between ${className}`}
+      className={`mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between ${className}`}
       data-faro-anchor={faroAnchor}
     >
       <div className="min-w-0 flex-1">{children}</div>
+      {/* Photos read huge; keep stage art tiny and desktop-only */}
       <StageIllustration
         stageId={stageId}
-        size="sm"
-        className="hidden shrink-0 self-start border border-[var(--border)] shadow-[var(--shadow-card)] sm:block sm:self-center lg:h-14 lg:w-14"
+        size="xs"
+        className="hidden shrink-0 self-start border border-[var(--border)] shadow-[var(--shadow-card)] lg:block lg:h-11 lg:w-11"
       />
     </header>
   );

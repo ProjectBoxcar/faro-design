@@ -15,7 +15,16 @@ Default: **read-only**. Do not implement unless the user asks to fix / implement
 
 ## Mission
 
-Find why the product still feels oversized **after** rem tweaks (often `html { font-size: 15px }` is already set). Overwhelm usually comes from **display type leftovers, page padding, illustration mass, nested rails, hero loaders, and coach chrome** — not rem alone.
+Find why the product still feels oversized. **Do not recommend only hunting Tailwind classes.**
+
+Priority root causes (in order):
+
+1. **Theme tokens not dense** — Tailwind `--spacing` (default `.25rem`) and `--text-*` still at marketing defaults. Fix in `globals.css` `@theme` first.
+2. **Illustration / photo mass** — Stage banners, home step cards, hero art dominate the eye even when type is smaller.
+3. **Nested chrome** — Design Studio rails, coach face, mobile Stages bands.
+4. **Owner environment** — Windows Display scale 125–150% and browser zoom make rem tweaks feel “the same.”
+
+Rem-only edits (`html { font-size }`) without `@theme` spacing/type overrides will **feel unchanged**.
 
 ## Surfaces to inspect (priority order)
 
