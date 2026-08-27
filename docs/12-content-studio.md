@@ -43,12 +43,13 @@ Both workflows call the **same generation engine** after a `BrandProfile` is loc
 
 ## Unlock rules (Workflow A)
 
-Content Studio unlocks when the project’s brand package is complete:
+Content Studio unlocks when the project’s **Brand Handover package** is complete:
 
-- Approved logo  
-- Selected design system + landing + deck (same as handover package ready)
+- Selected design system + landing + deck  
+- Selected channel templates: SMS, email, ad, print (all bound to that identity)  
+- Same gate as `finalDeliverableIssue === null` in `lib/design-deliverable.ts`
 
-See `lib/content-studio/gates.ts`.
+See `lib/content-studio/gates.ts`. Journey is complete when a content calendar with posts exists.
 
 ## Architecture
 

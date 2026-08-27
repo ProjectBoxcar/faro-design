@@ -1,16 +1,33 @@
 import type { AssetKind } from "@/lib/db/types";
+import { CHANNEL_ASSET_KINDS } from "@/lib/db/types";
 import { externalResourceUrls } from "@/lib/design-validation";
 
 export { sanitizeDownloadName } from "@/lib/download-name";
 
+/** Core visual three — still named separately for UI grouping. */
 export const FINAL_DESIGN_KINDS = ["design_system", "landing_page", "deck"] as const;
 export type FinalDesignKind = (typeof FINAL_DESIGN_KINDS)[number];
 
-const FINAL_META: Record<FinalDesignKind, { label: string; filename: string }> = {
+/** Full Brand Handover package — core visuals + strategy-grounded channel templates. */
+export const PACKAGE_ASSET_KINDS = [...FINAL_DESIGN_KINDS, ...CHANNEL_ASSET_KINDS] as const;
+export type PackageAssetKind = (typeof PACKAGE_ASSET_KINDS)[number];
+
+const PACKAGE_META: Record<PackageAssetKind, { label: string; filename: string }> = {
   design_system: { label: "Brand Identity System", filename: "01-brand-identity-system.html" },
   landing_page: { label: "Landing Page", filename: "02-landing-page.html" },
   deck: { label: "Brand Deck", filename: "03-brand-deck.html" },
+  sms: { label: "SMS Template", filename: "04-sms-template.html" },
+  email: { label: "Email Template", filename: "05-email-template.html" },
+  ad: { label: "Ad Mockups", filename: "06-ad-mockups.html" },
+  print: { label: "Print Collateral", filename: "07-print-collateral.html" },
 };
+
+/** @deprecated Prefer PACKAGE_META / package labels — kept for callers expecting core-only meta */
+const FINAL_META = {
+  design_system: PACKAGE_META.design_system,
+  landing_page: PACKAGE_META.landing_page,
+  deck: PACKAGE_META.deck,
+} as const;
 
 type DeliverableAsset = {
   id: string;
@@ -28,28 +45,39 @@ export function missingFinalKinds(assets: DeliverableAsset[]): FinalDesignKind[]
   );
 }
 
+export function missingPackageKinds(assets: DeliverableAsset[]): PackageAssetKind[] {
+  return PACKAGE_ASSET_KINDS.filter(
+    (kind) => !assets.some((asset) => asset.kind === kind && asset.selected && asset.html?.trim())
+  );
+}
+
+function selectedOf(assets: DeliverableAsset[], kind: PackageAssetKind): DeliverableAsset | undefined {
+  return assets.find((asset) => asset.kind === kind && asset.selected);
+}
+
 export function finalDeliverableIssue(assets: DeliverableAsset[]): string | null {
-  const missing = missingFinalKinds(assets);
+  const missing = missingPackageKinds(assets);
   if (missing.length > 0) {
-    const labels = missing.map((kind) => FINAL_META[kind].label).join(", ");
+    const labels = missing.map((kind) => PACKAGE_META[kind].label).join(", ");
     return `Choose a final proposal for: ${labels}.`;
   }
-  const identity = assets.find((asset) => asset.kind === "design_system" && asset.selected);
+  const identity = selectedOf(assets, "design_system");
   if (!identity) return "Choose a final proposal for: Brand Identity System.";
-  // Only core package kinds gate the deliverable — optional channel templates
-  // (sms/email/ad/print) must not block Brand Handover if they slip a CDN URL.
-  for (const kind of FINAL_DESIGN_KINDS) {
-    const asset = assets.find((candidate) => candidate.kind === kind && candidate.selected);
+
+  for (const kind of PACKAGE_ASSET_KINDS) {
+    const asset = selectedOf(assets, kind);
     if (!asset) continue;
     if (externalResourceUrls(asset.html ?? "").length > 0) {
-      return `The final ${FINAL_META[kind].label} uses external resources. Regenerate it before creating an offline deliverable.`;
+      return `The final ${PACKAGE_META[kind].label} uses external resources. Regenerate it before creating an offline deliverable.`;
     }
   }
-  for (const kind of ["landing_page", "deck"] as const) {
-    const asset = assets.find((candidate) => candidate.kind === kind && candidate.selected);
-    if (!asset) return `Choose a final proposal for: ${FINAL_META[kind].label}.`;
+
+  // Landing, deck, and all channels must be bound to the selected identity.
+  for (const kind of ["landing_page", "deck", ...CHANNEL_ASSET_KINDS] as const) {
+    const asset = selectedOf(assets, kind);
+    if (!asset) return `Choose a final proposal for: ${PACKAGE_META[kind].label}.`;
     if (asset.design_system_id !== identity.id) {
-      return `Choose a final ${FINAL_META[kind].label} generated from the final Brand Identity System.`;
+      return `Choose a final ${PACKAGE_META[kind].label} generated from the final Brand Identity System.`;
     }
   }
   return null;
@@ -78,14 +106,14 @@ export function buildFaroDeliverable(
   const issue = finalDeliverableIssue(assets);
   if (issue) throw new Error(issue);
 
-  const outputs = FINAL_DESIGN_KINDS.map((kind) => {
-    const asset = assets.find((candidate) => candidate.kind === kind && candidate.selected);
-    if (!asset) throw new Error(`Choose a final proposal for: ${FINAL_META[kind].label}.`);
+  const outputs = PACKAGE_ASSET_KINDS.map((kind) => {
+    const asset = selectedOf(assets, kind);
+    if (!asset) throw new Error(`Choose a final proposal for: ${PACKAGE_META[kind].label}.`);
     return {
       kind,
-      label: FINAL_META[kind].label,
+      label: PACKAGE_META[kind].label,
       variant: asset.variant ?? "Final",
-      filename: FINAL_META[kind].filename,
+      filename: PACKAGE_META[kind].filename,
       content: Buffer.from(asset.html ?? "", "utf8").toString("base64"),
     };
   });
@@ -127,7 +155,7 @@ ${outputs.map((output) => `<button class="tab" type="button" data-panel="${outpu
 </aside>
 <main>
 <section class="panel overview" id="overview">
-<div class="overview-card"><p class="eyebrow">Final brand package</p><h2>${safeProjectName}</h2><p>Complete delivery: visual package (identity, landing page, deck) plus files for product teams (tokens, logos, icons, copy).</p><div class="deliverables">
+<div class="overview-card"><p class="eyebrow">Final brand package</p><h2>${safeProjectName}</h2><p>Complete delivery from your strategy: identity, landing page, deck, and channel templates (SMS, email, ads, print), plus files for product teams.</p><div class="deliverables">
 ${outputs.map((output, index) => `<div class="deliverable"><div><strong>${output.label}</strong><br><span>Final proposal ${escapeHtml(output.variant)}</span></div><button class="download" type="button" data-download="${index}">Download source</button></div>`).join("\n")}
 ${implementRow}
 </div></div>
@@ -150,3 +178,5 @@ document.querySelectorAll('[data-pack]').forEach(button=>button.addEventListener
 </body>
 </html>`;
 }
+
+export { FINAL_META, PACKAGE_META };

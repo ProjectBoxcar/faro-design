@@ -13,6 +13,7 @@ import { designStudioBlockedReason, hasApprovedLogo, studioBlockedReason } from 
 import { hasConfirmedBrandName, needsNameWorkshop } from "@/lib/naming-propose";
 import { contentStudioBlockedReason } from "@/lib/content-studio/gates";
 import { latestCalendarForProject, listProfilesForProject } from "@/lib/content-studio/store";
+import { CHANNEL_ASSET_KINDS } from "@/lib/db/types";
 
 /** Shared stage state for every journey item (strategy, logo, design, handover). */
 export type StageStatus = "locked" | "todo" | "current" | "done";
@@ -78,14 +79,35 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
   const designBlocked = designStudioBlockedReason(projectId);
   const designUnlocked = !designBlocked;
 
-  const identityOk = designAssets.some((a) => a.kind === "design_system" && a.selected);
+  const identitySelected = designAssets.find((a) => a.kind === "design_system" && a.selected);
+  const identityOk = Boolean(identitySelected);
   const landingOk = designAssets.some(
-    (a) => a.kind === "landing_page" && a.selected && a.design_system_id
+    (a) =>
+      a.kind === "landing_page" &&
+      a.selected &&
+      identitySelected &&
+      a.design_system_id === identitySelected.id
   );
-  const deckOk = designAssets.some((a) => a.kind === "deck" && a.selected && a.design_system_id);
-  const designDone = identityOk && landingOk && deckOk;
-  // Handover opens only when identity + landing + deck finals exist — so the
-  // rail doesn't imply "finish" before export is actually possible.
+  const deckOk = designAssets.some(
+    (a) =>
+      a.kind === "deck" &&
+      a.selected &&
+      identitySelected &&
+      a.design_system_id === identitySelected.id
+  );
+  const channelsOk = CHANNEL_ASSET_KINDS.every((kind) =>
+    designAssets.some(
+      (a) =>
+        a.kind === kind &&
+        a.selected &&
+        a.html?.trim() &&
+        identitySelected &&
+        a.design_system_id === identitySelected.id
+    )
+  );
+  // Design stage done = core visuals + required channel templates (strategy-bound).
+  const designDone = identityOk && landingOk && deckOk && channelsOk;
+  // Handover opens only when the full package (incl. channels) can export.
   const handoverUnlocked = designDone;
   const handoverDone = designDone;
   const contentBlocked = contentStudioBlockedReason(projectId);
@@ -154,7 +176,7 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
     }
   }
 
-  // Design substeps
+  // Design substeps — visuals then required strategy-grounded channels
   const designKinds = [
     {
       id: "identity-system",
@@ -183,10 +205,24 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       done: deckOk,
       lockHint: "Choose an identity first",
     },
+    {
+      id: "channels",
+      name: "Channel templates",
+      kind: "sms" as const,
+      href: `/projects/${projectId}/design#channel-templates`,
+      unlocked: identityOk,
+      done: channelsOk,
+      lockHint: "Choose an identity first",
+    },
   ];
 
   const designSteps: JourneyStepItem[] = designKinds.map((step) => {
-    const proposals = designAssets.filter((a) => a.kind === step.kind);
+    const proposals =
+      step.id === "channels"
+        ? designAssets.filter((a) =>
+            (CHANNEL_ASSET_KINDS as readonly string[]).includes(a.kind)
+          )
+        : designAssets.filter((a) => a.kind === step.kind);
     let status: StageStatus;
     if (!step.unlocked) status = "locked";
     else if (step.done) status = "done";
@@ -196,10 +232,16 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       status === "locked"
         ? step.lockHint
         : status === "done"
-          ? "Final chosen"
-          : proposals.length > 0
-            ? `${proposals.length} to review — choose final`
-            : "Not started";
+          ? step.id === "channels"
+            ? "All channels final"
+            : "Final chosen"
+          : step.id === "channels"
+            ? proposals.length > 0
+              ? "Choose finals for SMS · email · ads · print"
+              : "Build from strategy"
+            : proposals.length > 0
+              ? `${proposals.length} to review — choose final`
+              : "Not started";
     return {
       id: step.id,
       name: step.name,
@@ -285,10 +327,12 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       locked: !designUnlocked,
       done: designDone,
       lockHint: designBlocked ?? "Approve a logo first",
-      doneDetail: "Identity + mockups final",
-      todoDetail: identityOk
-        ? "Finish landing page & deck"
-        : "Build identity, then mockups",
+      doneDetail: "Identity, mockups & channels final",
+      todoDetail: !identityOk
+        ? "Build identity, then mockups & channels"
+        : !landingOk || !deckOk
+          ? "Finish landing page & deck"
+          : "Build SMS · email · ads · print from strategy",
       steps: designSteps,
     },
     {
@@ -297,7 +341,7 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       href: `/projects/${projectId}/handover`,
       locked: !handoverUnlocked,
       done: handoverDone,
-      lockHint: "Finish identity, landing, and deck in Design Studio first",
+      lockHint: "Finish identity, landing, deck, and channel templates in Design Studio first",
       doneDetail: project.share_token
         ? "Package ready · brand package published"
         : "Package ready · download or publish",
@@ -311,7 +355,7 @@ export function buildProjectJourney(projectId: string): ProjectJourney {
       href: `/projects/${projectId}/content`,
       locked: !contentUnlocked && !contentHasWork,
       done: contentDone,
-      lockHint: contentBlocked ?? "Approve a logo and choose an identity system first",
+      lockHint: contentBlocked ?? "Finish the Brand Handover package first",
       doneDetail: "Month of posts ready",
       todoDetail: contentHasWork
         ? "Review posts and approve what ships"

@@ -5,27 +5,23 @@ import "server-only";
 import { listAssets } from "@/lib/design";
 import { finalDeliverableIssue } from "@/lib/design-deliverable";
 import { getProject } from "@/lib/queries";
-import { hasApprovedLogo } from "@/lib/studio";
 
 /**
- * Soft unlock: approved logo + selected identity system.
- * Full package (landing + deck) is recommended but not required for owner-operators
- * who want seasonal posts before every mockup final is done.
+ * Hard unlock: full Brand Handover package ready (identity + landing + deck +
+ * SMS/email/ad/print), all strategy-grounded through Design Studio.
+ * Content Studio is stage 6 of the journey — not an early soft unlock.
  */
 export function contentStudioBlockedReason(projectId: string): string | null {
   const project = getProject(projectId);
   if (!project) return "Unknown project";
-  if (!hasApprovedLogo(projectId)) {
-    return "Approve a logo in the Logo Workshop first.";
-  }
-  const identity = listAssets(projectId).find((a) => a.kind === "design_system" && a.selected);
-  if (!identity) {
-    return "Choose a Brand Identity System in Design Studio first.";
+  const issue = finalDeliverableIssue(listAssets(projectId));
+  if (issue) {
+    return "Finish the Brand Handover package first — identity, landing page, deck, and channel templates (SMS, email, ads, print) from your strategy.";
   }
   return null;
 }
 
-/** True when landing + deck finals exist (full brand package). */
+/** True when the full brand package (incl. channels) is ready. */
 export function contentStudioHasFullPackage(projectId: string): boolean {
   return finalDeliverableIssue(listAssets(projectId)) === null;
 }

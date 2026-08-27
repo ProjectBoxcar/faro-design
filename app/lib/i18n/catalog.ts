@@ -249,8 +249,8 @@ export const en: Catalog = {
     needIdentity: "Choose a Brand Identity System proposal first.",
     identityNext: "Identity chosen — next: application mockups",
     buildMockups: "Build landing page & deck",
-    visualsReady: "Visuals ready — finish the package on Brand Handover",
-    chooseFinals: "Choose your finals · {n}/3 ready",
+    visualsReady: "Package visuals ready — finish on Brand Handover",
+    chooseFinals: "Choose your finals · {n}/7 ready",
     handoverNote: "Client link and product-team files live on Brand Handover — not here.",
     openHandover: "Open Brand Handover",
     leftForHandover: "See what's left for handover",
@@ -263,7 +263,7 @@ export const en: Catalog = {
     notBuilt: "Not built yet",
     channelsTitle: "Channel templates",
     channelsBlurb:
-      "Optional SMS, email, ad, and print mockups — same identity and strategy as your core package. Not required for Brand Handover.",
+      "Required SMS, email, ad, and print templates — built from your strategy and the approved identity. Needed for Brand Handover.",
     channelsNeedIdentity: "Choose a Brand Identity System final first.",
     channelsBuild: "Build SMS · email · ads · print",
     channelsBuilding: "Building channel templates…",
@@ -274,7 +274,7 @@ export const en: Catalog = {
     finish: "Finish",
     title: "Brand Handover",
     blurb:
-      "Everything you approved in one place—identity, landing page, and deck. Download files for product teams, present full screen, or share a private client link.",
+      "Everything you approved from strategy—identity, landing page, deck, and channel templates. Download files for product teams, present full screen, or share a private client link.",
     checklist: "Package checklist",
     productFiles: "Files for product teams",
     readyDl: " · ready to download",
@@ -333,7 +333,7 @@ export const en: Catalog = {
     nextGenerate: "Next: Generate",
     uploadOne: "Upload at least one photo or video to continue.",
     blocked:
-      "Approve a logo and choose an identity system in Design Studio first — then you can plan the month (landing and deck help, but they don’t block).",
+      "Finish the Brand Handover package first — identity, landing page, deck, and channel templates from your strategy — then plan the month.",
   },
   projects: {
     continue: "Continue",
@@ -391,13 +391,13 @@ export const en: Catalog = {
       "Look at the directions. Keep what feels right, drop the rest. When you approve one mark, Design Studio builds the system around it — not the other way around.",
     designTitle: "System and mockups",
     designBody:
-      "Your logo leads. Pick one identity, then build the landing page and deck. When you're ready to share or download, meet me on Brand Handover — that's where the client link lives.",
+      "Your logo leads. Pick one identity, then landing, deck, and channel templates (SMS, email, ads, print) — all from your strategy. Brand Handover is next when those finals are chosen.",
     handoverTitle: "Safe harbour",
     handoverBody:
-      "Everything you approved, in one place. Download files for product teams, present full screen, or share a private client link. This is the handoff — clean and calm.",
+      "Everything you approved from strategy, in one place — visuals and channels. Download files for product teams, present full screen, or share a private client link. Then Content Studio puts the brand to work.",
     contentTitle: "Out into the weather",
     contentBody:
-      "The brand is built. Now we put it to work — a month of posts from your real photos. You still approve what ships. I just keep the light steady.",
+      "The package is complete. Now we put it to work — a month of posts from your real photos, grounded in the same strategy. You still approve what ships.",
     contentSoloTitle: "Content without the full voyage",
     contentSoloBody:
       "We can plan posts from photos here. If you want the full Faro package — strategy through handover — start a project from home. I'll be there either way.",
@@ -826,8 +826,8 @@ export const es: Catalog = {
     needIdentity: "Elige primero un sistema de identidad de marca.",
     identityNext: "Identidad elegida — siguiente: mockups de aplicación",
     buildMockups: "Construir landing y deck",
-    visualsReady: "Visuales listos — termina el paquete en Entrega de marca",
-    chooseFinals: "Elige tus finales · {n}/3 listos",
+    visualsReady: "Visuales del paquete listos — termina en Entrega de marca",
+    chooseFinals: "Elige tus finales · {n}/7 listos",
     handoverNote: "El enlace de cliente y los archivos para producto están en Entrega de marca — no aquí.",
     openHandover: "Abrir Entrega de marca",
     leftForHandover: "Ver qué falta para la entrega",
@@ -840,7 +840,7 @@ export const es: Catalog = {
     notBuilt: "Aún no construido",
     channelsTitle: "Plantillas de canal",
     channelsBlurb:
-      "Opcional: SMS, email, anuncio e impresión — misma identidad y estrategia. No son obligatorias para Entrega de marca.",
+      "Obligatorias: SMS, email, anuncio e impresión — desde tu estrategia y la identidad aprobada. Necesarias para Entrega de marca.",
     channelsNeedIdentity: "Elige primero un sistema de identidad final.",
     channelsBuild: "Crear SMS · email · ads · impresión",
     channelsBuilding: "Creando plantillas de canal…",
@@ -851,7 +851,7 @@ export const es: Catalog = {
     finish: "Cierre",
     title: "Entrega de marca",
     blurb:
-      "Todo lo que aprobaste en un solo lugar—identidad, landing y deck. Descarga archivos para equipos de producto, presenta a pantalla completa o comparte un enlace privado.",
+      "Todo lo que aprobaste desde la estrategia—identidad, landing, deck y plantillas de canal. Descarga archivos para equipos de producto, presenta a pantalla completa o comparte un enlace privado.",
     checklist: "Lista del paquete",
     productFiles: "Archivos para equipos de producto",
     readyDl: " · listo para descargar",
@@ -910,7 +910,7 @@ export const es: Catalog = {
     nextGenerate: "Siguiente: Generar",
     uploadOne: "Sube al menos una foto o vídeo para continuar.",
     blocked:
-      "Aprueba un logo y elige un sistema de identidad en Design Studio primero — luego puedes planear el mes (landing y deck ayudan, pero no bloquean).",
+      "Termina primero el paquete de Entrega de marca — identidad, landing, deck y plantillas de canal desde tu estrategia — luego planea el mes.",
   },
   projects: {
     continue: "Continuar",
@@ -968,13 +968,13 @@ export const es: Catalog = {
       "Mira las direcciones. Quédate con lo que encaje, suelta el resto. Cuando apruebes una marca, Design Studio construye el sistema a partir de ella — no al revés.",
     designTitle: "Sistema y mockups",
     designBody:
-      "Tu logo lidera. Elige una identidad, luego construye la landing y el deck. Cuando quieras compartir o descargar, nos vemos en Entrega de marca — ahí vive el enlace de cliente.",
+      "Tu logo lidera. Elige una identidad, luego landing, deck y plantillas de canal (SMS, email, ads, impresión) — todo desde tu estrategia. Entrega de marca es el siguiente paso cuando esos finales estén listos.",
     handoverTitle: "Puerto seguro",
     handoverBody:
-      "Todo lo que aprobaste, en un lugar. Descarga archivos para producto, presenta a pantalla completa o comparte un enlace privado. Esta es la entrega — limpia y calmada.",
+      "Todo lo que aprobaste desde la estrategia, en un lugar — visuales y canales. Descarga archivos para producto, presenta a pantalla completa o comparte un enlace privado. Luego Content Studio pone la marca a trabajar.",
     contentTitle: "Salir a la mar",
     contentBody:
-      "La marca está hecha. Ahora la ponemos a trabajar — un mes de posts con tus fotos reales. Tú sigues aprobando lo que se publica. Yo mantengo la luz firme.",
+      "El paquete está completo. Ahora lo ponemos a trabajar — un mes de posts con tus fotos reales, anclado en la misma estrategia. Tú sigues aprobando lo que se publica.",
     contentSoloTitle: "Contenido sin el viaje completo",
     contentSoloBody:
       "Podemos planear posts con fotos aquí. Si quieres el paquete Faro completo — de estrategia a entrega — empieza un proyecto en inicio. Estaré en ambos casos.",

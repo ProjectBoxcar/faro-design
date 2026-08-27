@@ -13,6 +13,7 @@ Reusable specialist roles for product audits. Each agent reviews the whole app t
 | `branding` | Faro product brand coherence + teaching quality |
 | `content` | Intake, coach copy, Content Studio, explanations |
 | `assistant` | Living Faro coach audit (`/audit-faro-assistant`) |
+| **`services`** | **Very short “what Faro offers”** (`/faro-services`) |
 
 ## Usage
 
@@ -24,6 +25,13 @@ Ask Grok to run a multi-expert audit, e.g.:
 
 > Run /audit-faro-ui-density — everything looks extremely big
 
-Skill path: `.grok/skills/audit-faro-ui-density/SKILL.md`
+**What does the product do?** Short services blurb:
+
+> /faro-services  
+> or: “what services does Faro offer?”
+
+Skill paths:
+- `.grok/skills/audit-faro-ui-density/SKILL.md`
+- `.grok/skills/faro-services/SKILL.md`
 
 Pilots stay on the machine (`data/brand.db`) — not in git.

@@ -99,7 +99,8 @@ export default async function BrandHandoverPage({
             Brand Handover
           </h1>
           <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">
-            Everything you approved in one place—identity, landing page, and deck. Download files for{" "}
+            Everything you approved from strategy—identity, landing page, deck, and channel templates
+            (SMS, email, ads, print). Download files for{" "}
             <strong className="font-medium text-[var(--foreground)]">product teams</strong>, present
             full screen, or share a private client link.
           </p>
@@ -161,7 +162,7 @@ export default async function BrandHandoverPage({
                           ? "bg-[var(--ok)]/15 text-[var(--ok)]"
                           : "bg-[var(--surface-2)] text-[var(--muted)]"
                       }`}
-                      title="Optional channel template from Design Studio"
+                      title="Required channel template from Design Studio (from your strategy)"
                     >
                       {item.ready ? (
                         <Check size={13} />
@@ -169,7 +170,7 @@ export default async function BrandHandoverPage({
                         <span className="h-2 w-2 rounded-full bg-[var(--border-strong)]" />
                       )}
                       {item.label}
-                      {item.ready ? "" : " · optional"}
+                      {item.ready ? "" : " · needed"}
                     </li>
                   ))}
                   {channelsReadyCount > 0 && channelsReadyCount < CHANNEL_ASSET_KINDS.length ? (

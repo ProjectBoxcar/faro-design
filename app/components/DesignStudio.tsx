@@ -655,6 +655,17 @@ export function DesignStudio({
       asset: deckSelected,
       ready: Boolean(identitySelected && deckSelected?.design_system_id === identitySelected.id),
     },
+    ...CHANNEL_ASSET_KINDS.map((kind) => {
+      const asset = selectedAsset(kind);
+      return {
+        kind,
+        label: KIND_META[kind].label,
+        asset,
+        ready: Boolean(
+          identitySelected && asset?.selected && asset.design_system_id === identitySelected.id && asset.html?.trim()
+        ),
+      };
+    }),
   ];
   const finalCount = finalOutputs.filter((output) => output.ready).length;
   const deliverableReady = finalCount === finalOutputs.length;
@@ -882,7 +893,9 @@ export function DesignStudio({
               ? "Step 2 — Landing page mockup"
               : !finalOutputs.find((o) => o.kind === "deck")?.ready
                 ? "Step 3 — Brand deck"
-                : "All finals chosen — continue to Brand Handover"}
+                : !channelsAligned
+                  ? "Step 4 — Channel templates (SMS · email · ads · print)"
+                  : "All finals chosen — continue to Brand Handover"}
         </p>
       </div>
 
@@ -1007,7 +1020,7 @@ export function DesignStudio({
             )}
           </section>
 
-          {/* Channel templates: SMS, email, ads, print — optional applications */}
+          {/* Channel templates: SMS, email, ads, print — required, strategy-grounded */}
           <section
             id="channel-templates"
             aria-labelledby="channel-templates-title"
@@ -1015,7 +1028,7 @@ export function DesignStudio({
           >
             <div className="mb-3 flex items-center gap-2">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent)]">
-                3
+                4
               </span>
               <span className="text-[var(--accent)]">
                 <Megaphone size={18} />
