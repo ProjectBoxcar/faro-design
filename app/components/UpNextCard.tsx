@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, PartyPopper } from "lucide-react";
+import { ArrowRight, PartyPopper, Phone } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
 import { IllustrativeFigure, StageIllustration } from "@/components/IllustrativeFigure";
 
@@ -63,12 +63,18 @@ export function UpNextCard({ next }: { next: UpNext | null }) {
 
           <ProgressBar done={next.overall.done} total={next.overall.total} className="mt-3" showPercent />
 
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap gap-2">
             <Link
               href={next.href}
               className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)]"
             >
               Continue · {next.name} <ArrowRight size={15} />
+            </Link>
+            <Link
+              href={`/projects/${next.projectId}/call`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-3.5 py-2 text-sm font-medium text-[var(--accent)] transition hover:border-[var(--accent)]"
+            >
+              <Phone size={14} /> Join call
             </Link>
           </div>
         </div>

@@ -104,6 +104,8 @@ export function coachTipFromPath(
     if (rest.startsWith("design")) return tipForScene("design", locale);
     if (rest.startsWith("handover")) return tipForScene("handover", locale);
     if (rest.startsWith("content")) return tipForScene("content", locale);
+    // Faro Call is its own full-screen guide — hide the floating dock.
+    if (rest.startsWith("call")) return { scene: "hidden" };
     return tipForScene("strategy_map", locale);
   }
 

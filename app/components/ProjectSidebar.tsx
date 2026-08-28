@@ -8,6 +8,7 @@ import {
   Check,
   ChevronDown,
   LockKeyhole,
+  Phone,
   Settings,
 } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
@@ -61,6 +62,7 @@ export function ProjectSidebar({
     if (stage.id === "design") return pathname.startsWith(`${base}/design`);
     if (stage.id === "handover") return pathname.startsWith(`${base}/handover`);
     if (stage.id === "content") return pathname.startsWith(`${base}/content`);
+    if (pathname.startsWith(`${base}/call`)) return false;
     return pathname === stage.href || pathname.startsWith(`${stage.href}/`);
   }
 
@@ -108,6 +110,12 @@ export function ProjectSidebar({
           </div>
           <ProgressBar done={overall.done} total={overall.total} showPercent />
         </div>
+        <Link
+          href={`/projects/${projectId}/call`}
+          className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)] transition hover:border-[var(--accent)]"
+        >
+          <Phone size={13} /> Join call with Faro
+        </Link>
       </div>
 
       <nav aria-label="Project journey" className="mt-5 flex-1 overflow-y-auto px-3 pb-6">
