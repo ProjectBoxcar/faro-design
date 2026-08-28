@@ -401,6 +401,9 @@ export const en: Catalog = {
     contentSoloTitle: "Content without the full voyage",
     contentSoloBody:
       "We can plan posts from photos here. If you want the full Faro package — strategy through handover — start a project from home. I'll be there either way.",
+    callTitle: "On the call",
+    callBody:
+      "Ask me anything about this project's strategy, name, logo, design package, or next step. I'll answer straight — then we can keep walking the agenda.",
   },
   explain: {
     /** Deep product knowledge — short, clear, insightful (not filler). */
@@ -978,6 +981,9 @@ export const es: Catalog = {
     contentSoloTitle: "Contenido sin el viaje completo",
     contentSoloBody:
       "Podemos planear posts con fotos aquí. Si quieres el paquete Faro completo — de estrategia a entrega — empieza un proyecto en inicio. Estaré en ambos casos.",
+    callTitle: "En la llamada",
+    callBody:
+      "Pregúntame lo que quieras sobre la estrategia, el nombre, el logo, el paquete de diseño o el siguiente paso. Te respondo claro — y seguimos la agenda.",
   },
   explain: {
     k: {

@@ -97,18 +97,23 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          path: `/projects/${ctx.projectId}/call`,
+          pathname: `/projects/${ctx.projectId}/call`,
           question: q,
           locale,
-          mode: "guide",
+          mode: "call",
         }),
       });
       const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          typeof data.error === "string" ? data.error : "Coach unavailable"
+        );
+      }
+      // Speak the answer body only — never title/JSON fluff.
       const answer =
-        (typeof data.body === "string" && data.body) ||
-        (typeof data.title === "string" && data.title) ||
-        (typeof data.message === "string" && data.message) ||
-        "I couldn't answer just now — try again, or open the stage page to edit.";
+        typeof data.body === "string" && data.body.trim()
+          ? data.body.trim()
+          : "I don't have a clear answer yet — check that your strategy AI key is in Settings, then ask again.";
       setAskAnswer(answer);
       setReply("");
       if (!muted && !captionsOnly) playLine(answer);

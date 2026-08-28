@@ -21,8 +21,8 @@ export type CoachAiRequest = {
   question?: string | null;
   /** UI language — Faro answers in this language */
   locale?: "en" | "es" | null;
-  /** Hover explain: control under the cursor */
-  mode?: "guide" | "hover" | null;
+  /** Hover explain: control under the cursor; call = video-call Q&A */
+  mode?: "guide" | "hover" | "call" | null;
   hover?: {
     label?: string | null;
     href?: string | null;
@@ -199,6 +199,8 @@ export async function generateCoachGuidance(
       : "LANGUAGE: Speak entirely in English.";
 
   const isHover = input.mode === "hover";
+  const isCallQa =
+    (input.mode === "call" || tip.scene === "call") && Boolean(question);
   const hover = input.hover;
 
   const hoverSystem = `${FARO_SYSTEM}
@@ -209,6 +211,15 @@ HOVER MODE (control under cursor):
 - Short: 2 crisp sentences max (~55 words). Clear. Insightful. Never vague, never "something nice", never "check the next page".
 - Prefer concrete Faro facts: stages, gates (approve, apply edits), lanes (strategy/logo/design), package vs client link.
 - title = 2-5 words naming the control's role; body = the insight.`;
+
+  const callSystem = `${FARO_SYSTEM}
+
+CALL MODE (live video-call with the owner):
+- They asked a real question. Answer it DIRECTLY in the first sentence.
+- Plain spoken language — calm video call, not poetry, not lighthouse metaphors.
+- Use ONLY the live project context (name, stage, what's done). If unknown, say what page to open next.
+- body = what you SAY out loud (2–4 short sentences, max ~90 words). title = 2-4 words for a caption kicker.
+- No markdown, no bullets, no disclaimers in body.`;
 
   const userPrompt = isHover
     ? [
@@ -228,29 +239,41 @@ HOVER MODE (control under cursor):
       ]
         .filter(Boolean)
         .join("\n")
-    : [
-        langLine,
-        "",
-        "Static seed for this screen (improve or rewrite in your voice; keep intent; translate if needed):",
-        `title: ${tip.title}`,
-        `body: ${tip.body}`,
-        tip.ctaLabel ? `suggestedCta: ${tip.ctaLabel}` : null,
-        "",
-        "Live context:",
-        context,
-        "",
-        question
-          ? `The owner asks: ${question}\nAnswer wisely for this moment in the journey.`
-          : "No freeform question — give the best guidance for this screen right now.",
-      ]
-        .filter(Boolean)
-        .join("\n");
+    : isCallQa
+      ? [
+          langLine,
+          "",
+          "You are on a live Faro Call presenting this project.",
+          "Live context:",
+          context,
+          "",
+          `Owner's question: ${question}`,
+          "",
+          "Answer clearly and directly. First sentence must address the question.",
+        ].join("\n")
+      : [
+          langLine,
+          "",
+          "Static seed for this screen (improve or rewrite in your voice; keep intent; translate if needed):",
+          `title: ${tip.title}`,
+          `body: ${tip.body}`,
+          tip.ctaLabel ? `suggestedCta: ${tip.ctaLabel}` : null,
+          "",
+          "Live context:",
+          context,
+          "",
+          question
+            ? `The owner asks: ${question}\nAnswer the question directly first, then one practical next step.`
+            : "No freeform question — give the best guidance for this screen right now.",
+        ]
+          .filter(Boolean)
+          .join("\n");
 
   try {
     const { text } = await generateStrategyText({
       model: MODELS.parsing,
-      maxTokens: isHover ? 200 : 280,
-      system: isHover ? hoverSystem : FARO_SYSTEM,
+      maxTokens: isHover ? 200 : isCallQa ? 360 : 280,
+      system: isHover ? hoverSystem : isCallQa ? callSystem : FARO_SYSTEM,
       messages: [{ role: "user", content: userPrompt }],
     });
     const parsed = extractJsonObject(text);
@@ -260,7 +283,7 @@ HOVER MODE (control under cursor):
         : tip.title;
     const body =
       typeof parsed?.body === "string" && parsed.body.trim()
-        ? parsed.body.trim().slice(0, 420)
+        ? parsed.body.trim().slice(0, isCallQa ? 560 : 420)
         : tip.body;
     const ctaLabel =
       typeof parsed?.ctaLabel === "string" && parsed.ctaLabel.trim()

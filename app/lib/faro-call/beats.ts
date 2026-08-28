@@ -45,11 +45,11 @@ export function buildFaroCallContext(
   beats.push({
     id: "welcome",
     stageId: "strategy",
-    line: `Hi — I'm Faro. This is our call about ${name}. I'll walk you through what's already built from your strategy, using the real assets in this project. You can leave anytime and edit on the normal pages.`,
+    line: `Hi, I'm Faro. We're on a call about ${name}. I'll show you what this project already has — strategy, name, logo, design, and what's left — using the real files. Ask me anything in the chat as we go.`,
     media: {
       kind: "text",
       title: "Faro Call",
-      body: "A live walkthrough of your brand journey — strategy first, then the assets.",
+      body: "Live walkthrough of your brand. Ask questions anytime.",
     },
   });
 
@@ -61,8 +61,8 @@ export function buildFaroCallContext(
     id: "strategy-open",
     stageId: "strategy",
     line: snap.conceptLine
-      ? `Here's the heart of the strategy for ${name}. This is what everything else hangs on — not a random style pack.`
-      : `We start with strategy for ${name}. Once the essentials are drafted and approved, this stage lights up with your concept.`,
+      ? `First, strategy for ${name}. Here's the core idea we drafted from your answers.`
+      : `First comes strategy for ${name}. When the essentials are drafted, your concept shows up here.`,
     media: {
       kind: "text",
       title: "1. Strategy",
@@ -224,11 +224,11 @@ export function buildFaroCallContext(
   beats.push({
     id: "close",
     stageId: "handover",
-    line: `That's the call for ${name}. Leave anytime to edit on the pages, or jump a stage from the agenda. I'll keep the light steady.`,
+    line: `That's the walkthrough for ${name}. Use Leave to go back to the project pages if you want to edit anything. Ask me more questions anytime before you go.`,
     media: {
       kind: "text",
       title: "Thanks for joining",
-      body: "Classic project pages stay available for deep edits. This call only presents what you've already built.",
+      body: "This call only presents what you've already built. Edit on the normal pages anytime.",
       ctaLabel: "Back to project",
       ctaHref: `/projects/${projectId}`,
     },

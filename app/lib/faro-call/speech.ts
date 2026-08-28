@@ -40,9 +40,14 @@ export function speakText(text: string, opts: SpeakOptions = {}): () => void {
   }
 
   stopSpeaking();
-  const u = new SpeechSynthesisUtterance(text.trim());
+  // Strip markdown / stage directions so TTS doesn't sound broken.
+  const clean = text
+    .trim()
+    .replace(/[*_`#]+/g, "")
+    .replace(/\s+/g, " ");
+  const u = new SpeechSynthesisUtterance(clean);
   u.lang = opts.lang ?? "en-US";
-  u.rate = opts.rate ?? 1;
+  u.rate = opts.rate ?? 0.95;
   const voice = pickVoice(u.lang);
   if (voice) u.voice = voice;
 
