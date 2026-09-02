@@ -1,6 +1,9 @@
 import "server-only";
 import { generateStrategyText, hasApiKey, MODELS } from "@/lib/ai";
+import { listAssets } from "@/lib/design";
+import { finalDeliverableIssue } from "@/lib/design-deliverable";
 import { getProject, getSections } from "@/lib/queries";
+import { hasConfirmedBrandName } from "@/lib/naming-propose";
 import { primaryActionFromJourney, buildProjectJourney } from "@/lib/sidebar-journey";
 import {
   coachTipFromPath,
@@ -13,6 +16,7 @@ import {
   moodForScene,
   type FaroMood,
 } from "@/lib/faro-persona";
+import { hasApprovedLogo } from "@/lib/studio";
 import { translate } from "@/lib/i18n/messages";
 
 export type CoachAiRequest = {
@@ -140,11 +144,16 @@ function buildContextBlock(pathname: string, projectId: string | null): string {
     const journey = buildProjectJourney(projectId);
     const current = journey.stages.find((s) => s.status === "current");
     const done = journey.stages.filter((s) => s.status === "done").map((s) => s.name);
+    const locked = journey.stages.filter((s) => s.status === "locked").map((s) => s.name);
     lines.push(`Progress: ${journey.overall.done}/${journey.overall.total} major stages done.`);
     if (current) {
       lines.push(`Current stage: ${current.name} — ${current.detail}`);
     }
     if (done.length) lines.push(`Done: ${done.join("; ")}`);
+    if (locked.length) lines.push(`Still locked: ${locked.join("; ")}`);
+    for (const s of journey.stages) {
+      lines.push(`Stage ${s.name}: ${s.status} (${s.detail})`);
+    }
     const primary = primaryActionFromJourney(projectId);
     if (primary) {
       lines.push(`Primary next: ${primary.name} — ${primary.detail} (href ${primary.href})`);
@@ -160,6 +169,27 @@ function buildContextBlock(pathname: string, projectId: string | null): string {
     lines.push(`Strategy sections with content: ${filled}`);
   } catch {
     /* ignore */
+  }
+
+  try {
+    lines.push(`Name confirmed: ${hasConfirmedBrandName(projectId) ? "yes" : "no"}`);
+    lines.push(`Logo approved: ${hasApprovedLogo(projectId) ? "yes" : "no"}`);
+    const assets = listAssets(projectId);
+    lines.push(
+      `Identity selected: ${assets.some((a) => a.kind === "design_system" && a.selected) ? "yes" : "no"}`
+    );
+    lines.push(
+      `Landing selected: ${assets.some((a) => a.kind === "landing_page" && a.selected) ? "yes" : "no"}`
+    );
+    lines.push(`Deck selected: ${assets.some((a) => a.kind === "deck" && a.selected) ? "yes" : "no"}`);
+    const issue = finalDeliverableIssue(assets);
+    lines.push(
+      issue
+        ? `Brand package ready: no — ${issue}`
+        : "Brand package ready: yes (identity, landing, deck, channels)"
+    );
+  } catch {
+    /* optional enrichment */
   }
 
   return lines.join("\n");
@@ -212,14 +242,15 @@ HOVER MODE (control under cursor):
 - Prefer concrete Faro facts: stages, gates (approve, apply edits), lanes (strategy/logo/design), package vs client link.
 - title = 2-5 words naming the control's role; body = the insight.`;
 
-  const callSystem = `${FARO_SYSTEM}
+  const callSystem = `You are Faro on a live video call inside Faro Design. Answer like a clear human guide.
 
-CALL MODE (live video-call with the owner):
-- They asked a real question. Answer it DIRECTLY in the first sentence.
-- Plain spoken language — calm video call, not poetry, not lighthouse metaphors.
-- Use ONLY the live project context (name, stage, what's done). If unknown, say what page to open next.
-- body = what you SAY out loud (2–4 short sentences, max ~90 words). title = 2-4 words for a caption kicker.
-- No markdown, no bullets, no disclaimers in body.`;
+RULES:
+- Answer the owner's question DIRECTLY in sentence one. Yes/no when the question is yes/no.
+- Use ONLY the Live context facts (stage status, logo approved, package ready, etc.). Never invent assets.
+- Plain speech for reading aloud. No poetry, no lighthouse metaphors, no "As an AI".
+- 2–4 short sentences, max ~80 words in "body". "title" = 2–4 words.
+- If something is missing, say exactly what to open next (Logo Workshop, Design Studio, Brand Handover, Content Studio).
+- Output ONLY JSON: {"title":"...","body":"...","mood":"calm|thinking|encouraging|careful|proud"}`;
 
   const userPrompt = isHover
     ? [

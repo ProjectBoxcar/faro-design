@@ -99,6 +99,21 @@ body {
   background: #ffffff;
 }
 
+@keyframes faro-call-stage-enter {
+  from { opacity: 0.4; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.faro-call-stage-enter {
+  animation: faro-call-stage-enter 280ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faro-call-stage-enter {
+    animation: none;
+  }
+}
+
 @keyframes faro-generation-progress {
   from { transform: translateX(-110%); }
   to { transform: translateX(280%); }
