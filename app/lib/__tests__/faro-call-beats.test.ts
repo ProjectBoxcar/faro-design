@@ -42,5 +42,65 @@ describe("buildFaroCallContext", () => {
     expect(ctx.projectName).toBe("Tide & Timber");
     const start = ctx.beats[ctx.startBeatIndex];
     expect(start.stageId).toBe("logo");
+    const close = ctx.beats.find((b) => b.id === "close");
+    expect(close).toBeTruthy();
+    expect(close?.stageId).toBe("content");
+  });
+
+  it("localizes spoken lines for Spanish", () => {
+    const ctx = buildFaroCallContext(
+      "proj1",
+      agenda,
+      {
+        projectName: "Tide & Timber",
+        confirmedName: "Tide & Timber",
+        conceptLine: "Coastal craft, not kitsch.",
+        manifestoLine: null,
+        logoSvg: "<svg></svg>",
+        logoSvgOnDark: "<svg></svg>",
+        identityHtml: null,
+        landingHtml: null,
+        deckHtml: null,
+        channelLabels: [],
+        packageReady: false,
+        contentReady: false,
+        shareHref: null,
+        contentHref: "/projects/proj1/content",
+        handoverHref: "/projects/proj1/handover",
+        designHref: "/projects/proj1/design",
+        expressHref: "/projects/proj1/express",
+        nameHref: "/projects/proj1/name",
+        logoHref: "/projects/proj1/studio",
+      },
+      "es"
+    );
+    expect(ctx.beats[0].line).toMatch(/Hola, soy Faro/i);
+    expect(ctx.beats.find((b) => b.id === "strategy-open")?.media.title).toMatch(/Estrategia/i);
+  });
+
+  it("wires shareHref into handover CTA when package is ready", () => {
+    const ctx = buildFaroCallContext("proj1", agenda, {
+      projectName: "Tide & Timber",
+      confirmedName: "Tide & Timber",
+      conceptLine: null,
+      manifestoLine: null,
+      logoSvg: null,
+      logoSvgOnDark: null,
+      identityHtml: "<div/>",
+      landingHtml: "<div/>",
+      deckHtml: "<div/>",
+      channelLabels: [{ label: "SMS template", ready: true }],
+      packageReady: true,
+      contentReady: false,
+      shareHref: "/share/abc",
+      contentHref: "/projects/proj1/content",
+      handoverHref: "/projects/proj1/handover",
+      designHref: "/projects/proj1/design",
+      expressHref: "/projects/proj1/express",
+      nameHref: "/projects/proj1/name",
+      logoHref: "/projects/proj1/studio",
+    });
+    const handover = ctx.beats.find((b) => b.id === "handover");
+    expect(handover?.media.ctaHref).toBe("/share/abc");
   });
 });

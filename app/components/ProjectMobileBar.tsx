@@ -8,11 +8,13 @@ import {
   Check,
   LockKeyhole,
   Map,
+  Phone,
   Settings,
   X,
 } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useLocale } from "@/components/LocaleProvider";
 import type { JourneyStageItem, StageStatus } from "@/lib/sidebar-journey";
 
 function stageTone(status: StageStatus, active: boolean): string {
@@ -40,7 +42,9 @@ export function ProjectMobileBar({
   designStudioUnlocked?: boolean;
 }) {
   const path = usePathname();
+  const { t } = useLocale();
   const onHub = path === `/projects/${projectId}`;
+  const onCall = path.startsWith(`/projects/${projectId}/call`);
   const backHref = onHub ? "/" : `/projects/${projectId}`;
   const [open, setOpen] = useState(false);
 
@@ -49,6 +53,7 @@ export function ProjectMobileBar({
 
   return (
     <header
+      data-project-chrome="mobile"
       className="sticky top-0 z-40 border-b border-[var(--border)] lg:hidden"
       style={{
         backgroundColor: "color-mix(in srgb, var(--background) 90%, transparent)",
@@ -75,6 +80,15 @@ export function ProjectMobileBar({
             </p>
           </div>
           <LanguageSwitcher className="shrink-0 scale-90" />
+          {!onCall ? (
+            <Link
+              href={`/projects/${projectId}/call`}
+              aria-label={t("call.joinWithFaro")}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)] transition active:bg-[var(--accent-soft)]"
+            >
+              <Phone size={14} />
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -83,7 +97,7 @@ export function ProjectMobileBar({
             aria-expanded={open}
           >
             <Map size={13} />
-            Stages
+            {t("nav.stages")}
           </button>
           <Link
             href="/settings"
@@ -149,16 +163,25 @@ export function ProjectMobileBar({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-medium">Journey stages</p>
+              <p className="text-sm font-medium">{t("nav.journey")}</p>
               <button
                 type="button"
-                aria-label="Close"
+                aria-label={t("common.close")}
                 onClick={() => setOpen(false)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted)] active:bg-[var(--surface-2)]"
               >
                 <X size={18} />
               </button>
             </div>
+            {!onCall ? (
+              <Link
+                href={`/projects/${projectId}/call`}
+                onClick={() => setOpen(false)}
+                className="mb-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-3 py-2.5 text-sm font-semibold text-[var(--accent)] transition active:opacity-90"
+              >
+                <Phone size={15} /> {t("call.joinWithFaro")}
+              </Link>
+            ) : null}
             <ul className="space-y-1">
               {stages.map((s) => {
                 const locked = s.status === "locked";

@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, PartyPopper, Phone } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
 import { IllustrativeFigure, StageIllustration } from "@/components/IllustrativeFigure";
+import { useLocale } from "@/components/LocaleProvider";
 
 export type UpNext = {
   projectId: string;
@@ -15,6 +18,7 @@ export type UpNext = {
 };
 
 export function UpNextCard({ next }: { next: UpNext | null }) {
+  const { t } = useLocale();
   if (!next) {
     return (
       <div className="rounded-xl border border-[var(--ok)]/30 bg-[var(--ok)]/10 p-4">
@@ -74,7 +78,7 @@ export function UpNextCard({ next }: { next: UpNext | null }) {
               href={`/projects/${next.projectId}/call`}
               className="inline-flex items-center gap-1.5 rounded-full border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-3.5 py-2 text-sm font-medium text-[var(--accent)] transition hover:border-[var(--accent)]"
             >
-              <Phone size={14} /> Join call
+              <Phone size={14} /> {t("call.join")}
             </Link>
           </div>
         </div>

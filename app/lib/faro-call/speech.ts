@@ -45,7 +45,7 @@ function pickVoice(lang: string): SpeechSynthesisVoice | null {
       let score = 0;
       const n = v.name.toLowerCase();
       if (/natural|neural|premium|enhanced|online/.test(n)) score += 4;
-      if (/google|microsoft|samantha|aria|jenny|guy/.test(n)) score += 3;
+      if (/google|microsoft|samantha|aria|jenny|guy| Sabina|jorge|paulina/.test(n)) score += 3;
       if (/female|zira|susan/.test(n)) score += 1;
       if (v.localService) score += 1;
       return { v, score };
@@ -78,15 +78,25 @@ export function speakText(text: string, opts: SpeakOptions = {}): () => void {
   }
 
   let cancelled = false;
+  let keepAlive: ReturnType<typeof setInterval> | null = null;
   const u = new SpeechSynthesisUtterance(clean);
   u.lang = opts.lang ?? "en-US";
   u.rate = opts.rate ?? 0.92;
   u.pitch = opts.pitch ?? 1;
 
+  const clearKeepAlive = () => {
+    if (keepAlive) {
+      clearInterval(keepAlive);
+      keepAlive = null;
+    }
+  };
+
   u.onend = () => {
+    clearKeepAlive();
     if (!cancelled) opts.onEnd?.();
   };
   u.onerror = (e) => {
+    clearKeepAlive();
     if (!cancelled) {
       opts.onError?.(e);
       opts.onEnd?.();
@@ -100,12 +110,23 @@ export function speakText(text: string, opts: SpeakOptions = {}): () => void {
     // Chrome: cancel + tiny delay avoids clipped first syllable
     window.speechSynthesis.cancel();
     setTimeout(() => {
-      if (!cancelled) window.speechSynthesis.speak(u);
+      if (cancelled) return;
+      window.speechSynthesis.speak(u);
+      // Chrome can freeze long utterances — pause/resume keeps them alive
+      keepAlive = setInterval(() => {
+        if (cancelled || !window.speechSynthesis.speaking) {
+          clearKeepAlive();
+          return;
+        }
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      }, 9000);
     }, 40);
   });
 
   return () => {
     cancelled = true;
+    clearKeepAlive();
     stopSpeaking();
   };
 }

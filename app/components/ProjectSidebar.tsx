@@ -68,6 +68,7 @@ export function ProjectSidebar({
 
   return (
     <aside
+      data-project-chrome="sidebar"
       className="sticky top-0 hidden h-screen w-52 shrink-0 flex-col border-r border-[var(--border)] lg:flex"
       style={{
         backgroundColor: "color-mix(in srgb, var(--background) 92%, transparent)",
@@ -114,7 +115,7 @@ export function ProjectSidebar({
           href={`/projects/${projectId}/call`}
           className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)] transition hover:border-[var(--accent)]"
         >
-          <Phone size={13} /> Join call with Faro
+          <Phone size={13} /> {t("call.joinWithFaro")}
         </Link>
       </div>
 

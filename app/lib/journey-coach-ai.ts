@@ -18,6 +18,7 @@ import {
 } from "@/lib/faro-persona";
 import { hasApprovedLogo } from "@/lib/studio";
 import { translate } from "@/lib/i18n/messages";
+import { callGuideUnavailableMessage } from "@/lib/faro-call/call-answers";
 
 export type CoachAiRequest = {
   pathname: string;
@@ -212,6 +213,18 @@ export async function generateCoachGuidance(
   }
 
   if (!aiAvailable) {
+    const isCallQaNoKey =
+      (input.mode === "call" || tip.scene === "call") && Boolean((input.question ?? "").trim());
+    if (isCallQaNoKey) {
+      return {
+        title: tip.title,
+        body: callGuideUnavailableMessage(localeEarly),
+        mood: "careful",
+        source: "fallback",
+        scene: tip.scene,
+        aiAvailable: false,
+      };
+    }
     return {
       ...fallbackResponse(tip, false),
       body: tip.body + translate(localeEarly, "coach.noKeyHint"),
@@ -308,14 +321,26 @@ RULES:
       messages: [{ role: "user", content: userPrompt }],
     });
     const parsed = extractJsonObject(text);
+    const parsedBody =
+      typeof parsed?.body === "string" && parsed.body.trim() ? parsed.body.trim() : "";
+    // Call Q&A: never substitute the static call tip as if it answered the question
+    if (isCallQa && !parsedBody) {
+      return {
+        title: tip.title,
+        body: callGuideUnavailableMessage(locale),
+        mood: "careful",
+        source: "fallback",
+        scene: tip.scene,
+        aiAvailable: true,
+      };
+    }
     const title =
       typeof parsed?.title === "string" && parsed.title.trim()
         ? parsed.title.trim().slice(0, 48)
         : tip.title;
-    const body =
-      typeof parsed?.body === "string" && parsed.body.trim()
-        ? parsed.body.trim().slice(0, isCallQa ? 560 : 420)
-        : tip.body;
+    const body = parsedBody
+      ? parsedBody.slice(0, isCallQa ? 560 : 420)
+      : tip.body;
     const ctaLabel =
       typeof parsed?.ctaLabel === "string" && parsed.ctaLabel.trim()
         ? parsed.ctaLabel.trim().slice(0, 40)
@@ -335,6 +360,16 @@ RULES:
       aiAvailable: true,
     };
   } catch {
+    if (isCallQa) {
+      return {
+        title: tip.title,
+        body: callGuideUnavailableMessage(locale),
+        mood: "careful",
+        source: "fallback",
+        scene: tip.scene,
+        aiAvailable: true,
+      };
+    }
     return fallbackResponse(tip, true);
   }
 }

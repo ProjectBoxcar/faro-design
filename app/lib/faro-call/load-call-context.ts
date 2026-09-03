@@ -9,6 +9,7 @@ import { hasConfirmedBrandName } from "@/lib/naming-propose";
 import { buildProjectJourney } from "@/lib/sidebar-journey";
 import { getApprovedLogo } from "@/lib/studio";
 import { latestCalendarForProject } from "@/lib/content-studio/store";
+import type { AppLocale } from "@/lib/i18n/types";
 
 function firstString(value: Record<string, unknown> | null | undefined, keys: string[]): string | null {
   if (!value) return null;
@@ -19,7 +20,10 @@ function firstString(value: Record<string, unknown> | null | undefined, keys: st
   return null;
 }
 
-export function loadFaroCallContext(projectId: string): FaroCallContext | null {
+export function loadFaroCallContext(
+  projectId: string,
+  locale: AppLocale = "en"
+): FaroCallContext | null {
   const project = getProject(projectId);
   if (!project) return null;
 
@@ -55,12 +59,19 @@ export function loadFaroCallContext(projectId: string): FaroCallContext | null {
         x.design_system_id === identity.id &&
         x.html?.trim()
     );
-    const labels: Record<string, string> = {
+    const labelsEn: Record<string, string> = {
       sms: "SMS template",
       email: "Email template",
       ad: "Ad mockups",
       print: "Print collateral",
     };
+    const labelsEs: Record<string, string> = {
+      sms: "Plantilla SMS",
+      email: "Plantilla de email",
+      ad: "Mockups de anuncios",
+      print: "Piezas impresas",
+    };
+    const labels = locale === "es" ? labelsEs : labelsEn;
     return { label: labels[kind] ?? kind, ready: Boolean(a) };
   });
 
@@ -73,25 +84,30 @@ export function loadFaroCallContext(projectId: string): FaroCallContext | null {
 
   const confirmed = hasConfirmedBrandName(projectId) ? project.name : null;
 
-  return buildFaroCallContext(projectId, agenda, {
-    projectName: project.name,
-    confirmedName: confirmed,
-    conceptLine: firstString(concept, ["statement", "concept", "essence", "idea"]),
-    manifestoLine: firstString(manifesto, ["manifesto", "declaration", "text", "body"]),
-    logoSvg: payload.svg ?? null,
-    logoSvgOnDark: payload.svgOnDark ?? payload.svg ?? null,
-    identityHtml: identity?.html ?? null,
-    landingHtml: landing?.html ?? null,
-    deckHtml: deck?.html ?? null,
-    channelLabels,
-    packageReady: finalDeliverableIssue(assets) === null,
-    contentReady,
-    shareHref: project.share_token ? `/share/${project.share_token}` : null,
-    contentHref: `/projects/${projectId}/content`,
-    handoverHref: `/projects/${projectId}/handover`,
-    designHref: `/projects/${projectId}/design`,
-    expressHref: `/projects/${projectId}/express`,
-    nameHref: `/projects/${projectId}/name`,
-    logoHref: `/projects/${projectId}/studio`,
-  });
+  return buildFaroCallContext(
+    projectId,
+    agenda,
+    {
+      projectName: project.name,
+      confirmedName: confirmed,
+      conceptLine: firstString(concept, ["statement", "concept", "essence", "idea"]),
+      manifestoLine: firstString(manifesto, ["manifesto", "declaration", "text", "body"]),
+      logoSvg: payload.svg ?? null,
+      logoSvgOnDark: payload.svgOnDark ?? payload.svg ?? null,
+      identityHtml: identity?.html ?? null,
+      landingHtml: landing?.html ?? null,
+      deckHtml: deck?.html ?? null,
+      channelLabels,
+      packageReady: finalDeliverableIssue(assets) === null,
+      contentReady,
+      shareHref: project.share_token ? `/share/${project.share_token}` : null,
+      contentHref: `/projects/${projectId}/content`,
+      handoverHref: `/projects/${projectId}/handover`,
+      designHref: `/projects/${projectId}/design`,
+      expressHref: `/projects/${projectId}/express`,
+      nameHref: `/projects/${projectId}/name`,
+      logoHref: `/projects/${projectId}/studio`,
+    },
+    locale
+  );
 }
