@@ -28,6 +28,10 @@ describe("journey-coach-pure", () => {
     expect(coachTipFromPath(`/projects/${id}/design`).scene).toBe("design");
     expect(coachTipFromPath(`/projects/${id}/handover`).scene).toBe("handover");
     expect(coachTipFromPath(`/projects/${id}/content`).scene).toBe("content");
+    expect(coachTipFromPath(`/projects/${id}/call`).scene).toBe("call");
+    const callEs = coachTipFromPath(`/projects/${id}/call`, "es");
+    if (callEs.scene === "hidden") throw new Error("expected call tip");
+    expect(callEs.title).toMatch(/llamada/i);
   });
 
   it("hides on public share", () => {

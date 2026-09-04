@@ -26,6 +26,8 @@ export const SCENE_ANCHORS: Record<Exclude<CoachScene, "hidden">, string[]> = {
   handover: ["faro-handover-share", "faro-handover-pack", "faro-handover-primary"],
   content: ["faro-content-generate", "faro-content-review", "faro-content-primary"],
   content_standalone: ["faro-content-generate", "faro-content-primary"],
+  // Faro Call uses its own shell — dock anchors unused while coach is hidden on /call
+  call: [],
 };
 
 export type DockRect = {

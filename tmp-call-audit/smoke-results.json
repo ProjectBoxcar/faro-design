@@ -1,0 +1,54 @@
+{
+  "environment": {
+    "url": "http://127.0.0.1:3100/projects/hjYFwST2Foj_191sOZwJK/call",
+    "viewport": "1280x800 then 390x844",
+    "headless": true,
+    "playwright": true,
+    "pageTitle": "Faro Design",
+    "projectHint": "Tide present in body"
+  },
+  "works": [
+    "Shell: 'Faro Call · live' visible",
+    "Shell: agenda nav present",
+    "Shell: stage area / caption dock present",
+    "Shell: Continue button visible",
+    "Continue advances stage/captions (2–3 clicks)",
+    "Ask opens drawer/sheet",
+    "Ask: hint chip or typed question + Send",
+    "Mute / unmute toggle",
+    "Agenda pill jump (unlocked stage)",
+    "JourneyCoach dock NOT visible on /call",
+    "Leave returns to project hub",
+    "Mobile: Ask sheet opens",
+    "Mobile 390x844: shell usable (live, Continue, Ask)"
+  ],
+  "failed": [],
+  "screenshots": [
+    "F:\\Faro Design\\tmp-call-audit\\01-load-desktop.png",
+    "F:\\Faro Design\\tmp-call-audit\\02-continue-1.png",
+    "F:\\Faro Design\\tmp-call-audit\\02-continue-2.png",
+    "F:\\Faro Design\\tmp-call-audit\\02-continue-3.png",
+    "F:\\Faro Design\\tmp-call-audit\\03-ask-open.png",
+    "F:\\Faro Design\\tmp-call-audit\\03-ask-sent.png",
+    "F:\\Faro Design\\tmp-call-audit\\04-mute.png",
+    "F:\\Faro Design\\tmp-call-audit\\05-agenda-jump.png",
+    "F:\\Faro Design\\tmp-call-audit\\06-leave-hub.png",
+    "F:\\Faro Design\\tmp-call-audit\\08-mobile-load.png",
+    "F:\\Faro Design\\tmp-call-audit\\08-mobile-ask.png"
+  ],
+  "notes": [
+    "Agenda pills: 6",
+    "Caption@start: FARO IS SAYING · CAPTIONS ONLY This is the Brand Identity System you selected — palette, type, and UI language from the strategy.",
+    "Captions after continues: 4 unique of 4",
+    "Progress label: · 8 / 11",
+    "Ask response: hasYou=true hasReply=true",
+    "Mute labels: Mute -> Unmute -> Mute",
+    "TTS: not verified in headless Chromium (speechSynthesis / audio playback not asserted).",
+    "Agenda jump clicked 'Strategy'; captionChanged=true",
+    "Coach outside call: suspects=1 sample=[\"self.__next_f.push([1,\\\"a:I[\\\\\\\"[project]/node_modules/next/dist/next-devtools/user\"]",
+    "After Leave URL: http://127.0.0.1:3100/projects/hjYFwST2Foj_191sOZwJK",
+    "Mobile visibility live=true continue=true ask=true leave=false agenda=true",
+    "Mobile overflow: {\"scrollWidth\":390,\"clientWidth\":390,\"bodyScrollWidth\":390}",
+    "Console errors (sample): Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\nhttps://react.dev/link/hydration-mismatch\n\n  ...\n    <InnerScrollAndFocusHandlerOld focusAndScrollRef={{scrollRef:null, ...}} cacheNode={{rsc:{...}, ...}}>\n      <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>\n        <LoadingBoundary name=\"call/\" loading={null}>\n          <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>\n            <RedirectBoundary>\n              <RedirectErrorBoundary router={{...}}>\n                <InnerLayoutRouter url=\"/projects/...\" tree={[...]} params={{id:\"hjYFwS...\"}} ...>\n                  <SegmentViewNode type=\"page\" pagePath=\"projects/[...\">\n                    <SegmentTrieNode>\n                    <FaroCallPage>\n                      <FaroCallShell ctx={{...}}>\n                        <div className=\"fixed inse...\">\n                          <header>\n                          <div>\n                          <div>\n                          <div className=\"shrink-0 b...\">\n                            <div className=\"mx-auto fl...\">\n                              <div className=\"min-w-0 fl...\">\n                                <p className=\"text-[9px]...\">\n-                                 {\" · captions only\"}\n                                ...\n                              ...\n                  ...\n                ...\n      ...\n"
+  ]
+}

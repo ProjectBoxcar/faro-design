@@ -1,6 +1,9 @@
 import "server-only";
 import { generateStrategyText, hasApiKey, MODELS } from "@/lib/ai";
+import { listAssets } from "@/lib/design";
+import { finalDeliverableIssue } from "@/lib/design-deliverable";
 import { getProject, getSections } from "@/lib/queries";
+import { hasConfirmedBrandName } from "@/lib/naming-propose";
 import { primaryActionFromJourney, buildProjectJourney } from "@/lib/sidebar-journey";
 import {
   coachTipFromPath,
@@ -13,7 +16,9 @@ import {
   moodForScene,
   type FaroMood,
 } from "@/lib/faro-persona";
+import { hasApprovedLogo } from "@/lib/studio";
 import { translate } from "@/lib/i18n/messages";
+import { callGuideUnavailableMessage } from "@/lib/faro-call/call-answers";
 
 export type CoachAiRequest = {
   pathname: string;
@@ -21,8 +26,8 @@ export type CoachAiRequest = {
   question?: string | null;
   /** UI language — Faro answers in this language */
   locale?: "en" | "es" | null;
-  /** Hover explain: control under the cursor */
-  mode?: "guide" | "hover" | null;
+  /** Hover explain: control under the cursor; call = video-call Q&A */
+  mode?: "guide" | "hover" | "call" | null;
   hover?: {
     label?: string | null;
     href?: string | null;
@@ -140,11 +145,16 @@ function buildContextBlock(pathname: string, projectId: string | null): string {
     const journey = buildProjectJourney(projectId);
     const current = journey.stages.find((s) => s.status === "current");
     const done = journey.stages.filter((s) => s.status === "done").map((s) => s.name);
+    const locked = journey.stages.filter((s) => s.status === "locked").map((s) => s.name);
     lines.push(`Progress: ${journey.overall.done}/${journey.overall.total} major stages done.`);
     if (current) {
       lines.push(`Current stage: ${current.name} — ${current.detail}`);
     }
     if (done.length) lines.push(`Done: ${done.join("; ")}`);
+    if (locked.length) lines.push(`Still locked: ${locked.join("; ")}`);
+    for (const s of journey.stages) {
+      lines.push(`Stage ${s.name}: ${s.status} (${s.detail})`);
+    }
     const primary = primaryActionFromJourney(projectId);
     if (primary) {
       lines.push(`Primary next: ${primary.name} — ${primary.detail} (href ${primary.href})`);
@@ -160,6 +170,27 @@ function buildContextBlock(pathname: string, projectId: string | null): string {
     lines.push(`Strategy sections with content: ${filled}`);
   } catch {
     /* ignore */
+  }
+
+  try {
+    lines.push(`Name confirmed: ${hasConfirmedBrandName(projectId) ? "yes" : "no"}`);
+    lines.push(`Logo approved: ${hasApprovedLogo(projectId) ? "yes" : "no"}`);
+    const assets = listAssets(projectId);
+    lines.push(
+      `Identity selected: ${assets.some((a) => a.kind === "design_system" && a.selected) ? "yes" : "no"}`
+    );
+    lines.push(
+      `Landing selected: ${assets.some((a) => a.kind === "landing_page" && a.selected) ? "yes" : "no"}`
+    );
+    lines.push(`Deck selected: ${assets.some((a) => a.kind === "deck" && a.selected) ? "yes" : "no"}`);
+    const issue = finalDeliverableIssue(assets);
+    lines.push(
+      issue
+        ? `Brand package ready: no — ${issue}`
+        : "Brand package ready: yes (identity, landing, deck, channels)"
+    );
+  } catch {
+    /* optional enrichment */
   }
 
   return lines.join("\n");
@@ -182,6 +213,18 @@ export async function generateCoachGuidance(
   }
 
   if (!aiAvailable) {
+    const isCallQaNoKey =
+      (input.mode === "call" || tip.scene === "call") && Boolean((input.question ?? "").trim());
+    if (isCallQaNoKey) {
+      return {
+        title: tip.title,
+        body: callGuideUnavailableMessage(localeEarly),
+        mood: "careful",
+        source: "fallback",
+        scene: tip.scene,
+        aiAvailable: false,
+      };
+    }
     return {
       ...fallbackResponse(tip, false),
       body: tip.body + translate(localeEarly, "coach.noKeyHint"),
@@ -199,6 +242,8 @@ export async function generateCoachGuidance(
       : "LANGUAGE: Speak entirely in English.";
 
   const isHover = input.mode === "hover";
+  const isCallQa =
+    (input.mode === "call" || tip.scene === "call") && Boolean(question);
   const hover = input.hover;
 
   const hoverSystem = `${FARO_SYSTEM}
@@ -209,6 +254,16 @@ HOVER MODE (control under cursor):
 - Short: 2 crisp sentences max (~55 words). Clear. Insightful. Never vague, never "something nice", never "check the next page".
 - Prefer concrete Faro facts: stages, gates (approve, apply edits), lanes (strategy/logo/design), package vs client link.
 - title = 2-5 words naming the control's role; body = the insight.`;
+
+  const callSystem = `You are Faro on a live video call inside Faro Design. Answer like a clear human guide.
+
+RULES:
+- Answer the owner's question DIRECTLY in sentence one. Yes/no when the question is yes/no.
+- Use ONLY the Live context facts (stage status, logo approved, package ready, etc.). Never invent assets.
+- Plain speech for reading aloud. No poetry, no lighthouse metaphors, no "As an AI".
+- 2–4 short sentences, max ~80 words in "body". "title" = 2–4 words.
+- If something is missing, say exactly what to open next (Logo Workshop, Design Studio, Brand Handover, Content Studio).
+- Output ONLY JSON: {"title":"...","body":"...","mood":"calm|thinking|encouraging|careful|proud"}`;
 
   const userPrompt = isHover
     ? [
@@ -228,40 +283,64 @@ HOVER MODE (control under cursor):
       ]
         .filter(Boolean)
         .join("\n")
-    : [
-        langLine,
-        "",
-        "Static seed for this screen (improve or rewrite in your voice; keep intent; translate if needed):",
-        `title: ${tip.title}`,
-        `body: ${tip.body}`,
-        tip.ctaLabel ? `suggestedCta: ${tip.ctaLabel}` : null,
-        "",
-        "Live context:",
-        context,
-        "",
-        question
-          ? `The owner asks: ${question}\nAnswer wisely for this moment in the journey.`
-          : "No freeform question — give the best guidance for this screen right now.",
-      ]
-        .filter(Boolean)
-        .join("\n");
+    : isCallQa
+      ? [
+          langLine,
+          "",
+          "You are on a live Faro Call presenting this project.",
+          "Live context:",
+          context,
+          "",
+          `Owner's question: ${question}`,
+          "",
+          "Answer clearly and directly. First sentence must address the question.",
+        ].join("\n")
+      : [
+          langLine,
+          "",
+          "Static seed for this screen (improve or rewrite in your voice; keep intent; translate if needed):",
+          `title: ${tip.title}`,
+          `body: ${tip.body}`,
+          tip.ctaLabel ? `suggestedCta: ${tip.ctaLabel}` : null,
+          "",
+          "Live context:",
+          context,
+          "",
+          question
+            ? `The owner asks: ${question}\nAnswer the question directly first, then one practical next step.`
+            : "No freeform question — give the best guidance for this screen right now.",
+        ]
+          .filter(Boolean)
+          .join("\n");
 
   try {
     const { text } = await generateStrategyText({
       model: MODELS.parsing,
-      maxTokens: isHover ? 200 : 280,
-      system: isHover ? hoverSystem : FARO_SYSTEM,
+      maxTokens: isHover ? 200 : isCallQa ? 360 : 280,
+      system: isHover ? hoverSystem : isCallQa ? callSystem : FARO_SYSTEM,
       messages: [{ role: "user", content: userPrompt }],
     });
     const parsed = extractJsonObject(text);
+    const parsedBody =
+      typeof parsed?.body === "string" && parsed.body.trim() ? parsed.body.trim() : "";
+    // Call Q&A: never substitute the static call tip as if it answered the question
+    if (isCallQa && !parsedBody) {
+      return {
+        title: tip.title,
+        body: callGuideUnavailableMessage(locale),
+        mood: "careful",
+        source: "fallback",
+        scene: tip.scene,
+        aiAvailable: true,
+      };
+    }
     const title =
       typeof parsed?.title === "string" && parsed.title.trim()
         ? parsed.title.trim().slice(0, 48)
         : tip.title;
-    const body =
-      typeof parsed?.body === "string" && parsed.body.trim()
-        ? parsed.body.trim().slice(0, 420)
-        : tip.body;
+    const body = parsedBody
+      ? parsedBody.slice(0, isCallQa ? 560 : 420)
+      : tip.body;
     const ctaLabel =
       typeof parsed?.ctaLabel === "string" && parsed.ctaLabel.trim()
         ? parsed.ctaLabel.trim().slice(0, 40)
@@ -281,6 +360,16 @@ HOVER MODE (control under cursor):
       aiAvailable: true,
     };
   } catch {
+    if (isCallQa) {
+      return {
+        title: tip.title,
+        body: callGuideUnavailableMessage(locale),
+        mood: "careful",
+        source: "fallback",
+        scene: tip.scene,
+        aiAvailable: true,
+      };
+    }
     return fallbackResponse(tip, true);
   }
 }

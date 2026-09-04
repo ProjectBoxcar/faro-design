@@ -113,6 +113,8 @@ export function moodForScene(scene: string): FaroMood {
     case "content":
     case "content_standalone":
       return "encouraging";
+    case "call":
+      return "calm";
     default:
       return "calm";
   }

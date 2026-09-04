@@ -19,6 +19,7 @@ export type CoachScene =
   | "handover"
   | "content"
   | "content_standalone"
+  | "call"
   | "hidden";
 
 export type CoachTip = {
@@ -58,6 +59,10 @@ const SCENE_KEYS: Record<
     body: "coachTip.contentSoloBody",
     cta: "common.home",
     href: "/",
+  },
+  call: {
+    title: "coachTip.callTitle",
+    body: "coachTip.callBody",
   },
 };
 
@@ -104,6 +109,8 @@ export function coachTipFromPath(
     if (rest.startsWith("design")) return tipForScene("design", locale);
     if (rest.startsWith("handover")) return tipForScene("handover", locale);
     if (rest.startsWith("content")) return tipForScene("content", locale);
+    // Faro Call: full-screen guide (dock still hidden via UI check, but AI must answer).
+    if (rest.startsWith("call")) return tipForScene("call", locale);
     return tipForScene("strategy_map", locale);
   }
 

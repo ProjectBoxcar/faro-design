@@ -541,7 +541,8 @@ export function JourneyCoach() {
   }
 
   // Public share / unlock: no owner coach
-  if (!ready || seedTip.scene === "hidden") return null;
+  // Faro Call is its own full-screen guide — don't show a second Faro dock.
+  if (!ready || seedTip.scene === "hidden" || pathname.includes("/call")) return null;
 
   // Hidden for session — always leave a corner control so Faro can come back
   if (hidden) {
