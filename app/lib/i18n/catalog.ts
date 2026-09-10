@@ -73,6 +73,14 @@ export const en: Catalog = {
     failNetwork: "I couldn't reach the guide just now. Check your connection and try again.",
     failEmpty:
       "I don't have a clear answer yet. Check Settings for your strategy AI key, then ask again.",
+    you: "You",
+    faro: "Faro",
+    showMore: "Show more",
+    showLess: "Show less",
+    askAnytime: "Ask Faro anytime",
+    tip: "Tip",
+    liveSpeaking: "Live · speaking",
+    preview: "Preview",
   },
   stage: {
     strategy: "Strategy",
@@ -689,6 +697,14 @@ export const es: Catalog = {
     failNetwork: "No pude contactar a la guía ahora. Revisa la conexión e inténtalo de nuevo.",
     failEmpty:
       "Aún no tengo una respuesta clara. Revisa en Ajustes tu clave de estrategia e inténtalo de nuevo.",
+    you: "Tú",
+    faro: "Faro",
+    showMore: "Ver más",
+    showLess: "Ver menos",
+    askAnytime: "Pregunta a Faro cuando quieras",
+    tip: "Consejo",
+    liveSpeaking: "En vivo · hablando",
+    preview: "Vista previa",
   },
   stage: {
     strategy: "Estrategia",

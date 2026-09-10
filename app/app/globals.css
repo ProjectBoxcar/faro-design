@@ -99,6 +99,15 @@ body {
   background: #ffffff;
 }
 
+/* Faro Call meeting chrome — brand teal/ink, not generic dark SaaS */
+:root {
+  --call-bg: color-mix(in srgb, var(--brand-primary-strong, #0e3c37) 82%, #050807);
+  --call-panel: color-mix(in srgb, var(--brand-primary, #16514b) 28%, #0a1210);
+  --call-panel-2: color-mix(in srgb, var(--brand-primary, #16514b) 18%, #0c1614);
+  --call-border: color-mix(in srgb, white 12%, transparent);
+  --call-live: var(--brand-accent, #f25c2a);
+}
+
 @keyframes faro-call-stage-enter {
   from { opacity: 0.4; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
@@ -108,9 +117,22 @@ body {
   animation: faro-call-stage-enter 280ms ease-out;
 }
 
+@keyframes faro-call-speak-ring {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--call-live) 45%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--call-live) 0%, transparent); }
+}
+
+.faro-call-speak-ring {
+  animation: faro-call-speak-ring 1.4s ease-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .faro-call-stage-enter {
     animation: none;
+  }
+  .faro-call-speak-ring {
+    animation: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--call-live) 50%, transparent);
   }
 }
 

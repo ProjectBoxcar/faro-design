@@ -38,14 +38,14 @@ export function FaroCallAgenda({
                     : short
             }
             onClick={() => onJump(item.id)}
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40 ${
               active
-                ? "border-white/25 bg-white text-[#0a0f0d]"
+                ? "border-white/30 bg-white text-[var(--call-bg)]"
                 : done
-                  ? "border-[var(--ok)]/40 bg-[var(--ok)]/15 text-[#9dccb0]"
+                  ? "border-[var(--ok)]/45 bg-[var(--ok)]/15 text-[#9dccb0]"
                   : locked
-                    ? "cursor-not-allowed border-white/8 bg-transparent text-white/45"
-                    : "border-white/12 bg-white/5 text-white/70 hover:border-white/25 hover:bg-white/10 hover:text-white"
+                    ? "cursor-not-allowed border-white/12 bg-transparent text-white/60"
+                    : "border-white/15 bg-white/5 text-white/75 hover:border-white/30 hover:bg-white/10 hover:text-white"
             } ${disabled && !locked ? "opacity-60" : ""}`}
           >
             {locked ? (

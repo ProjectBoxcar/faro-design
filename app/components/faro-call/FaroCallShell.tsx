@@ -8,6 +8,7 @@ import {
   Loader2,
   MessageCircle,
   PhoneOff,
+  RotateCcw,
   Send,
   SkipForward,
   Volume2,
@@ -43,6 +44,7 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
   const [stageKey, setStageKey] = useState(0);
   const [softWelcome, setSoftWelcome] = useState(ctx.startBeatIndex > 0);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [captionExpanded, setCaptionExpanded] = useState(false);
   const cancelSpeech = useRef<(() => void) | null>(null);
   const threadEndRef = useRef<HTMLLIElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -63,10 +65,7 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
   }, []);
 
   const playLine = useCallback(
-    (
-      text: string,
-      opts?: { ignoreMute?: boolean; langOverride?: string }
-    ) => {
+    (text: string, opts?: { ignoreMute?: boolean; langOverride?: string }) => {
       stop();
       const clean = sanitizeSpokenText(text);
       if (!clean) {
@@ -95,7 +94,6 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
     [captionsOnly, locale, muted, stop]
   );
 
-  // Hydration-safe TTS probe
   useEffect(() => {
     setCaptionsOnly(!canSpeak());
   }, []);
@@ -108,7 +106,6 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  // Inert project chrome under the call overlay
   useEffect(() => {
     const nodes = document.querySelectorAll<HTMLElement>("[data-project-chrome]");
     nodes.forEach((el) => {
@@ -128,6 +125,7 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
     askAbort.current = null;
     askGen.current += 1;
     setStageKey((k) => k + 1);
+    setCaptionExpanded(false);
     if (skipBeatSpeech.current) {
       skipBeatSpeech.current = false;
       return () => stop();
@@ -210,7 +208,7 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
     setChatOpen(true);
     setSoftWelcome(false);
     setAskBusy(true);
-    setThread((t) => [...t, { role: "user", text: q }]);
+    setThread((prev) => [...prev, { role: "user", text: q }]);
     setReply("");
     setLiveCaption(t("call.thinking"));
 
@@ -272,7 +270,7 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
       playLine(answer, {
         langOverride: locale === "es" ? "es-ES" : "en-US",
       });
-    } catch (err) {
+    } catch {
       if (ac.signal.aborted || gen !== askGen.current) return;
       const fail = t("call.failNetwork");
       setThread((tr) => [...tr, { role: "faro", text: fail }]);
@@ -288,9 +286,14 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
     [beatIndex, ctx.beats.length]
   );
 
-  const captionText = softWelcome
-    ? t("call.softWelcome")
-    : (liveCaption ?? beat.line);
+  const agendaLabel = useMemo(() => {
+    const item = ctx.agenda.find((a) => a.id === beat.stageId);
+    return item?.name.replace(/^\d+\.\s*/, "") ?? undefined;
+  }, [ctx.agenda, beat.stageId]);
+
+  const spokenCaption = liveCaption ?? beat.line;
+  const captionText = softWelcome ? t("call.softWelcome") : spokenCaption;
+  const captionLong = captionText.length > 160;
   const faroMood = speaking ? "encouraging" : askBusy ? "thinking" : "calm";
   const faroStatus = speaking
     ? t("call.speaking")
@@ -298,38 +301,55 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
       ? t("call.thinking")
       : t("call.onCall");
 
+  const ghostBtn =
+    "inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/75 transition hover:bg-white/12 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40 disabled:opacity-40";
+
   return (
-    <div className="fixed inset-0 z-[80] flex flex-col bg-[#0a0f0d] text-white">
+    <div className="fixed inset-0 z-[80] flex flex-col bg-[var(--call-bg)] text-white">
       <header className="flex shrink-0 items-center justify-between gap-3 px-4 py-2.5 sm:px-5">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="relative flex h-2 w-2">
               {!reduceMotion ? (
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--ok)] opacity-40" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--call-live)] opacity-40" />
               ) : null}
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--ok)]" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--call-live)]" />
             </span>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
-              {t("call.live")}
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
+              {speaking ? t("call.liveSpeaking") : t("call.live")}
             </p>
-            <span className="hidden tabular-nums text-[10px] text-white/55 sm:inline">
-              · {progressLabel}
-            </span>
+            <span className="tabular-nums text-[11px] text-white/60">· {progressLabel}</span>
           </div>
           <h1 className="mt-0.5 truncate font-serif text-base font-medium tracking-tight text-white/95 sm:text-lg">
             {ctx.projectName}
           </h1>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          {/* Mobile Faro status in header — frees stage */}
+          <div className="flex items-center gap-1.5 rounded-full border border-white/15 bg-[var(--call-panel)]/90 px-1.5 py-1 sm:hidden">
+            <div className={speaking && !reduceMotion ? "faro-call-speak-ring rounded-full" : ""}>
+              <FaroPersona size={28} mood={faroMood} speaking={speaking || askBusy} />
+            </div>
+            <span className="max-w-[4.5rem] truncate pr-1 text-[10px] font-medium text-white/80">
+              {faroStatus}
+            </span>
+          </div>
           <button
             type="button"
             onClick={() => {
               const nextMuted = !muted;
               setMuted(nextMuted);
               if (nextMuted) stop();
-              else playLine(captionText, { langOverride: liveCaption && locale === "es" ? "es-ES" : "en-US" });
+              else
+                playLine(spokenCaption, {
+                  langOverride: liveCaption && locale === "es" ? "es-ES" : "en-US",
+                });
             }}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white/80 transition hover:bg-white/14"
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40 ${
+              muted
+                ? "bg-[var(--call-live)]/25 text-[var(--call-live)] ring-1 ring-[var(--call-live)]/50"
+                : "bg-white/8 text-white/80 hover:bg-white/14"
+            }`}
             aria-pressed={muted}
             aria-label={muted ? t("call.unmute") : t("call.mute")}
           >
@@ -342,8 +362,12 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
               if (chatOpen) closeChat();
               else openChat();
             }}
-            className={`inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${
-              chatOpen ? "bg-white/18 text-white" : "bg-white/8 text-white/80 hover:bg-white/14"
+            className={`inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40 ${
+              chatOpen
+                ? "bg-white/20 text-white"
+                : thread.length === 0
+                  ? "bg-[var(--accent)]/25 text-white ring-1 ring-[var(--accent)]/40 hover:bg-[var(--accent)]/35"
+                  : "bg-white/8 text-white/80 hover:bg-white/14"
             }`}
             aria-pressed={chatOpen}
             aria-expanded={chatOpen}
@@ -362,10 +386,10 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
             href={`/projects/${ctx.projectId}`}
             onClick={() => stop()}
             aria-label={t("call.leaveAria")}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#c0392b] px-3 text-xs font-semibold text-white transition hover:bg-[#a93226] sm:px-3.5"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[var(--danger)] px-3 text-xs font-semibold text-white transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40 sm:px-3.5"
           >
             <PhoneOff size={14} aria-hidden />
-            <span className="hidden sm:inline">{t("call.leave")}</span>
+            <span>{t("call.leave")}</span>
           </Link>
         </div>
       </header>
@@ -379,12 +403,37 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
         />
       </div>
 
+      {/* Soft welcome tip banner — not the spoken script */}
+      {softWelcome ? (
+        <div className="shrink-0 px-4 pb-2 sm:px-5">
+          <div className="flex items-start gap-2 rounded-xl border border-[var(--call-live)]/35 bg-[var(--call-live)]/10 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--call-live)]">
+              {t("call.tip")}
+            </p>
+            <p className="min-w-0 flex-1 text-xs leading-relaxed text-white/85">{t("call.softWelcome")}</p>
+            <button
+              type="button"
+              onClick={() => setSoftWelcome(false)}
+              className="shrink-0 rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
+              aria-label={t("common.close")}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="relative min-h-0 flex-1 px-4 sm:px-5">
         <div key={stageKey} className="faro-call-stage-enter h-full">
-          <FaroCallStage media={beat.media} />
+          <FaroCallStage media={beat.media} agendaLabel={agendaLabel} />
         </div>
 
-        <div className="absolute bottom-3 right-5 z-20 hidden w-[8.75rem] flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#15201c]/95 shadow-[0_12px_40px_rgba(0,0,0,.45)] backdrop-blur-md sm:flex">
+        {/* Desktop Faro PiP */}
+        <div
+          className={`absolute bottom-3 right-5 z-20 hidden w-[8.75rem] flex-col overflow-hidden rounded-2xl border border-white/15 bg-[var(--call-panel)]/95 shadow-[0_12px_40px_rgba(0,0,0,.45)] backdrop-blur-md sm:flex ${
+            speaking && !reduceMotion ? "faro-call-speak-ring" : ""
+          }`}
+        >
           <div className="flex flex-col items-center gap-1 px-3 pb-2 pt-2.5">
             <div
               className={`transition-transform duration-300 ${
@@ -393,21 +442,16 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
             >
               <FaroPersona size={60} mood={faroMood} speaking={speaking || askBusy} />
             </div>
-            <p className="text-[11px] font-medium text-white/90">Faro</p>
-            <p className="text-[9px] uppercase tracking-wider text-white/55">{faroStatus}</p>
+            <p className="text-[11px] font-medium text-white/90">{t("call.faro")}</p>
+            <p className="text-[10px] uppercase tracking-wider text-white/65">{faroStatus}</p>
           </div>
-        </div>
-
-        <div className="absolute right-5 top-3 z-20 flex items-center gap-2 rounded-full border border-white/15 bg-[#15201c]/95 px-2 py-1.5 shadow-lg backdrop-blur-md sm:hidden">
-          <FaroPersona size={32} mood={faroMood} speaking={speaking || askBusy} />
-          <span className="pr-1 text-[10px] font-medium text-white/80">{faroStatus}</span>
         </div>
 
         {chatOpen ? (
           <>
             <button
               type="button"
-              className="absolute inset-0 z-30 bg-black/40 sm:bg-black/25"
+              className="absolute inset-0 z-30 bg-black/55 sm:bg-black/40"
               aria-label={t("call.closeChat")}
               onClick={closeChat}
             />
@@ -416,19 +460,20 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
               role="dialog"
               aria-modal="true"
               aria-label={t("call.askTitle")}
-              className="absolute inset-x-0 bottom-0 z-40 flex max-h-[min(58vh,26rem)] flex-col rounded-t-2xl border border-white/12 bg-[#101816] shadow-[0_-12px_48px_rgba(0,0,0,.5)] sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[22rem] sm:rounded-none sm:rounded-l-2xl sm:border-y-0 sm:border-r-0"
+              className="absolute inset-x-0 bottom-0 z-40 flex max-h-[min(48vh,22rem)] flex-col rounded-t-2xl border border-white/12 bg-[var(--call-panel)] shadow-[0_-12px_48px_rgba(0,0,0,.5)] sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[20rem] sm:rounded-none sm:rounded-l-2xl sm:border-y-0 sm:border-r-0"
+              style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
             >
               <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/65">
                     {t("call.askTitle")}
                   </p>
-                  <p className="text-xs text-white/55">{t("call.askSubtitle")}</p>
+                  <p className="text-xs text-white/60">{t("call.askSubtitle")}</p>
                 </div>
                 <button
                   type="button"
                   onClick={closeChat}
-                  className="rounded-full p-1.5 text-white/55 transition hover:bg-white/10 hover:text-white"
+                  className="rounded-full p-1.5 text-white/55 transition hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/40"
                   aria-label={t("call.closeChat")}
                 >
                   <X size={16} />
@@ -437,14 +482,14 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
 
               <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
                 {thread.length === 0 ? (
-                  <div className="space-y-2 px-1 py-2">
-                    <p className="text-[11px] leading-relaxed text-white/55">{t("call.askHint")}</p>
+                  <div className="space-y-2 px-1 py-1">
+                    <p className="text-xs leading-relaxed text-white/60">{t("call.askHint")}</p>
                     {[t("call.hintLogo"), t("call.hintLeft")].map((hint) => (
                       <button
                         key={hint}
                         type="button"
                         onClick={() => void askFaro(hint)}
-                        className="block w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs text-white/70 transition hover:border-white/20 hover:bg-white/10 hover:text-white"
+                        className="block w-full rounded-xl border border-white/12 bg-white/5 px-3 py-2.5 text-left text-sm text-white/80 transition hover:border-white/25 hover:bg-white/10 hover:text-white"
                       >
                         {hint}
                       </button>
@@ -455,20 +500,20 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
                     {thread.map((turn, i) => (
                       <li
                         key={`${turn.role}-${i}`}
-                        className={`rounded-xl px-3 py-2 text-xs leading-relaxed ${
+                        className={`rounded-xl px-3 py-2 text-sm leading-relaxed ${
                           turn.role === "user"
                             ? "ml-6 bg-[var(--accent)]/30 text-white/90"
-                            : "mr-4 bg-white/8 text-white/85"
+                            : "mr-4 border border-white/10 bg-white/8 text-white/90"
                         }`}
                       >
-                        <span className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-white/45">
-                          {turn.role === "user" ? "You" : "Faro"}
+                        <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-white/55">
+                          {turn.role === "user" ? t("call.you") : t("call.faro")}
                         </span>
                         {turn.text}
                       </li>
                     ))}
                     {askBusy ? (
-                      <li className="mr-4 flex items-center gap-1.5 rounded-xl bg-white/8 px-3 py-2 text-xs text-white/50">
+                      <li className="mr-4 flex items-center gap-1.5 rounded-xl bg-white/8 px-3 py-2 text-sm text-white/55">
                         <Loader2 size={12} className="animate-spin" aria-hidden /> {t("call.thinking")}
                       </li>
                     ) : null}
@@ -492,7 +537,7 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
                     type="button"
                     disabled={askBusy || !reply.trim()}
                     onClick={() => void askFaro()}
-                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white disabled:opacity-40"
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40"
                     aria-label={t("call.send")}
                   >
                     {askBusy ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
@@ -504,63 +549,89 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
         ) : null}
       </div>
 
+      {/* Caption + controls dock — Continue dominant; secondary demoted on mobile */}
       <div
-        className="shrink-0 border-t border-white/10 bg-[#0c1210]/95 px-4 py-3 backdrop-blur-md sm:px-5"
+        className="shrink-0 border-t border-[var(--call-border)] bg-[var(--call-panel)]/95 px-4 py-3 backdrop-blur-md sm:px-5"
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
       >
-        <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
-          <div
-            className="min-w-0 flex-1"
-            aria-live="polite"
-            aria-atomic="true"
-            aria-busy={askBusy}
-          >
-            <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/55">
-              {softWelcome
-                ? t("call.live")
-                : liveCaption
-                  ? t("call.answered")
-                  : t("call.saying")}
+        <div className="mx-auto flex max-w-5xl flex-col gap-3">
+          <div className="min-w-0" aria-live="polite" aria-atomic="true" aria-busy={askBusy}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
+              {liveCaption ? t("call.answered") : t("call.saying")}
+              {speaking ? ` · ${t("call.speaking")}` : ""}
               {captionsOnly ? ` · ${t("call.captionsOnly")}` : ""}
             </p>
-            <p className="mt-1 max-h-24 overflow-y-auto text-sm leading-relaxed text-white/90 sm:text-[15px]">
-              {captionText}
+            <p
+              className={`mt-1 text-sm leading-relaxed text-white/92 sm:text-[15px] ${
+                captionExpanded ? "max-h-40 overflow-y-auto" : "line-clamp-2 sm:line-clamp-3"
+              }`}
+            >
+              {spokenCaption}
             </p>
+            {captionLong ? (
+              <button
+                type="button"
+                onClick={() => setCaptionExpanded((v) => !v)}
+                className="mt-1 text-[11px] font-medium text-white/65 underline-offset-2 hover:text-white hover:underline"
+              >
+                {captionExpanded ? t("call.showLess") : t("call.showMore")}
+              </button>
+            ) : null}
           </div>
-          <div className="flex shrink-0 items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={previous}
-              disabled={isFirst || askBusy}
-              className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/5 px-3 py-2 text-xs font-medium text-white/70 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
-            >
-              <ChevronLeft size={14} aria-hidden />
-              {t("call.previous")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSoftWelcome(false);
-                // Explicit Replay speaks even while muted
-                playLine(liveCaption ?? beat.line, {
-                  ignoreMute: true,
-                  langOverride: liveCaption && locale === "es" ? "es-ES" : "en-US",
-                });
-              }}
-              className="rounded-full border border-white/12 bg-white/5 px-3.5 py-2 text-xs font-medium text-white/70 transition hover:bg-white/10 hover:text-white"
-            >
-              {t("call.replay")}
-            </button>
-            <button
-              type="button"
-              onClick={next}
-              disabled={askBusy}
-              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#0a0f0d] transition hover:bg-white/90 disabled:opacity-50"
-            >
-              {isLast ? t("call.endCall") : t("call.continue")}
-              <SkipForward size={15} aria-hidden />
-            </button>
-          </div>
+
+          {!chatOpen ? (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              {!softWelcome && beatIndex === ctx.startBeatIndex && thread.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={openChat}
+                  className="hidden text-left text-xs text-white/60 underline-offset-2 hover:text-white hover:underline sm:block"
+                >
+                  {t("call.askAnytime")}
+                </button>
+              ) : (
+                <span className="hidden sm:block" />
+              )}
+              <div className="flex items-center gap-2 sm:justify-end">
+                <button
+                  type="button"
+                  onClick={previous}
+                  disabled={isFirst || askBusy}
+                  aria-label={t("call.previous")}
+                  className={`${ghostBtn} h-10 w-10 sm:h-auto sm:w-auto sm:gap-1 sm:px-3 sm:py-2 sm:text-xs sm:font-medium`}
+                >
+                  <ChevronLeft size={16} aria-hidden />
+                  <span className="hidden sm:inline">{t("call.previous")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSoftWelcome(false);
+                    playLine(spokenCaption, {
+                      ignoreMute: true,
+                      langOverride: liveCaption && locale === "es" ? "es-ES" : "en-US",
+                    });
+                  }}
+                  aria-label={t("call.replay")}
+                  className={`${ghostBtn} h-10 w-10 sm:h-auto sm:w-auto sm:px-3.5 sm:py-2 sm:text-xs sm:font-medium`}
+                >
+                  <RotateCcw size={15} aria-hidden className="sm:hidden" />
+                  <span className="hidden sm:inline">{t("call.replay")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={next}
+                  disabled={askBusy}
+                  className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[var(--call-bg)] transition hover:bg-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50 disabled:opacity-50 sm:min-h-0 sm:flex-none"
+                >
+                  {isLast ? t("call.endCall") : t("call.continue")}
+                  <SkipForward size={15} aria-hidden />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-center text-xs text-white/50 sm:text-left">{t("call.askTitle")}</p>
+          )}
         </div>
       </div>
     </div>
