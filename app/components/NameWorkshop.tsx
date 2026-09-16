@@ -135,7 +135,7 @@ export function NameWorkshop({
               onClick={() => void propose()}
               disabled={locked}
               data-faro-anchor="faro-name-primary"
-              className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+              className="mt-4 inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
               {busy === "propose" ? (
                 <>
@@ -187,7 +187,7 @@ export function NameWorkshop({
                       ) : null}
                     </div>
                     {active ? (
-                      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white">
+                      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--accent)] text-white">
                         <Check size={14} />
                       </span>
                     ) : null}
@@ -229,7 +229,7 @@ export function NameWorkshop({
               disabled={locked || (!selected && custom.trim().length < 2)}
               onClick={() => void pick(selected ?? custom)}
               data-faro-anchor="faro-name-confirm"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {busy === "pick" ? (
                 <>
@@ -263,7 +263,7 @@ export function NameWorkshop({
               onClick={() => void skip()}
               disabled={locked}
               data-faro-anchor="faro-name-confirm"
-              className="order-1 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50 sm:order-2"
+              className="order-1 inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50 sm:order-2"
             >
               {busy === "skip" ? (
                 <>

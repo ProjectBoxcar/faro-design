@@ -403,7 +403,7 @@ function CardShell({
                 onClick={onReady}
                 disabled={editLocked}
                 data-faro-anchor="faro-express-apply"
-                className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
               >
                 {readyBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
                 <ApplyEditsLabel />
@@ -535,9 +535,9 @@ function ExpressDraftingScreen({
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center px-5 py-10">
+    <main className="mx-auto flex min-h-[70vh] w-full max-w-2xl flex-col justify-center px-4 py-8 sm:px-5">
       <FaroLoaderPanel
-        beaconSize="lg"
+        beaconSize="md"
         title={panelTitle}
         description={panelDesc}
         progressPercent={pct}
@@ -549,8 +549,9 @@ function ExpressDraftingScreen({
               })}${state.currentName && running ? ` · ${state.currentName}` : ""}`
             : undefined
         }
+        className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-6 shadow-[var(--shadow-card)] sm:px-8 sm:py-8"
       >
-        <ol className="mt-10 w-full max-w-md space-y-3 text-left">
+        <ol className="mt-6 w-full max-w-md space-y-2.5 text-left">
           {PIPELINE_STAGES.map((stage, i) => {
             // Prefer real current section when available; otherwise map from % bands.
             const bandStart = i / stageCount;
@@ -585,7 +586,7 @@ function ExpressDraftingScreen({
                   {stageDone ? (
                     <Check size={13} />
                   ) : active ? (
-                    <span className="faro-generation-dot h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                    <span className="faro-generation-dot h-1.5 w-1.5 rounded-[var(--radius-md)] bg-[var(--accent)]" />
                   ) : (
                     i + 1
                   )}
@@ -642,7 +643,7 @@ function ExpressDraftingScreen({
               data-faro-anchor="faro-express-resume"
               disabled={resuming}
               onClick={() => void resumeDrafting()}
-              className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-60"
+              className="mt-3 inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-60"
             >
               {resuming ? (
                 <>
@@ -1183,7 +1184,7 @@ export function ExpressJourney({
           <div className="mt-3 flex items-center gap-3">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
               <div
-                className="h-full rounded-full bg-[var(--accent)] transition-all duration-500"
+                className="h-full rounded-[var(--radius-md)] bg-[var(--accent)] transition-all duration-500"
                 style={{
                   width: `${refine.total > 0 ? Math.round((refine.done / refine.total) * 100) : 0}%`,
                 }}
@@ -1413,7 +1414,7 @@ export function ExpressJourney({
                             type="button"
                             onClick={markReady}
                             disabled={readyBusy || rewriteBusy}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
                           >
                             {readyBusy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
                             <ApplyEditsLabel />
@@ -1470,7 +1471,7 @@ export function ExpressJourney({
           onClick={approve}
           disabled={approving || refining || Boolean(editingId) || rewriteBusy}
           data-faro-anchor="faro-express-approve"
-          className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {approving ? <Loader2 size={15} className="animate-spin" /> : approved ? <Check size={15} /> : null}
           {approved ? t("express.reapprove") : t("express.approve")}

@@ -112,8 +112,12 @@ export function ProjectMobileBar({
         </div>
       </div>
 
-      {/* Stage chips — second band only; full list also in Stages sheet */}
-      {stages.length > 0 ? (
+      {/* Stage chips — hide on dense work routes; Stages sheet still has the full list */}
+      {stages.length > 0 &&
+      !path.includes("/design") &&
+      !path.includes("/express") &&
+      !path.includes("/studio") &&
+      !path.includes("/call") ? (
         <div className="flex gap-1 overflow-x-auto border-t border-[var(--border)] px-3 py-1.5 scrollbar-none">
           {stages.map((s) => {
             const active =

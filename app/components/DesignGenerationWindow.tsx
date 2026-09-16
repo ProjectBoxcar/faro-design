@@ -214,22 +214,22 @@ export function DesignGenerationWindow({
     <section
       aria-labelledby="generation-title"
       aria-busy="true"
-      className="relative flex min-h-[28vh] flex-1 overflow-hidden rounded-xl bg-[var(--foreground)] px-5 py-5 text-white lg:min-h-[36vh] lg:px-6 lg:py-6"
+      className="relative flex min-h-[20vh] flex-1 overflow-hidden rounded-xl bg-[var(--foreground)] px-5 py-5 text-white lg:min-h-[28vh] lg:px-6 lg:py-6"
     >
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         Faro is creating{" "}
         {kind === "mockups" || kind === "channels" ? "the" : "three"} {copy.output} for{" "}
         {projectName}. Generation is {pct}% complete. Keep this page open.
       </div>
-      <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-32 -left-20 h-72 w-72 rounded-full bg-[var(--client)]/30 blur-3xl" />
+      <div className="pointer-events-none absolute -right-16 -top-20 h-40 w-40 rounded-full bg-white/8 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-20 -left-12 h-36 w-36 rounded-full bg-[var(--client)]/20 blur-3xl" />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col justify-between gap-8">
+      <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col justify-between gap-6">
         <div>
           <div className="flex items-start justify-between gap-5">
             <div>
-              <div className="mb-6 inline-flex items-center justify-center">
-                <FaroBeacon size="lg" tone="light" />
+              <div className="mb-4 inline-flex items-center justify-center">
+                <FaroBeacon size="md" tone="light" />
               </div>
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
                 Faro Design Studio

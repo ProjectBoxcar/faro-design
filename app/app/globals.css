@@ -17,9 +17,9 @@
   --font-serif: var(--font-serif);
 
   /*
-   * Global density (best practice): shrink the WHOLE Tailwind scale.
-   * Whack-a-mole class edits can't fix "everything is big" — spacing + type
-   * tokens must be denser. Defaults: --spacing .25rem, text-base 1rem.
+   * Global density — known-good baseline (matches main).
+   * Defaults: --spacing .25rem, text-base 1rem.
+   * Do not stack rem cuts + spacing cuts + type cuts in the same pass.
    */
   --spacing: 0.2rem;
 
@@ -52,7 +52,7 @@
 }
 
 html {
-  /* Rem base for rem utilities; theme --spacing/--text-* do the heavy lifting */
+  /* Rem base — 14px known-good (main). Theme --spacing/--text-* do the rest. */
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -64,7 +64,8 @@ body {
   color: var(--foreground);
   letter-spacing: -0.011em;
   line-height: 1.4;
-  font-size: var(--text-sm);
+  /* text-base @ 14px rem ≈ 12.25px — readable without rem stacking games */
+  font-size: var(--text-base);
 }
 
 .font-serif {

@@ -50,7 +50,7 @@ const INTERACT_MS = 4500;
 const HOVER_DWELL_MS = 350;
 const HOVER_AI_MS = 550;
 /** Dense work stages — keep Faro present but quiet (no speech bubble by default). */
-const QUIET_SCENES = new Set(["strategy", "strategy_map", "design", "handover"]);
+const QUIET_SCENES = new Set(["strategy", "strategy_map", "design", "handover", "logo"]);
 
 type LiveGuidance = {
   title: string;
@@ -404,10 +404,19 @@ export function JourneyCoach() {
     };
   }, [ready, hidden, scene, recomputeDock]);
 
-  // Re-open bubble on light scenes; stay quiet on Express / Design / Handover
+  // Quiet scenes: no bubble + face-minimized by default (user can still expand)
   useEffect(() => {
     setOpenChat(false);
-    setBubbleOpen(!QUIET_SCENES.has(scene));
+    const quiet = QUIET_SCENES.has(scene);
+    setBubbleOpen(!quiet);
+    if (quiet) {
+      setMinimized(true);
+      try {
+        localStorage.setItem(MIN_KEY, "1");
+      } catch {
+        /* private mode */
+      }
+    }
   }, [pathname, locale, scene]);
 
   const fetchGuidance = useCallback(
@@ -558,7 +567,7 @@ export function JourneyCoach() {
           className="faro-assistant-bob group relative"
           aria-label={t("coach.open")}
         >
-          <FaroPersona size={36} mood="encouraging" speaking={false} className="shadow-[var(--shadow-pop)]" />
+          <FaroPersona size={32} mood="encouraging" speaking={false} className="shadow-[var(--shadow-pop)]" />
           <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--accent)] px-2 py-0.5 text-[9px] font-semibold text-white shadow">
             Faro
           </span>
@@ -634,7 +643,7 @@ export function JourneyCoach() {
             aria-label={t("coach.open")}
           >
             <FaroPersona
-              size={minimized ? 36 : 40}
+              size={minimized ? 32 : 36}
               mood={displayMood}
               speaking={loading || asking || traveling}
               className="shadow-[var(--shadow-pop)]"
@@ -746,7 +755,7 @@ export function JourneyCoach() {
           <div className="relative flex items-center gap-2.5">
             <div className="faro-assistant-bob">
               <FaroPersona
-                size={36}
+                size={32}
                 mood={displayMood}
                 speaking={loading || asking || traveling}
                 className="shadow-md"

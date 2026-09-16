@@ -704,63 +704,11 @@ export function DesignStudio({
         <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">{t("design.lede")}</p>
       </StagePageBanner>
 
-      {!apiKeyConfigured && (
-        <div className="mb-4 flex items-start gap-3 rounded-xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm text-[var(--foreground)]">
-          <AlertCircle size={16} className="mt-0.5 shrink-0" />
-          <div>
-            <p className="font-medium">{t("design.setupTitle")}</p>
-            <p className="mt-1 text-xs text-[var(--muted)]">{t("design.setupHint")}</p>
-            <Link
-              href="/settings"
-              className="mt-3 inline-flex text-sm font-medium text-[var(--accent)] hover:underline"
-            >
-              {t("nav.settings")}
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {apiKeyConfigured && !daemonUp && (
-        <div className="mb-4 flex items-start gap-3 rounded-xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm text-[var(--foreground)]">
-          <AlertCircle size={16} className="mt-0.5 shrink-0" />
-          <div>
-            <p className="font-medium">{t("design.daemonDownTitle")}</p>
-            <p className="mt-1 text-xs text-[var(--muted)]">{t("design.daemonDownHint")}</p>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="mt-3 inline-flex rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2 text-xs font-medium hover:bg-[var(--surface-2)]"
-            >
-              {t("design.retryHelper")}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {generationBlockedReason && /viability/i.test(generationBlockedReason) && viability ? (
-        <div className="mb-5">
-          <ViabilityPanel
-            projectId={projectId}
-            viability={viability.status}
-            overrideNote={viability.overrideNote}
-            scores={viability.scores}
-            personal={viability.personal}
-            forceShow
-          />
-        </div>
-      ) : null}
-
-      {generationBlockedReason && (
-        <div className="mb-5 flex items-start gap-3 rounded-xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm text-[var(--foreground)]">
-          <AlertCircle size={18} className="mt-0.5 shrink-0" />
-          {generationBlockedReason}
-        </div>
-      )}
-
-      {error && (
+      {/* Single status region — priority: error > blocked > daemon > setup > mockups CTA */}
+      {error ? (
         <div
           role="alert"
-          className="mb-6 rounded-xl border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-6 py-4 text-sm text-[var(--foreground)]"
+          className="mb-4 rounded-xl border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-4 py-3 text-sm text-[var(--foreground)]"
         >
           <p className="font-medium">{t("design.pausedTitle")}</p>
           <p className="mt-1">{error}</p>
@@ -770,7 +718,7 @@ export function DesignStudio({
           {(failedJob?.resumable !== false || failedJob) && (
             <button
               type="button"
-              className="mt-3 inline-flex rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
+              className="mt-3 inline-flex rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
               disabled={actionsBusy || !daemonUp || !apiKeyConfigured}
               onClick={() => {
                 const kind = failedJob?.kind;
@@ -811,92 +759,114 @@ export function DesignStudio({
             </button>
           )}
         </div>
-      )}
-
-      {/* After stop/cancel (or first select): clear path to finish mockups. */}
-      {mockupsIncomplete && !isBuildingMockups && (
-        <div className="mb-6 rounded-xl border border-[var(--accent)]/35 bg-[var(--accent)]/8 px-5 py-4 sm:px-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="font-medium text-[var(--foreground)]">
-                Identity chosen — next: application mockups
-              </p>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                You selected a Brand Identity System
-                {identitySelected?.variant ? ` (proposal ${identitySelected.variant})` : ""}.
-                Build the landing page and brand deck to continue toward Brand Handover
-                {loading?.stage === "selecting" ? "" : " (safe to restart if you stopped earlier)"}.
-              </p>
-            </div>
+      ) : generationBlockedReason && /viability/i.test(generationBlockedReason) && viability ? (
+        <div className="mb-4">
+          <ViabilityPanel
+            projectId={projectId}
+            viability={viability.status}
+            overrideNote={viability.overrideNote}
+            scores={viability.scores}
+            personal={viability.personal}
+            forceShow
+          />
+        </div>
+      ) : generationBlockedReason ? (
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm text-[var(--foreground)]">
+          <AlertCircle size={16} className="mt-0.5 shrink-0" />
+          {generationBlockedReason}
+        </div>
+      ) : apiKeyConfigured && !daemonUp ? (
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm text-[var(--foreground)]">
+          <AlertCircle size={16} className="mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">{t("design.daemonDownTitle")}</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">{t("design.daemonDownHint")}</p>
             <button
               type="button"
-              onClick={() => identitySelected && void generateMockups(identitySelected.id)}
-              disabled={actionsBusy || !identitySelected}
-              data-faro-anchor="faro-design-generate"
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+              onClick={() => window.location.reload()}
+              className="mt-3 inline-flex rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2 text-xs font-medium hover:bg-[var(--surface-2)]"
             >
-              <Sparkles size={15} />
-              Build landing page &amp; deck
+              {t("design.retryHelper")}
             </button>
           </div>
         </div>
-      )}
-
-      {/* Package / publish lives only on Brand Handover — keep Design Studio = create & select */}
-      <div className="mb-4 flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-[var(--foreground)]">
-            {deliverableReady
-              ? t("design.visualsReady")
-              : t("design.chooseFinals", { n: finalCount })}
-          </p>
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {finalOutputs.map((output) => (
-              <li
-                key={output.kind}
-                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
-                  output.ready
-                    ? "border-[var(--ok)]/40 bg-[var(--ok)]/10 text-[var(--ok)]"
-                    : "border-[var(--border)] text-[var(--muted)]"
-                }`}
-              >
-                {output.ready ? <Check size={12} /> : <span className="inline-block h-2 w-2 rounded-full bg-[var(--border-strong)]" />}
-                {output.label}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-1.5 text-xs text-[var(--muted)]">{t("design.handoverNote")}</p>
+      ) : !apiKeyConfigured ? (
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm text-[var(--foreground)]">
+          <AlertCircle size={16} className="mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">{t("design.setupTitle")}</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">{t("design.setupHint")}</p>
+            <Link
+              href="/settings"
+              className="mt-3 inline-flex text-sm font-medium text-[var(--accent)] hover:underline"
+            >
+              {t("nav.settings")}
+            </Link>
+          </div>
         </div>
-        <Link
-          href={`/projects/${projectId}/handover`}
-          data-faro-anchor="faro-design-handover"
-          className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
-            deliverableReady
-              ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
-              : "border border-[var(--border-strong)] text-[var(--foreground)] hover:bg-[var(--surface-2)]"
-          }`}
-        >
-          <PackageCheck size={16} />
-          {deliverableReady ? t("design.openHandover") : t("design.leftForHandover")}
-        </Link>
-      </div>
+      ) : null}
 
-      {/* Sticky current step for cognitive load */}
-      <div className="sticky top-14 z-20 mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]/95 px-4 py-2 shadow-sm backdrop-blur lg:top-4">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
-          Design Studio · create & select
-        </p>
-        <p className="text-sm font-medium text-[var(--foreground)]">
-          {!identitySelected
-            ? "Step 1 — Brand identity system"
-            : !finalOutputs.find((o) => o.kind === "landing_page")?.ready
-              ? "Step 2 — Landing page mockup"
-              : !finalOutputs.find((o) => o.kind === "deck")?.ready
-                ? "Step 3 — Brand deck"
-                : !channelsAligned
-                  ? "Step 4 — Channel templates (SMS · email · ads · print)"
-                  : "All finals chosen — continue to Brand Handover"}
-        </p>
+      {/* Sticky step + next action + compact finals (one chrome strip) */}
+      <div className="sticky top-14 z-20 mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]/95 px-4 py-2.5 shadow-sm backdrop-blur lg:top-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--subtle)]">
+              Design Studio · create & select
+            </p>
+            <p className="text-sm font-medium text-[var(--foreground)]">
+              {!identitySelected
+                ? "Step 1 — Brand identity system"
+                : !finalOutputs.find((o) => o.kind === "landing_page")?.ready
+                  ? "Step 2 — Landing page mockup"
+                  : !finalOutputs.find((o) => o.kind === "deck")?.ready
+                    ? "Step 3 — Brand deck"
+                    : !channelsAligned
+                      ? "Step 4 — Channel templates (SMS · email · ads · print)"
+                      : "All finals chosen — continue to Brand Handover"}
+            </p>
+            <ul className="mt-1.5 flex flex-wrap gap-1.5">
+              {finalOutputs.map((output) => (
+                <li
+                  key={output.kind}
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                    output.ready
+                      ? "border-[var(--ok)]/40 bg-[var(--ok)]/10 text-[var(--ok)]"
+                      : "border-[var(--border)] text-[var(--muted)]"
+                  }`}
+                >
+                  {output.ready ? <Check size={10} /> : null}
+                  {output.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            {mockupsIncomplete && !isBuildingMockups && !error ? (
+              <button
+                type="button"
+                onClick={() => identitySelected && void generateMockups(identitySelected.id)}
+                disabled={actionsBusy || !identitySelected}
+                data-faro-anchor="faro-design-generate"
+                className="inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--accent)] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+              >
+                <Sparkles size={14} />
+                Build landing &amp; deck
+              </button>
+            ) : null}
+            <Link
+              href={`/projects/${projectId}/handover`}
+              data-faro-anchor="faro-design-handover"
+              className={`inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-md)] px-3.5 py-2 text-xs font-semibold transition ${
+                deliverableReady
+                  ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
+                  : "border border-[var(--border-strong)] text-[var(--foreground)] hover:bg-[var(--surface-2)]"
+              }`}
+            >
+              <PackageCheck size={14} />
+              {deliverableReady ? t("design.openHandover") : t("design.leftForHandover")}
+            </Link>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
@@ -1152,7 +1122,7 @@ export function DesignStudio({
                       <button
                         onClick={() => selectProposal(previewAsset.id, previewAsset.kind)}
                         disabled={actionsBusy}
-                        className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                        className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
                       >
                         <Check size={16} /> Choose as final
                       </button>
@@ -1175,7 +1145,7 @@ export function DesignStudio({
                           type="button"
                           onClick={() => void generateMockups(previewAsset.id)}
                           disabled={actionsBusy}
-                          className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                          className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
                         >
                           <Sparkles size={16} /> Build mockups next
                         </button>
@@ -1377,7 +1347,7 @@ function PipelineStep({
           onClick={onGenerate}
           disabled={!unlocked || isBusy}
           aria-busy={isGenerating}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isGenerating ? <FaroBeacon size="sm" tone="light" /> : <Sparkles size={16} />}
           {isGenerating ? "Generating 3 proposals..." : proposals.length > 0 ? "Regenerate proposals" : meta.cta}
@@ -1502,7 +1472,7 @@ function PipelineStep({
                       type="button"
                       onClick={() => onSelect(asset.id, kind)}
                       disabled={isBusy}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--accent)] px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-md)] bg-[var(--accent)] px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
                       aria-label={`Choose proposal ${asset.variant ?? ""} as final`}
                       title="Choose as final"
                     >
@@ -1599,7 +1569,7 @@ function PipelineStep({
                         setFeedbackText("");
                         setChips([]);
                       }}
-                      className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[var(--accent)] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                      className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
                     >
                       {isGenerating ? (
                         <Loader2 size={13} className="animate-spin" />

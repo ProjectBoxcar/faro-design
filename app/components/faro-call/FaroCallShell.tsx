@@ -554,7 +554,7 @@ export function FaroCallShell({ ctx }: { ctx: FaroCallContext }) {
         className="shrink-0 border-t border-[var(--call-border)] bg-[var(--call-panel)]/95 px-4 py-3 backdrop-blur-md sm:px-5"
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
       >
-        <div className="mx-auto flex max-w-5xl flex-col gap-3">
+        <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:max-w-4xl">
           <div className="min-w-0" aria-live="polite" aria-atomic="true" aria-busy={askBusy}>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
               {liveCaption ? t("call.answered") : t("call.saying")}

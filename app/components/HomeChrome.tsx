@@ -61,7 +61,7 @@ export function HomeHeroActions({ showProjects }: { showProjects: boolean }) {
             <Link
               href="/start"
               data-faro-anchor="faro-start-brand"
-              className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-3.5 py-1.5 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition hover:bg-[var(--accent-hover)] hover:shadow-[var(--shadow-pop)]"
+              className="inline-flex min-h-10 items-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition hover:bg-[var(--accent-hover)] hover:shadow-[var(--shadow-pop)]"
             >
               {t("home.startBrand")} <ArrowRight size={14} />
             </Link>

@@ -1,0 +1,26 @@
+{
+  "projectId": "hjYFwST2Foj_191sOZwJK",
+  "routes": {
+    "home": "http://127.0.0.1:3100/",
+    "hub": "http://127.0.0.1:3100/projects/hjYFwST2Foj_191sOZwJK",
+    "express": "http://127.0.0.1:3100/projects/hjYFwST2Foj_191sOZwJK/express",
+    "design": "http://127.0.0.1:3100/projects/hjYFwST2Foj_191sOZwJK/design",
+    "studio": "http://127.0.0.1:3100/projects/hjYFwST2Foj_191sOZwJK/studio",
+    "logo": "http://127.0.0.1:3100/projects/hjYFwST2Foj_191sOZwJK/studio/logo",
+    "call": "http://127.0.0.1:3100/projects/hjYFwST2Foj_191sOZwJK/call"
+  },
+  "results": {
+    "homeDesktop": 200,
+    "hubDesktop": 200,
+    "express": 200,
+    "expressOrStrategy": "express",
+    "design": 0,
+    "logo": 200,
+    "designStudio": "logo-fallback",
+    "callDesktop": 200,
+    "homeMobile": 200,
+    "hubMobile": 200,
+    "callMobile": 200
+  },
+  "at": "2026-09-16T20:53:30.217Z"
+}

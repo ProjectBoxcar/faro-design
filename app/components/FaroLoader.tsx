@@ -120,7 +120,7 @@ export function FaroLoaderPanel({
   children,
   tone = "ink",
   className = "",
-  beaconSize = "hero",
+  beaconSize = "lg",
 }: {
   title: string;
   description?: string;
@@ -139,9 +139,9 @@ export function FaroLoaderPanel({
       aria-busy="true"
       className={`flex flex-col items-center text-center ${className}`}
     >
-      <div className="relative flex items-center justify-center py-4">
+      <div className="relative flex items-center justify-center py-3">
         <div
-          className="faro-loader-halo absolute left-1/2 top-1/2 h-52 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full sm:h-64 sm:w-64"
+          className="faro-loader-halo absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full sm:h-40 sm:w-40"
           style={{
             background: dark
               ? "radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 68%)"

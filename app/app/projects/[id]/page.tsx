@@ -158,7 +158,7 @@ export default async function ProjectHub({
         />
       </div>
 
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-8">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-8">
         <div className="min-w-0 space-y-5" id="plan">
           {/* Single primary accent CTA on the hub */}
           <UpNextCard next={next} />
