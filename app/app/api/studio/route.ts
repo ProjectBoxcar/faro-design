@@ -8,12 +8,8 @@ import {
   revokeStudioAssetApproval,
   discardStudioAsset,
 } from "@/lib/queries";
-import {
-  cancelLogoGeneration,
-  generateLogoCandidates,
-  logoWorkspace,
-  studioBlockedReason,
-} from "@/lib/studio";
+import { logoWorkspace, studioBlockedReason } from "@/lib/studio";
+import { cancelActiveLogoJob, latestLogoJob, startLogoJob } from "@/lib/logo-jobs";
 
 // Two Opus calls (generate + judge) can take a while.
 export const maxDuration = 300;
@@ -36,6 +32,17 @@ const Schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("discard"), projectId: z.string().min(1), assetId: z.string().min(1) }),
 ]);
 
+export async function GET(req: Request) {
+  const projectId = new URL(req.url).searchParams.get("projectId") ?? "";
+  if (!projectId || !getProject(projectId)) {
+    return NextResponse.json({ error: "Unknown project" }, { status: 404 });
+  }
+  return NextResponse.json({
+    workspace: logoWorkspace(projectId),
+    job: latestLogoJob(projectId),
+  });
+}
+
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const parsed = Schema.safeParse(body);
@@ -47,8 +54,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unknown project" }, { status: 404 });
   }
   if (input.action === "cancel") {
-    cancelLogoGeneration(input.projectId);
-    return NextResponse.json({ ok: true, workspace: logoWorkspace(input.projectId) });
+    cancelActiveLogoJob(input.projectId);
+    return NextResponse.json({
+      ok: true,
+      workspace: logoWorkspace(input.projectId),
+      job: latestLogoJob(input.projectId),
+    });
   }
   const blocked = studioBlockedReason(input.projectId, "logo");
   if (blocked && ["generate", "variations", "choose", "approve"].includes(input.action)) {
@@ -68,12 +79,17 @@ export async function POST(req: Request) {
             { status: 400 }
           );
         }
-        const result = await generateLogoCandidates(
-          input.projectId,
-          input.action === "variations" ? input.assetId : undefined,
-          input.action === "variations" ? input.feedback?.trim() || undefined : undefined
-        );
-        return NextResponse.json({ discarded: result.discarded, workspace: logoWorkspace(input.projectId) });
+        const job = startLogoJob({
+          projectId: input.projectId,
+          variationsOf: input.action === "variations" ? input.assetId : undefined,
+          feedback: input.action === "variations" ? input.feedback?.trim() || undefined : undefined,
+        });
+        return NextResponse.json({
+          started: job.status === "queued" || job.status === "running",
+          discarded: job.discarded,
+          job,
+          workspace: logoWorkspace(input.projectId),
+        });
       }
       case "choose":
         chooseStudioAsset(input.projectId, input.assetId);

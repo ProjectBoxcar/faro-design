@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { readFileSync } from "fs";
-import { mimeFromFilename, resolveContainedStoragePath } from "@/lib/content-studio/storage";
+import {
+  isAllowedMediaMime,
+  mimeFromFilename,
+  resolveContainedStoragePath,
+  safeFilename,
+} from "@/lib/content-studio/storage";
 import { listRawAssets, getContentProfile } from "@/lib/content-studio/store";
 
 export const dynamic = "force-dynamic";
@@ -25,10 +30,15 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "File missing or path not allowed" }, { status: 404 });
   }
   const buf = readFileSync(abs);
-  const mime = asset.mimeType || mimeFromFilename(asset.filename);
+  const stored = asset.mimeType || mimeFromFilename(asset.filename);
+  // Never render an uploaded file as a page. Unknown or HTML types download as bytes.
+  const mime = isAllowedMediaMime(stored) ? stored : "application/octet-stream";
+  const filename = safeFilename(asset.filename).replace(/["\r\n]/g, "");
   return new NextResponse(buf, {
     headers: {
       "Content-Type": mime,
+      "X-Content-Type-Options": "nosniff",
+      "Content-Disposition": `${mime === "application/octet-stream" ? "attachment" : "inline"}; filename="${filename}"`,
       "Cache-Control": "private, max-age=3600",
     },
   });

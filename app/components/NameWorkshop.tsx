@@ -6,6 +6,31 @@ import Link from "next/link";
 import { ArrowRight, Check, Loader2, Sparkles } from "lucide-react";
 import { FaroBeacon } from "@/components/FaroLoader";
 import { StagePageBanner } from "@/components/StagePageBanner";
+import { useLocale } from "@/components/LocaleProvider";
+
+/** Catalog sentence keeps `{name}` so the quoted working title stays emphasized. */
+function QuotedNameCopy({ template, name }: { template: string; name: string }) {
+  const token = "{name}";
+  const at = template.indexOf(token);
+  if (at < 0) return <>{template}</>;
+  let before = template.slice(0, at);
+  let after = template.slice(at + token.length);
+  const open = before.endsWith("“");
+  const close = after.startsWith("”");
+  if (open) before = before.slice(0, -1);
+  if (close) after = after.slice(1);
+  return (
+    <>
+      {before}
+      <strong className="text-[var(--foreground)]">
+        {open ? "“" : ""}
+        {name}
+        {close ? "”" : ""}
+      </strong>
+      {after}
+    </>
+  );
+}
 
 export type NameCandidateDto = {
   name: string;
@@ -26,6 +51,7 @@ export function NameWorkshop({
   isGenericWorkingTitle?: boolean;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [candidates, setCandidates] = useState(initialCandidates);
   const [busy, setBusy] = useState<"propose" | "pick" | "skip" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,11 +68,11 @@ export function NameWorkshop({
         body: JSON.stringify({ action: "propose" }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Couldn't suggest names");
+      if (!res.ok) throw new Error(data.error ?? t("name.suggestFailed"));
       setCandidates((data.candidates as NameCandidateDto[]) ?? []);
       setSelected(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't suggest names");
+      setError(e instanceof Error ? e.message : t("name.suggestFailed"));
     } finally {
       setBusy(null);
     }
@@ -55,7 +81,7 @@ export function NameWorkshop({
   async function pick(name: string) {
     const clean = name.trim();
     if (clean.length < 2) {
-      setError("Enter a name with at least two characters.");
+      setError(t("name.nameTooShort"));
       return;
     }
     setBusy("pick");
@@ -67,11 +93,11 @@ export function NameWorkshop({
         body: JSON.stringify({ action: "pick", name: clean }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Couldn't save the name");
+      if (!res.ok) throw new Error(data.error ?? t("name.saveFailed"));
       router.push(`/projects/${projectId}/studio`);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't save the name");
+      setError(e instanceof Error ? e.message : t("name.saveFailed"));
       setBusy(null);
     }
   }
@@ -86,11 +112,11 @@ export function NameWorkshop({
         body: JSON.stringify({ action: "skip" }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Couldn't continue");
+      if (!res.ok) throw new Error(data.error ?? t("name.continueFailed"));
       router.push(`/projects/${projectId}/studio`);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't continue");
+      setError(e instanceof Error ? e.message : t("name.continueFailed"));
       setBusy(null);
     }
   }
@@ -101,23 +127,14 @@ export function NameWorkshop({
     <div className="mx-auto w-full max-w-2xl px-3 py-4 lg:px-5 lg:py-5">
       <StagePageBanner stageId="name">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
-          After strategy · before logos
+          {t("name.kicker")}
         </p>
-        <h1 className="mt-1.5 font-serif text-lg font-medium tracking-tight lg:text-xl">Brand name</h1>
+        <h1 className="mt-1.5 font-serif text-lg font-medium tracking-tight lg:text-xl">{t("name.title")}</h1>
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-          {isGenericWorkingTitle ? (
-            <>
-              You started with <strong className="text-[var(--foreground)]">“{workingName}”</strong>,
-              which still looks like a temporary label. Logos will lock the spelling — pick a stronger
-              name now, or keep this one for now.
-            </>
-          ) : (
-            <>
-              You started with <strong className="text-[var(--foreground)]">“{workingName}”</strong>.
-              Confirm it for logos, type a different name, or ask for strategy-based suggestions. One
-              click is enough — logos use whatever you lock here.
-            </>
-          )}
+          <QuotedNameCopy
+            template={t(isGenericWorkingTitle ? "name.introGeneric" : "name.introConfirmed")}
+            name={workingName}
+          />
         </p>
       </StagePageBanner>
 
@@ -125,11 +142,8 @@ export function NameWorkshop({
         <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left sm:gap-5">
           <FaroBeacon size="sm" className="shrink-0" />
           <div className="mt-4 min-w-0 sm:mt-0">
-            <p className="font-medium text-[var(--foreground)]">Suggest names from your strategy</p>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Uses your concept, tension, and personality — and the same Claude key as strategy
-              drafting (not the logo key).
-            </p>
+            <p className="font-medium text-[var(--foreground)]">{t("name.suggestTitle")}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">{t("name.suggestBody")}</p>
             <button
               type="button"
               onClick={() => void propose()}
@@ -139,12 +153,12 @@ export function NameWorkshop({
             >
               {busy === "propose" ? (
                 <>
-                  <Loader2 size={15} className="animate-spin" /> Suggesting…
+                  <Loader2 size={15} className="animate-spin" /> {t("name.suggesting")}
                 </>
               ) : (
                 <>
                   <Sparkles size={15} />
-                  {candidates.length ? "Suggest more names" : "Suggest names"}
+                  {candidates.length ? t("name.suggestMore") : t("name.suggest")}
                 </>
               )}
             </button>
@@ -200,14 +214,14 @@ export function NameWorkshop({
       )}
 
       <div className="mt-8 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
-        <label className="block text-sm font-medium">Or type your own</label>
+        <label className="block text-sm font-medium">{t("name.customLabel")}</label>
         <input
           value={custom}
           onChange={(e) => {
             setCustom(e.target.value);
             setSelected(null);
           }}
-          placeholder="Your brand name"
+          placeholder={t("name.customPlaceholder")}
           disabled={locked}
           className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] px-4 py-2.5 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] disabled:opacity-50"
         />
@@ -222,7 +236,7 @@ export function NameWorkshop({
               disabled={locked}
               className="text-sm text-[var(--subtle)] underline-offset-2 transition hover:text-[var(--muted)] hover:underline disabled:opacity-50"
             >
-              {busy === "skip" ? "Continuing…" : `Keep “${workingName}” for logos`}
+              {busy === "skip" ? t("name.continuing") : t("name.keepForLogos", { name: workingName })}
             </button>
             <button
               type="button"
@@ -233,11 +247,11 @@ export function NameWorkshop({
             >
               {busy === "pick" ? (
                 <>
-                  <Loader2 size={15} className="animate-spin" /> Saving…
+                  <Loader2 size={15} className="animate-spin" /> {t("name.saving")}
                 </>
               ) : (
                 <>
-                  Use this name &amp; open Logo Workshop <ArrowRight size={15} />
+                  {t("name.useAndOpen")} <ArrowRight size={15} />
                 </>
               )}
             </button>
@@ -252,10 +266,10 @@ export function NameWorkshop({
             >
               {busy === "pick" ? (
                 <>
-                  <Loader2 size={15} className="animate-spin" /> Saving…
+                  <Loader2 size={15} className="animate-spin" /> {t("name.saving")}
                 </>
               ) : (
-                <>Use a different name</>
+                <>{t("name.useDifferent")}</>
               )}
             </button>
             <button
@@ -267,11 +281,11 @@ export function NameWorkshop({
             >
               {busy === "skip" ? (
                 <>
-                  <Loader2 size={15} className="animate-spin" /> Continuing…
+                  <Loader2 size={15} className="animate-spin" /> {t("name.continuing")}
                 </>
               ) : (
                 <>
-                  Keep “{workingName}” for logos <ArrowRight size={15} />
+                  {t("name.keepForLogos", { name: workingName })} <ArrowRight size={15} />
                 </>
               )}
             </button>
@@ -281,7 +295,7 @@ export function NameWorkshop({
 
       <p className="mt-6 text-center text-xs text-[var(--subtle)]">
         <Link href={`/projects/${projectId}/express`} className="underline-offset-2 hover:underline">
-          Back to strategy review
+          {t("name.backToStrategy")}
         </Link>
       </p>
     </div>

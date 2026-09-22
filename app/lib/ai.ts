@@ -125,14 +125,31 @@ async function callStrategyProvider(params: {
         : params.system
       : undefined;
 
-    const stream = client.messages.stream({
-      model,
-      max_tokens: params.maxTokens,
-      system,
-      messages: textMessages,
-    });
+    const timeoutMs = Math.max(120_000, params.maxTokens * 25);
+    const stream = client.messages.stream(
+      {
+        model,
+        max_tokens: params.maxTokens,
+        system,
+        messages: textMessages,
+      },
+      { signal: AbortSignal.timeout(timeoutMs) }
+    );
 
-    const text = await stream.finalText();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const textPromise = stream.finalText();
+    textPromise.catch(() => {});
+    const text = await Promise.race([
+      textPromise,
+      new Promise<string>((_, reject) => {
+        timer = setTimeout(() => {
+          stream.abort();
+          reject(new Error("Strategy generation timed out. Try again."));
+        }, timeoutMs);
+      }),
+    ]).finally(() => {
+      if (timer) clearTimeout(timer);
+    });
     const message = await stream.finalMessage();
     const result: GenerateTextResult = {
       text: text.trim(),

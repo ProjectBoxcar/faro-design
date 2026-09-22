@@ -85,6 +85,7 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
   const [model, setModel] = useState(strategy0.model ?? "");
 
   const [designKey, setDesignKey] = useState("");
+  const [helperKey, setHelperKey] = useState("");
   // Graphics field: openai-compatible stores OpenAI logo key; anthropic stores OD BYOK.
   const [designProvider, setDesignProvider] = useState<AiProvider>(
     initial.openDesign?.provider ?? "openai-compatible"
@@ -113,6 +114,18 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
   }
 
   async function save() {
+    if (designKey.trim().startsWith("sk-ant")) {
+      setMsg(null);
+      setError(
+        "That is a Claude key. Paste it in the design helper field. The OpenAI field is only for logo generation."
+      );
+      return;
+    }
+    if (helperKey.trim() && !helperKey.trim().startsWith("sk-ant")) {
+      setMsg(null);
+      setError("The design helper key should be a Claude key (it starts with sk-ant).");
+      return;
+    }
     setBusy(true);
     setError(null);
     setMsg(null);
@@ -124,7 +137,8 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
         provider,
         baseUrl: baseUrl || null,
         model: model || null,
-        designApiKey: designKey || undefined,
+        logoApiKey: designKey || undefined,
+        designApiKey: helperKey || undefined,
         designProvider,
         designBaseUrl: designBaseUrl || null,
         designModel: designModel || null,
@@ -301,6 +315,34 @@ export function SettingsForm({ initial }: { initial: SettingsInitial }) {
                 : logo.geminiConfigured
                   ? "OpenAI not set — a backup key is available."
                   : "Not saved yet."}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Design helper key</label>
+            <p className="mt-0.5 text-xs text-[var(--subtle)]">
+              Optional Claude key for identity and mockups. Leave blank to use the Claude key above.
+            </p>
+            <div className="relative mt-2">
+              <KeyRound
+                size={15}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--subtle)]"
+              />
+              <input
+                type="password"
+                value={helperKey}
+                onChange={(e) => setHelperKey(e.target.value)}
+                placeholder={
+                  designStudio.configured
+                    ? "Paste a new key to replace it"
+                    : "Paste a Claude key (sk-ant)"
+                }
+                autoComplete="off"
+                className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--field)] py-2.5 pl-9 pr-3 outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+              />
+            </div>
+            <p className="mt-1.5 text-xs text-[var(--subtle)]">
+              {designStudio.configured ? "A design helper key is already available." : "Not saved yet."}
             </p>
           </div>
         </div>

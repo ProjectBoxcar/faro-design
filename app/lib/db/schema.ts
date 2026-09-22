@@ -25,9 +25,10 @@ export const settings = sqliteTable("settings", {
   // Strategy-lane API key (Settings page). Falls back to ANTHROPIC_API_KEY /
   // OPENAI_API_KEY env. Never used for graphic generation.
   anthropic_api_key: text("anthropic_api_key"),
-  // Open Design lane — graphics only (logos, identity systems, mockups).
-  // Does NOT fall back to the strategy key. Env: OPEN_DESIGN_API_KEY, etc.
+  // Open Design lane — Anthropic key for the design helper. Not the logo key.
   design_api_key: text("design_api_key"),
+  // Logo Workshop — OpenAI-compatible key. Separate so a Claude design key cannot replace it.
+  logo_api_key: text("logo_api_key"),
   design_ai_provider: text("design_ai_provider", { enum: ["anthropic", "openai-compatible"] })
     .notNull()
     .default("openai-compatible"),
@@ -228,6 +229,31 @@ export const design_jobs = sqliteTable(
       .default(sql`(unixepoch())`),
   },
   (t) => [index("design_jobs_project_kind_idx").on(t.project_id, t.kind)]
+);
+
+export const logo_jobs = sqliteTable(
+  "logo_jobs",
+  {
+    id: text("id").primaryKey(),
+    project_id: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    action: text("action", { enum: ["generate", "variations"] }).notNull(),
+    source_asset_id: text("source_asset_id"),
+    feedback: text("feedback"),
+    status: text("status", { enum: ["queued", "running", "complete", "failed"] })
+      .notNull()
+      .default("queued"),
+    error: text("error"),
+    discarded: integer("discarded").notNull().default(0),
+    created_at: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updated_at: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("logo_jobs_project_idx").on(t.project_id)]
 );
 
 export const assets = sqliteTable(

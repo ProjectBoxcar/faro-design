@@ -6,6 +6,7 @@ import {
   setBaseUrl,
   setAiModel,
   setDesignApiKey,
+  setLogoApiKey,
   setDesignProvider,
   setDesignBaseUrl,
   setDesignModel,
@@ -22,8 +23,9 @@ const SaveSchema = z.object({
   baseUrl: z.string().optional(),
   model: z.string().optional(),
   clearStrategyKey: z.boolean().optional(),
-  // Graphics field: OpenAI → Logo Workshop; sk-ant → OD BYOK (see docs/11-ai-lanes.md)
+  // OpenAI logo key only. Claude keys (sk-ant) belong in apiKey.
   designApiKey: z.string().optional(),
+  logoApiKey: z.string().optional(),
   designProvider: z.enum(["anthropic", "openai-compatible"]).optional(),
   designBaseUrl: z.string().optional(),
   designModel: z.string().optional(),
@@ -67,11 +69,23 @@ export async function POST(req: Request) {
     model,
     clearStrategyKey,
     designApiKey,
+    logoApiKey,
     designProvider,
     designBaseUrl,
     designModel,
     clearDesignKey,
   } = parsed.data;
+
+  const postedLogoKey = (logoApiKey ?? "").trim();
+  if (postedLogoKey.startsWith("sk-ant")) {
+    return NextResponse.json(
+      {
+        error:
+          "That is a Claude key. Paste it in the design helper field. The OpenAI field is only for logo generation.",
+      },
+      { status: 400 }
+    );
+  }
 
   if (clearStrategyKey) {
     setApiKey(null);
@@ -91,18 +105,33 @@ export async function POST(req: Request) {
   if (baseUrl !== undefined) setBaseUrl(baseUrl.trim() || null);
   if (model !== undefined) setAiModel(model.trim() || null);
 
+  if (postedLogoKey) {
+    if (!postedLogoKey.startsWith("sk-")) {
+      return NextResponse.json(
+        { error: "The logo key should start with “sk-”." },
+        { status: 400 }
+      );
+    }
+    setLogoApiKey(postedLogoKey);
+  }
+
   if (clearDesignKey) {
     setDesignApiKey(null);
+    setLogoApiKey(null);
   } else {
     const dKey = (designApiKey ?? "").trim();
     if (dKey) {
-      if (!dKey.startsWith("sk-") && !dKey.startsWith("od-")) {
+      if (dKey.startsWith("sk-ant")) {
+        setDesignApiKey(dKey);
+      } else if (dKey.startsWith("sk-") || dKey.startsWith("od-")) {
+        // Older clients still post the OpenAI logo key as designApiKey.
+        setLogoApiKey(dKey);
+      } else {
         return NextResponse.json(
-          { error: "Graphics API key should start with “sk-” or “od-”." },
+          { error: "A design helper key should be a Claude key (it starts with “sk-ant”)." },
           { status: 400 }
         );
       }
-      setDesignApiKey(dKey);
     }
   }
   if (designProvider) setDesignProvider(designProvider as AiProvider);
@@ -115,5 +144,6 @@ export async function POST(req: Request) {
 export async function DELETE() {
   setApiKey(null);
   setDesignApiKey(null);
+  setLogoApiKey(null);
   return NextResponse.json(await settingsPayload());
 }

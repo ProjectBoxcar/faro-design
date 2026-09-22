@@ -278,14 +278,16 @@ async function generateSingleAsset(
     console.warn(
       `[design] Proposal ${kind}/${variant} rejected (attempt ${attempt + 1}): ${lastIssues.join("; ")}`
     );
-    // Last attempt: keep a real document if it is not a near-duplicate of a prior proposal.
-    if (attempt === 2 && !duplicate && html.length > 1500 && /<!doctype html>/i.test(html)) {
+    // Last attempt may keep a real HTML document that still has smaller issues.
+    // Anything that is not an HTML document is discarded, including the last try.
+    const isHtmlDoc = /<!doctype html>/i.test(html) && /<\/html>/i.test(html);
+    if (attempt === 2 && !duplicate && isHtmlDoc && html.length > 1500) {
       console.warn(
         `[design] Proposal ${kind}/${variant} accepted with remaining issues: ${lastIssues.join("; ")}`
       );
       break;
     }
-    if (attempt < 2) html = "";
+    html = "";
   }
   if (!html?.trim()) {
     throw new Error(

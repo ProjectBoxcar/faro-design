@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
   AUTH_COOKIE,
   authCookieValue,
+  decideAccess,
   isLocalHost,
   timingSafeEqualHex,
 } from "@/lib/auth";
@@ -16,11 +17,20 @@ import {
 
 export default async function proxy(req: NextRequest) {
   const password = process.env.APP_PASSWORD?.trim();
-  const host = req.headers.get("host");
-  const local = isLocalHost(host);
+  const local = isLocalHost(req.headers.get("host"));
+
+  let cookieOk = false;
+  let expected = "";
+  if (password) {
+    expected = await authCookieValue(password);
+    const got = req.cookies.get(AUTH_COOKIE)?.value ?? "";
+    cookieOk = got !== "" && timingSafeEqualHex(got, expected);
+  }
+
+  const decision = decideAccess({ hasPassword: Boolean(password), local, cookieOk });
 
   // Off-machine access with no password configured → refuse (do not fail open).
-  if (!password && !local) {
+  if (decision === "block-no-password") {
     if (req.nextUrl.pathname.startsWith("/api/")) {
       return NextResponse.json(
         {
@@ -45,15 +55,11 @@ AUTH_SECRET=another-long-secret</pre>
     );
   }
 
-  // Local dev with no password → open (single-user machine).
-  if (!password) return NextResponse.next();
+  // Local dev with no password, or a valid session cookie → open.
+  if (decision === "local-open" || decision === "allow") return NextResponse.next();
 
-  const expected = await authCookieValue(password);
-  const got = req.cookies.get(AUTH_COOKIE)?.value ?? "";
-  if (got && timingSafeEqualHex(got, expected)) return NextResponse.next();
-
-  // Localhost: mint cookie automatically.
-  if (local) {
+  // Localhost with a password and no cookie: mint one automatically.
+  if (decision === "local-mint") {
     const res = NextResponse.next();
     res.cookies.set(AUTH_COOKIE, expected, {
       httpOnly: true,

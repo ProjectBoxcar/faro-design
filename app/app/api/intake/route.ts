@@ -101,7 +101,7 @@ export async function POST(req: Request) {
         answersFilled,
         error: message,
       },
-      { status: 200 }
+      { status: 502 }
     );
   }
 }
