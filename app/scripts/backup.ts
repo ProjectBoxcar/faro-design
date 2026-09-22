@@ -1,12 +1,14 @@
 import Database from "better-sqlite3";
-import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 
 // Point-in-time snapshot of the brand database. Uses SQLite's online backup API
 // (via better-sqlite3) so it's consistent even while the dev server is writing.
-// Run with `npm run backup`. Keeps the most recent KEEP snapshots.
+// Also copies data/content-studio when that folder exists.
+// Run with `npm run backup`. Keeps the most recent KEEP snapshots of each.
 
 const DB_PATH = join("data", "brand.db");
+const MEDIA_DIR = join("data", "content-studio");
 const BACKUP_DIR = join("data", "backups");
 const KEEP = 14;
 
@@ -25,6 +27,12 @@ async function main() {
   db.close();
   console.log(`Backed up → ${dest}`);
 
+  if (existsSync(MEDIA_DIR)) {
+    const mediaDest = join(BACKUP_DIR, `content-studio-${stamp}`);
+    cpSync(MEDIA_DIR, mediaDest, { recursive: true });
+    console.log(`Backed up media → ${mediaDest}`);
+  }
+
   // Prune to the most recent KEEP snapshots.
   const snaps = readdirSync(BACKUP_DIR)
     .filter((f) => f.startsWith("brand-") && f.endsWith(".db"))
@@ -32,6 +40,18 @@ async function main() {
     .sort((a, b) => b.t - a.t);
   for (const old of snaps.slice(KEEP)) {
     unlinkSync(join(BACKUP_DIR, old.f));
+    console.log(`Pruned old backup: ${old.f}`);
+  }
+
+  const mediaSnaps = readdirSync(BACKUP_DIR)
+    .filter((f) => {
+      if (!f.startsWith("content-studio-")) return false;
+      return statSync(join(BACKUP_DIR, f)).isDirectory();
+    })
+    .map((f) => ({ f, t: statSync(join(BACKUP_DIR, f)).mtimeMs }))
+    .sort((a, b) => b.t - a.t);
+  for (const old of mediaSnaps.slice(KEEP)) {
+    rmSync(join(BACKUP_DIR, old.f), { recursive: true, force: true });
     console.log(`Pruned old backup: ${old.f}`);
   }
 }

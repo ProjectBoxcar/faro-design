@@ -14,6 +14,7 @@ const dbPath = process.env.DATABASE_PATH || path.join(dataDir, "brand.db");
 const sqlite = new Database(dbPath);
 sqlite.pragma("journal_mode = WAL");
 sqlite.pragma("foreign_keys = ON");
+sqlite.pragma("busy_timeout = 5000");
 
 export const db = drizzle(sqlite, { schema });
 export { schema };
@@ -38,6 +39,13 @@ export function ensureRuntimeReconcile(): void {
       express.reconcileOrphanExpressRuns();
     } catch (e) {
       console.warn("[boot] express reconcile failed:", e);
+    }
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const logoJobs = require("@/lib/logo-jobs") as typeof import("@/lib/logo-jobs");
+      logoJobs.reconcileOrphanLogoJobs();
+    } catch (e) {
+      console.warn("[boot] logo job reconcile failed:", e);
     }
   });
 }

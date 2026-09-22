@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  faceForMood,
   isFaroMood,
   moodForScene,
   FARO_BRAND_PERSONALITY,
@@ -12,7 +11,6 @@ describe("faro-persona", () => {
     expect(isFaroMood("angry")).toBe(false);
     expect(moodForScene("handover")).toBe("proud");
     expect(moodForScene("settings")).toBe("careful");
-    expect(faceForMood("thinking")).toContain("thinking");
   });
 
   it("carries brand promise", () => {

@@ -125,7 +125,7 @@ export function DesignStudio({
   initialShareToken: _initialShareToken,
   generationBlockedReason,
   apiKeyConfigured,
-  daemonUp = true,
+  daemonUp = false,
   viability = null,
 }: {
   projectId: string;

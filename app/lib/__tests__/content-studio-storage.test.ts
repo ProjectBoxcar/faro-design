@@ -38,5 +38,7 @@ describe("content studio storage path safety", () => {
     expect(kindFromMime("video/mp4")).toBe("video");
     expect(isAllowedMediaMime("image/jpeg")).toBe(true);
     expect(isAllowedMediaMime("application/pdf")).toBe(false);
+    expect(isAllowedMediaMime("image/svg+xml")).toBe(false);
+    expect(isAllowedMediaMime("text/html")).toBe(false);
   });
 });

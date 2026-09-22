@@ -15,6 +15,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "backup": "tsx scripts/backup.ts",
+    "backup:restore": "tsx scripts/restore.ts",
     "seed:phase2": "tsx scripts/seed-phase2.ts"
   },
   "dependencies": {

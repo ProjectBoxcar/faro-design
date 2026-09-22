@@ -104,17 +104,26 @@ function orderWithRefinements(list: WorkspaceAsset[]): WorkspaceAsset[] {
 // The logo workspace: generate → review survivors → choose → APPROVE.
 // The Approve button is the whole point of this screen — the one act the AI
 // can never perform. Until it's pressed, nothing here is part of the brand.
+export type LogoJobSnapshot = {
+  status: "queued" | "running" | "complete" | "failed";
+  error: string | null;
+  discarded?: number;
+};
+
 export function StudioLogoWorkspace({
   projectId,
   initialBlocked,
   name,
   initialAssets,
+  initialJob = null,
   viability = null,
 }: {
   projectId: string;
   initialBlocked: string | null;
   name: string | null;
   initialAssets: WorkspaceAsset[];
+  /** In-flight or interrupted logo job, so a refresh can keep watching or show the error. */
+  initialJob?: LogoJobSnapshot | null;
   /** When set, show ViabilityPanel on blocked screens so owners can recheck/override. */
   viability?: {
     status: "pending" | "pass" | "fail" | "caveat";
@@ -135,7 +144,9 @@ export function StudioLogoWorkspace({
     }))
   );
   const [busy, setBusy] = useState<string | null>(null); // action id or "generate"
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    initialJob?.status === "failed" ? initialJob.error : null
+  );
   const [lastDiscarded, setLastDiscarded] = useState(0);
   const [stopping, setStopping] = useState(false);
   /** In-flight improve: show progress under the source card, not a silent top-of-page jump. */
@@ -177,6 +188,51 @@ export function StudioLogoWorkspace({
     );
   }, [assets]);
 
+  async function waitForLogoJob(signal: AbortSignal) {
+    for (;;) {
+      if (signal.aborted) return;
+      const res = await fetch(`/api/studio?projectId=${encodeURIComponent(projectId)}`, {
+        cache: "no-store",
+        signal,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (signal.aborted) return;
+      const ws = data.workspace as { assets?: Record<string, unknown>[] } | undefined;
+      if (ws?.assets) setAssets(mapWorkspaceAssets(ws.assets));
+      const status = data.job?.status as string | undefined;
+      if (typeof data.job?.discarded === "number") setLastDiscarded(data.job.discarded);
+      if (!data.job || status === "complete" || status === "failed") {
+        if (status === "failed") {
+          throw new Error(data.job?.error ?? "Logo generation failed");
+        }
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  }
+
+  useEffect(() => {
+    if (initialJob?.status !== "queued" && initialJob?.status !== "running") return;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setBusy("generate");
+    setError(null);
+    void waitForLogoJob(controller.signal)
+      .catch((e) => {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        setError(e instanceof Error ? e.message : "Logo generation failed");
+      })
+      .finally(() => {
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+          setBusy(null);
+        }
+      });
+    return () => controller.abort();
+    // Resume a job that was already running when this page opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
   async function act(
     body: Record<string, string>,
     busyKey: string,
@@ -214,6 +270,10 @@ export function StudioLogoWorkspace({
       if (!res.ok) {
         if (data.cancelled || data.error === "Generation stopped.") return;
         throw new Error(data.error ?? "Something went wrong");
+      }
+      if (data.job && (data.job.status === "queued" || data.job.status === "running")) {
+        await waitForLogoJob(controller.signal);
+        return;
       }
       if (typeof data.discarded === "number") setLastDiscarded(data.discarded);
       const ws = data.workspace;

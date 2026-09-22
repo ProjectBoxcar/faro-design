@@ -122,8 +122,35 @@ export function kindFromMime(mime: string): "image" | "video" | "unknown" {
   return "unknown";
 }
 
+const ALLOWED_UPLOAD_MIMES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "video/mp4",
+  "video/quicktime",
+  "video/webm",
+]);
+
+/** 40 MB. Large enough for a short source clip, small enough to not fill the disk. */
+export const MAX_UPLOAD_BYTES = 40 * 1024 * 1024;
+
 export function isAllowedMediaMime(mime: string): boolean {
-  return mime.startsWith("image/") || mime.startsWith("video/");
+  return ALLOWED_UPLOAD_MIMES.has(mime);
+}
+
+/**
+ * Reject empty files, files over the cap, and anything that is not a photo or video.
+ * Type comes from the filename, not the browser-supplied MIME, so HTML cannot sneak in.
+ */
+export function uploadRejection(filename: string, byteLength: number): string | null {
+  if (!Number.isFinite(byteLength) || byteLength <= 0) return "That file is empty.";
+  if (byteLength > MAX_UPLOAD_BYTES) return "That file is too large. Keep it under 40 MB.";
+  const mime = mimeFromFilename(filename);
+  if (!isAllowedMediaMime(mime)) {
+    return "Use a JPEG, PNG, WebP, GIF, MP4, MOV, or WebM file.";
+  }
+  return null;
 }
 
 /** Unique dest name if file already exists (upload collision). */

@@ -56,12 +56,12 @@ export type RefineStateDto = {
 };
 
 const PIPELINE_STAGES = [
-  { label: "Reality — what your business actually is", prefix: ["reality."] },
-  { label: "Identity — who the brand is", prefix: ["identity."] },
-  { label: "Communication — how it speaks", prefix: ["communication."] },
-  { label: "Strategic document & brief", prefix: ["strategic-document.", "brief."] },
-  { label: "Brand concept & manifesto", prefix: ["concept", "insights", "manifesto"] },
-  { label: "Design plan", prefix: ["audit", "design-plan"] },
+  { labelKey: "express.stageReality", prefix: ["reality."] },
+  { labelKey: "express.stageIdentity", prefix: ["identity."] },
+  { labelKey: "express.stageCommunication", prefix: ["communication."] },
+  { labelKey: "express.stageDocument", prefix: ["strategic-document.", "brief."] },
+  { labelKey: "express.stageConcept", prefix: ["concept", "insights", "manifesto"] },
+  { labelKey: "express.stageDesign", prefix: ["audit", "design-plan"] },
 ];
 
 function stageIndexOf(sectionId: string | null): number {
@@ -573,7 +573,7 @@ function ExpressDraftingScreen({
               active = false;
             }
             return (
-              <li key={stage.label} className="flex items-center gap-3 text-sm">
+              <li key={stage.labelKey} className="flex items-center gap-3 text-sm">
                 <span
                   className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
                     stageDone
@@ -592,7 +592,7 @@ function ExpressDraftingScreen({
                   )}
                 </span>
                 <span className={active ? "font-medium" : stageDone ? "" : "text-[var(--muted)]"}>
-                  {stage.label}
+                  {t(stage.labelKey)}
                   {active && state.currentName ? (
                     <span className="text-[var(--subtle)]"> — {state.currentName}…</span>
                   ) : null}
@@ -694,7 +694,7 @@ export function ExpressJourney({
   const [conceptBusy, setConceptBusy] = useState(false);
   const [conceptNote, setConceptNote] = useState<string | null>(null);
   const [refine, setRefine] = useState<RefineStateDto | null>(null);
-  const running = state.status === "running" || state.status === "idle";
+  const running = state.status === "running";
   const refining = refine?.status === "running";
   const [stopping, setStopping] = useState(false);
 
@@ -796,11 +796,12 @@ export function ExpressJourney({
             router.refresh();
             return;
           }
-          // Crash recovery only: idle incomplete. Cancelled/failed need Resume click.
+          // Crash recovery: an idle unfinished run. A failed intake sets intakeError
+          // and must not be started again until the owner asks.
           if (
+            !intakeError &&
             data.state.status === "idle" &&
-            data.state.done < data.state.total &&
-            data.state.status !== "cancelled"
+            data.state.done < data.state.total
           ) {
             void fetch(`/api/projects/${projectId}/express`, {
               method: "POST",
@@ -819,7 +820,7 @@ export function ExpressJourney({
       cancelled = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, [projectId, router, state.status]);
+  }, [intakeError, projectId, router, state.status]);
 
   // Poll while a Ready cascade rewrites dependent cards.
   useEffect(() => {
@@ -1148,13 +1149,28 @@ export function ExpressJourney({
             <p className="font-medium text-[var(--foreground)]">Strategy draft hit a snag</p>
             <p className="mt-1 text-xs text-[var(--muted)]">{intakeError}</p>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              Your answers are saved. Use Resume below if drafting stopped, or check{" "}
+              Your answers are saved. Draft when you are ready, or check{" "}
               <Link href="/settings" className="font-medium text-[var(--accent)] underline-offset-2 hover:underline">
                 Settings
               </Link>
               .
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setIntakeError(null);
+              setState((prev) => ({ ...prev, status: "running", error: null }));
+              void fetch(`/api/projects/${projectId}/express`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "start" }),
+              });
+            }}
+            className="shrink-0 rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--accent-hover)]"
+          >
+            Draft strategy
+          </button>
           <button
             type="button"
             onClick={() => setIntakeError(null)}

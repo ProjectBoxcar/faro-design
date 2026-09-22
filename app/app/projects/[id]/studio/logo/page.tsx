@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getProject, listEvaluations } from "@/lib/queries";
 import { logoWorkspace, studioBlockedReason } from "@/lib/studio";
+import { latestLogoJob } from "@/lib/logo-jobs";
 import { needsNameWorkshop } from "@/lib/naming-propose";
 import { StudioLogoWorkspace, type WorkspaceAsset } from "@/components/StudioLogoWorkspace";
 
@@ -14,6 +15,7 @@ export default async function LogoWorkspacePage({ params }: { params: Promise<{ 
   if (!project) notFound();
 
   const ws = logoWorkspace(id);
+  const job = latestLogoJob(id);
   // Soft name gate only before any logo work exists.
   if (
     needsNameWorkshop(id) &&
@@ -55,6 +57,11 @@ export default async function LogoWorkspacePage({ params }: { params: Promise<{ 
         initialBlocked={ws.blocked}
         name={ws.name}
         initialAssets={assets}
+        initialJob={
+          job
+            ? { status: job.status, error: job.error, discarded: job.discarded }
+            : null
+        }
         viability={{
           status: project.viability,
           overrideNote: project.viability_override_note,

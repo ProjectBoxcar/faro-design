@@ -23,6 +23,7 @@ import {
   kindFromMime,
   mimeFromFilename,
   resolveImportSourceDir,
+  uploadRejection,
   writeRawAssetFile,
 } from "@/lib/content-studio/storage";
 import { getProject } from "@/lib/queries";
@@ -194,13 +195,17 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Missing file" }, { status: 400 });
       }
       const buf = Buffer.from(await file.arrayBuffer());
+      const rejected = uploadRejection(file.name, buf.length);
+      if (rejected) {
+        return NextResponse.json({ error: rejected }, { status: 400 });
+      }
       const written = writeRawAssetFile({
         projectId: profileRow.project_id,
         profileId,
         filename: file.name,
         bytes: buf,
       });
-      const mimeType = file.type || mimeFromFilename(written.filename);
+      const mimeType = mimeFromFilename(written.filename);
       const asset = insertRawAsset({
         profileId,
         filename: written.filename,

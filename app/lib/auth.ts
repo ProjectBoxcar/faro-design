@@ -39,6 +39,23 @@ export function isLocalHost(hostHeader: string | null): boolean {
   return host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "::1";
 }
 
+/** Fixed order: missing password, then a valid cookie, then localhost mint. */
+export function decideAccess({
+  hasPassword,
+  local,
+  cookieOk,
+}: {
+  hasPassword: boolean;
+  local: boolean;
+  cookieOk: boolean;
+}): "block-no-password" | "local-open" | "allow" | "local-mint" | "need-unlock" {
+  if (!hasPassword && !local) return "block-no-password";
+  if (!hasPassword && local) return "local-open";
+  if (cookieOk) return "allow";
+  if (local) return "local-mint";
+  return "need-unlock";
+}
+
 /** Timing-safe string compare for equal-length hex tokens. */
 export function timingSafeEqualHex(a: string, b: string): boolean {
   if (a.length !== b.length) return false;

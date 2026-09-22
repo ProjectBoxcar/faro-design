@@ -147,14 +147,15 @@ export function getLogoApiConfig(): {
   model: string;
 } {
   const row = getSettingsRow();
+  const logoKey = (row.logo_api_key ?? "").trim();
   const designKey = (row.design_api_key ?? "").trim();
   const openaiEnv = (process.env.OPENAI_API_KEY ?? "").trim();
 
-  // Prefer non-Anthropic graphics key (sk-proj / sk-…)
+  // Dedicated logo column first, then a legacy non-Anthropic graphics key.
   let apiKey: string | null = null;
-  if (designKey && !designKey.startsWith("sk-ant")) apiKey = designKey;
+  if (logoKey && !logoKey.startsWith("sk-ant")) apiKey = logoKey;
+  else if (designKey && !designKey.startsWith("sk-ant")) apiKey = designKey;
   else if (openaiEnv) apiKey = openaiEnv;
-  else if (row.design_ai_provider === "openai-compatible" && designKey) apiKey = designKey;
 
   const modelFromDb = (row.design_ai_model ?? "").trim();
   const model =
@@ -174,6 +175,12 @@ export function setDesignApiKey(key: string | null): void {
   getSettingsRow();
   const clean = key && key.trim() ? key.trim() : null;
   db.update(settings).set({ design_api_key: clean }).where(eq(settings.id, 1)).run();
+}
+
+export function setLogoApiKey(key: string | null): void {
+  getSettingsRow();
+  const clean = key && key.trim() ? key.trim() : null;
+  db.update(settings).set({ logo_api_key: clean }).where(eq(settings.id, 1)).run();
 }
 
 export function getDesignProvider(): AiProvider {
@@ -248,7 +255,9 @@ export function logoApiKeyStatus(): {
   source: "settings" | "env" | null;
 } {
   const row = getSettingsRow();
+  const logoKey = (row.logo_api_key ?? "").trim();
   const designKey = (row.design_api_key ?? "").trim();
+  if (logoKey && !logoKey.startsWith("sk-ant")) return { configured: true, source: "settings" };
   if (designKey && !designKey.startsWith("sk-ant")) return { configured: true, source: "settings" };
   if ((process.env.OPENAI_API_KEY ?? "").trim()) return { configured: true, source: "env" };
   return { configured: false, source: null };
