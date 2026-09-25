@@ -1,5 +1,21 @@
 import { sql } from "drizzle-orm";
-import { sqliteTable, text, integer, uniqueIndex, index } from "drizzle-orm/sqlite-core";
+import { customType, sqliteTable, text, integer, uniqueIndex, index } from "drizzle-orm/sqlite-core";
+import { parseStoredJson } from "../json";
+
+/** JSON text that never throws on the way out of SQLite. */
+function jsonCol<T>(name: string) {
+  return customType<{ data: T; driverData: string }>({
+    dataType() {
+      return "text";
+    },
+    toDriver(value: T): string {
+      return JSON.stringify(value);
+    },
+    fromDriver(value: string): T {
+      return parseStoredJson<T>(value);
+    },
+  })(name);
+}
 import type {
   SectionValue,
   EvalScore,
@@ -88,7 +104,7 @@ export const sections = sqliteTable(
       .references(() => projects.id, { onDelete: "cascade" }),
     // Matches a node id in methodology.json, e.g. "brief.central-pattern".
     section_key: text("section_key").notNull(),
-    value: text("value", { mode: "json" }).$type<SectionValue>(),
+    value: jsonCol<SectionValue | null>("value"),
     status: text("status", {
       enum: ["empty", "draft", "complete", "client_submitted"],
     })
@@ -126,7 +142,7 @@ export const evaluations = sqliteTable(
     }).notNull(),
     // Candidate label (e.g. "Finisterra", "Logo direction B"); null for project-level gates.
     subject: text("subject"),
-    scores: text("scores", { mode: "json" }).$type<EvalScore[]>().default([]),
+    scores: jsonCol<EvalScore[]>("scores").notNull().default([]),
     verdict: text("verdict", { enum: ["pass", "caveat", "fail", "blocked"] }),
     created_at: integer("created_at", { mode: "timestamp" })
       .notNull()
@@ -153,7 +169,7 @@ export const studio_assets = sqliteTable(
     label: text("label").notNull(),
     // The generator's one-paragraph rationale, shown on the candidate card.
     direction: text("direction"),
-    payload: text("payload", { mode: "json" }).$type<AssetPayload>(),
+    payload: jsonCol<AssetPayload | null>("payload"),
     status: text("status", {
       enum: ["candidate", "chosen", "approved", "discarded"],
     })
@@ -186,7 +202,7 @@ export const ai_generations = sqliteTable(
     section_key: text("section_key").notNull(),
     model: text("model").notNull(),
     // Upstream section ids fed as context (provenance).
-    reads: text("reads", { mode: "json" }).$type<AiReads>().default([]),
+    reads: jsonCol<AiReads>("reads").notNull().default([]),
     output: text("output"),
     accepted: integer("accepted", { mode: "boolean" }).notNull().default(false),
     created_at: integer("created_at", { mode: "timestamp" })
@@ -213,14 +229,14 @@ export const design_jobs = sqliteTable(
     status: text("status", { enum: ["queued", "running", "complete", "failed"] })
       .notNull()
       .default("queued"),
-    asset_ids: text("asset_ids", { mode: "json" }).$type<string[]>().default([]),
+    asset_ids: jsonCol<string[]>("asset_ids").notNull().default([]),
     error: text("error"),
     /** Improve-with-feedback payload (JSON): feedback, baseHtml, baseAssetId */
-    refine_meta: text("refine_meta", { mode: "json" }).$type<{
+    refine_meta: jsonCol<{
       feedback?: string;
       baseHtml?: string;
       baseAssetId?: string;
-    } | null>(),
+    } | null>("refine_meta"),
     created_at: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
@@ -245,6 +261,8 @@ export const logo_jobs = sqliteTable(
       .notNull()
       .default("queued"),
     error: text("error"),
+    /** Model output saved before the logos are inserted, so a restart can finish. */
+    checkpoint: text("checkpoint"),
     discarded: integer("discarded").notNull().default(0),
     created_at: integer("created_at", { mode: "timestamp" })
       .notNull()
@@ -319,7 +337,7 @@ export const publish_snapshots = sqliteTable(
     version: integer("version").notNull(),
     // At most one current row per project (enforced in app code).
     is_current: integer("is_current", { mode: "boolean" }).notNull().default(true),
-    payload: text("payload", { mode: "json" }).$type<PublishSnapshotPayload>().notNull(),
+    payload: jsonCol<PublishSnapshotPayload>("payload").notNull(),
     created_at: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
@@ -353,7 +371,7 @@ export const brand_memory = sqliteTable(
     // Short natural-language summary injected into prompts.
     body: text("body").notNull(),
     // Optional structured extras (labels, hexes, verdicts…).
-    meta: text("meta", { mode: "json" }).$type<Record<string, unknown>>().default({}),
+    meta: jsonCol<Record<string, unknown>>("meta").notNull().default({}),
     // Higher = more important when ranking (recent package = high).
     weight: integer("weight").notNull().default(1),
     created_at: integer("created_at", { mode: "timestamp" })
@@ -379,7 +397,7 @@ export const content_profiles = sqliteTable(
     brand_name: text("brand_name").notNull(),
     locked: integer("locked", { mode: "boolean" }).notNull().default(true),
     // Full BrandProfile JSON (lib/content-studio/types.ts)
-    payload: text("payload", { mode: "json" }).$type<Record<string, unknown>>().notNull(),
+    payload: jsonCol<Record<string, unknown>>("payload").notNull(),
     created_at: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
@@ -399,9 +417,9 @@ export const content_raw_assets = sqliteTable(
     kind: text("kind", { enum: ["image", "video", "unknown"] }).notNull().default("unknown"),
     storage_path: text("storage_path"),
     /** MediaAnalysisCard JSON — vision pass before month plan */
-    analysis: text("analysis", { mode: "json" }).$type<Record<string, unknown>>(),
+    analysis: jsonCol<Record<string, unknown> | null>("analysis"),
     /** AssetOwnerMeta JSON — tags / exclude (P4) */
-    owner_meta: text("owner_meta", { mode: "json" }).$type<Record<string, unknown>>(),
+    owner_meta: jsonCol<Record<string, unknown> | null>("owner_meta"),
     created_at: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
@@ -424,7 +442,7 @@ export const content_calendars = sqliteTable(
       .notNull()
       .default("draft"),
     /** ContentMonthStrategy JSON (organic month plan) */
-    strategy: text("strategy", { mode: "json" }).$type<Record<string, unknown>>(),
+    strategy: jsonCol<Record<string, unknown> | null>("strategy"),
     created_at: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
@@ -441,11 +459,11 @@ export const content_posts = sqliteTable(
       .references(() => content_calendars.id, { onDelete: "cascade" }),
     day_index: integer("day_index").notNull(),
     date_iso: text("date_iso").notNull(),
-    platforms: text("platforms", { mode: "json" }).$type<string[]>().default([]),
+    platforms: jsonCol<string[]>("platforms").notNull().default([]),
     caption: text("caption").notNull().default(""),
-    hashtags: text("hashtags", { mode: "json" }).$type<string[]>().default([]),
-    variants: text("variants", { mode: "json" }).$type<unknown[]>().default([]),
-    source_asset_ids: text("source_asset_ids", { mode: "json" }).$type<string[]>().default([]),
+    hashtags: jsonCol<string[]>("hashtags").notNull().default([]),
+    variants: jsonCol<unknown[]>("variants").notNull().default([]),
+    source_asset_ids: jsonCol<string[]>("source_asset_ids").notNull().default([]),
     status: text("status", { enum: ["draft", "approved", "rejected"] })
       .notNull()
       .default("draft"),

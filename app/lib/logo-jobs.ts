@@ -3,7 +3,8 @@ import { and, desc, eq, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "@/lib/db";
 import { logo_jobs } from "@/lib/db/schema";
-import { cancelLogoGeneration, generateLogoCandidates } from "@/lib/studio";
+import { cancelLogoGeneration, generateLogoCandidates, type LogoCheckpoint } from "@/lib/studio";
+import { parseStoredJson } from "@/lib/json";
 
 export type LogoJobStatus = "queued" | "running" | "complete" | "failed";
 
@@ -45,12 +46,26 @@ function touch(
     status: LogoJobStatus;
     error: string | null;
     discarded: number;
+    checkpoint: string | null;
   }>
 ) {
   db.update(logo_jobs)
     .set({ ...patch, updated_at: new Date() })
     .where(eq(logo_jobs.id, id))
     .run();
+}
+
+function readCheckpoint(raw: string | null): LogoCheckpoint | null {
+  const parsed = parseStoredJson<LogoCheckpoint | null>(raw);
+  if (!parsed || !Array.isArray(parsed.candidates) || parsed.candidates.length === 0) return null;
+  return {
+    candidates: parsed.candidates,
+    usedModel: parsed.usedModel ?? "",
+    usedEngine: parsed.usedEngine ?? "",
+    genText: parsed.genText ?? "",
+    judgeText: parsed.judgeText,
+    savedLabels: Array.isArray(parsed.savedLabels) ? parsed.savedLabels : [],
+  };
 }
 
 /**
@@ -76,6 +91,23 @@ export function startLogoJob(input: {
   if (active) {
     void runLogoJob(active.id);
     return rowToView(active);
+  }
+
+  // A failed job that already has model output should finish, not start over.
+  const interrupted = db
+    .select()
+    .from(logo_jobs)
+    .where(and(eq(logo_jobs.project_id, input.projectId), eq(logo_jobs.status, "failed")))
+    .orderBy(desc(logo_jobs.created_at))
+    .get();
+  if (
+    interrupted?.checkpoint &&
+    interrupted.error !== "Generation stopped." &&
+    (input.variationsOf ?? null) === (interrupted.source_asset_id ?? null)
+  ) {
+    touch(interrupted.id, { status: "queued", error: null });
+    void runLogoJob(interrupted.id);
+    return rowToView(db.select().from(logo_jobs).where(eq(logo_jobs.id, interrupted.id)).get()!);
   }
 
   const id = nanoid();
@@ -123,11 +155,17 @@ async function runLogoJob(jobId: string): Promise<void> {
       const result = await generateLogoCandidates(
         job.project_id,
         job.source_asset_id ?? undefined,
-        job.feedback ?? undefined
+        job.feedback ?? undefined,
+        {
+          resume: readCheckpoint(job.checkpoint),
+          onCheckpoint: (checkpoint) => {
+            touch(jobId, { checkpoint: JSON.stringify(checkpoint) });
+          },
+        }
       );
       const latest = db.select().from(logo_jobs).where(eq(logo_jobs.id, jobId)).get();
       if (latest?.status === "failed") return;
-      touch(jobId, { status: "complete", error: null, discarded: result.discarded });
+      touch(jobId, { status: "complete", error: null, discarded: result.discarded, checkpoint: null });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Logo generation failed";
       const stopped = e instanceof Error && (e.name === "LogoGenerationCancelled" || message === "Generation stopped.");
@@ -144,7 +182,7 @@ async function runLogoJob(jobId: string): Promise<void> {
   return run;
 }
 
-/** After a restart, a queued or running logo job is no longer in memory. Keep any logos already saved. */
+/** After a restart, keep going on a logo job that was still queued or running. Saved marks stay. */
 export function reconcileOrphanLogoJobs(): number {
   let stuck: { id: string }[] = [];
   try {
@@ -159,13 +197,10 @@ export function reconcileOrphanLogoJobs(): number {
   let n = 0;
   for (const job of stuck) {
     if (activeRuns.has(job.id)) continue;
-    touch(job.id, {
-      status: "failed",
-      error:
-        "Interrupted by a restart. Logos already saved are still here — generate again to continue.",
-    });
+    touch(job.id, { status: "queued", error: null });
+    void runLogoJob(job.id);
     n++;
   }
-  if (n > 0) console.info(`[logo-jobs] reconciled ${n} orphan job(s)`);
+  if (n > 0) console.info(`[logo-jobs] resumed ${n} orphan job(s)`);
   return n;
 }
