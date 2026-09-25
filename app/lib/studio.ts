@@ -301,6 +301,16 @@ type GeneratedMark = {
   fonts?: string[];
 };
 
+/** Saved between model calls so a restart can finish the batch without redrawing it. */
+export type LogoCheckpoint = {
+  candidates: GeneratedMark[];
+  usedModel: string;
+  usedEngine: string;
+  genText: string;
+  judgeText?: string;
+  savedLabels: string[];
+};
+
 export type StudioGenerateResult = {
   assets: StudioAssetRow[];
   discarded: number;
@@ -335,12 +345,16 @@ export function cancelLogoGeneration(projectId: string): void {
 export async function generateLogoCandidates(
   projectId: string,
   variationsOf?: string,
-  feedback?: string
+  feedback?: string,
+  hooks?: {
+    resume?: LogoCheckpoint | null;
+    onCheckpoint?: (checkpoint: LogoCheckpoint) => void;
+  }
 ): Promise<StudioGenerateResult> {
   const runId = nextLogoRunId++;
   logoRunIds.set(projectId, runId);
   try {
-    return await generateLogoCandidatesInner(projectId, variationsOf, feedback, runId);
+    return await generateLogoCandidatesInner(projectId, variationsOf, feedback, runId, hooks);
   } finally {
     if (logoRunIds.get(projectId) === runId) logoRunIds.delete(projectId);
     cancelledLogoRunIds.delete(runId);
@@ -351,7 +365,11 @@ async function generateLogoCandidatesInner(
   projectId: string,
   variationsOf: string | undefined,
   feedback: string | undefined,
-  runId: number
+  runId: number,
+  hooks?: {
+    resume?: LogoCheckpoint | null;
+    onCheckpoint?: (checkpoint: LogoCheckpoint) => void;
+  }
 ): Promise<StudioGenerateResult> {
   const blocked = studioBlockedReason(projectId, "logo");
   if (blocked) throw new Error(blocked);
@@ -442,11 +460,13 @@ Return EXACTLY 3 candidates in order (wordmark, mark+word, integrated):
 
   // Prefer a full set of 3 usable, structurally diverse marks; retry if short or samey.
   // Track the *actual* engine/model (OpenAI or Gemini fallback) for provenance.
-  let candidates: GeneratedMark[] = [];
-  let genText = "";
-  let usedModel = model;
-  let usedEngine: string = "openai-direct";
+  const resumed = hooks?.resume?.candidates?.length ? hooks.resume : null;
+  let candidates: GeneratedMark[] = resumed?.candidates ?? [];
+  let genText = resumed?.genText ?? "";
+  let usedModel = resumed?.usedModel || model;
+  let usedEngine: string = resumed?.usedEngine || "openai-direct";
   const maxAttempts = base ? 2 : 3; // variations: fewer retries; fresh batch: allow diversity retry
+  if (!resumed) {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     throwIfLogoCancelled(runId);
     const needMore = candidates.length < 3;
@@ -479,7 +499,17 @@ Return EXACTLY 3 candidates in order (wordmark, mark+word, integrated):
       break;
     }
   }
+  }
   throwIfLogoCancelled(runId);
+  if (!resumed && candidates.length > 0) {
+    hooks?.onCheckpoint?.({
+      candidates,
+      usedModel,
+      usedEngine,
+      genText,
+      savedLabels: [],
+    });
+  }
   if (candidates.length === 0) throw new Error("Generation returned no usable candidates — try again.");
   if (candidates.length < 3) {
     console.warn(`[studio] logo generation returned ${candidates.length}/3 candidates after retry`);
@@ -492,7 +522,8 @@ Return EXACTLY 3 candidates in order (wordmark, mark+word, integrated):
   }
 
   // Provenance, same ledger as strategy drafts — store actual model + engine.
-  db.insert(ai_generations)
+  // A resumed batch already wrote this row the first time the model answered.
+  if (!resumed) db.insert(ai_generations)
     .values({
       id: nanoid(),
       project_id: projectId,
@@ -505,6 +536,8 @@ Return EXACTLY 3 candidates in order (wordmark, mark+word, integrated):
     .run();
 
   throwIfLogoCancelled(runId);
+
+  const savedLabels = new Set(hooks?.resume?.savedLabels ?? []);
 
   // Separate judge call so generation can't grade its own homework.
   const judgeSystem = `You are a skeptical design director reviewing wordmark candidates against a
@@ -524,15 +557,26 @@ Candidates:
 ${JSON.stringify(candidates.map((c) => ({ label: c.label, direction: c.direction, svg: c.svg })))}
 Return: {"scores":[{"label","criteria":[{"criterion","result","note"}],"verdict","summary"}]}`;
 
-  const judgeResult = await generateLogoText({
-    model,
-    maxTokens: 4096,
-    temperature: 0.3,
-    system: judgeSystem,
-    messages: [{ role: "user", content: judgeUser }],
-  });
-  throwIfLogoCancelled(runId);
-  const judgeText = judgeResult.text;
+  let judgeText = hooks?.resume?.judgeText ?? "";
+  if (!judgeText) {
+    const judgeResult = await generateLogoText({
+      model,
+      maxTokens: 4096,
+      temperature: 0.3,
+      system: judgeSystem,
+      messages: [{ role: "user", content: judgeUser }],
+    });
+    throwIfLogoCancelled(runId);
+    judgeText = judgeResult.text;
+    hooks?.onCheckpoint?.({
+      candidates,
+      usedModel,
+      usedEngine,
+      genText,
+      judgeText,
+      savedLabels: [...savedLabels],
+    });
+  }
   const judged = extractJson(judgeText) as {
     scores?: { label: string; criteria?: { criterion: string; result: string; note: string }[]; verdict?: string; summary?: string }[];
   };
@@ -540,6 +584,7 @@ Return: {"scores":[{"label","criteria":[{"criterion","result","note"}],"verdict"
   const rows: StudioAssetRow[] = [];
   let discarded = 0;
   for (const c of candidates) {
+    if (savedLabels.has(c.label)) continue;
     const score = (judged.scores ?? []).find((s) => s.label === c.label);
     const verdict = (["pass", "caveat", "fail"].includes(score?.verdict ?? "") ? score!.verdict : "caveat") as
       | "pass"
@@ -585,6 +630,15 @@ Return: {"scores":[{"label","criteria":[{"criterion","result","note"}],"verdict"
     });
     if (verdict === "fail") discarded++; // for UI: "critic flagged N" if we surface it
     rows.push(row);
+    savedLabels.add(c.label);
+    hooks?.onCheckpoint?.({
+      candidates,
+      usedModel,
+      usedEngine,
+      genText,
+      judgeText,
+      savedLabels: [...savedLabels],
+    });
   }
   return { assets: rows, discarded };
 }

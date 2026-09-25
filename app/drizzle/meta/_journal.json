@@ -134,6 +134,13 @@
       "when": 1787500000000,
       "tag": "0018_logo_jobs_and_logo_key",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1787600000000,
+      "tag": "0019_logo_job_checkpoint",
+      "breakpoints": true
     }
   ]
 }
